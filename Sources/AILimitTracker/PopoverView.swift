@@ -47,36 +47,7 @@ struct PopoverView: View {
         .onDisappear { shown = false }
     }
 
-    /// Popup penceresinin cam zeminini macOS çizer ve ölçeklenemez; boş camın önce görünmemesi için
-/// pencere her açılışta (içeriğin onAppear'ında) saydamdan kısa sürede belirir, içerik ise yayla büyür.
-private struct WindowFader: NSViewRepresentable {
-    let token: Int  // her açılışta artar
-
-    func makeNSView(context: Context) -> NSView { NSView() }
-
-    func updateNSView(_ nsView: NSView, context: Context) {
-        guard context.coordinator.lastToken != token else { return }
-        context.coordinator.lastToken = token
-        if let window = nsView.window { fade(window) } else {
-            // ilk açılışta görünüm pencereye bir sonraki turda bağlanır
-            DispatchQueue.main.async { if let window = nsView.window { fade(window) } }
-        }
-    }
-
-    private func fade(_ window: NSWindow) {
-        window.alphaValue = 0
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.18
-            ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            window.animator().alphaValue = 1
-        }
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator() }
-    final class Coordinator { var lastToken = -1 }
-}
-
-/// Yeni sürüm varsa kartlarla aynı rozet dilinde ince bir şerit
+    /// Yeni sürüm varsa kartlarla aynı rozet dilinde ince bir şerit
     private func updateBanner(_ release: UpdateChecker.Release) -> some View {
         HStack(spacing: 8) {
             Image(systemName: "sparkles").font(.system(size: 11, weight: .medium))
@@ -120,6 +91,35 @@ private struct WindowFader: NSViewRepresentable {
         .opacity(shown ? 1 : 0)
         .animation(.easeOut(duration: 0.3).delay(0.25), value: shown)
     }
+}
+
+/// Popup penceresinin cam zeminini macOS çizer ve ölçeklenemez; boş camın önce görünmemesi için
+/// pencere her açılışta (içeriğin onAppear'ında) saydamdan kısa sürede belirir, içerik ise yayla büyür.
+private struct WindowFader: NSViewRepresentable {
+    let token: Int  // her açılışta artar
+
+    func makeNSView(context: Context) -> NSView { NSView() }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        guard context.coordinator.lastToken != token else { return }
+        context.coordinator.lastToken = token
+        if let window = nsView.window { fade(window) } else {
+            // ilk açılışta görünüm pencereye bir sonraki turda bağlanır
+            DispatchQueue.main.async { if let window = nsView.window { fade(window) } }
+        }
+    }
+
+    private func fade(_ window: NSWindow) {
+        window.alphaValue = 0
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.18
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            window.animator().alphaValue = 1
+        }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+    final class Coordinator { var lastToken = -1 }
 }
 
 /// Kartlarla aynı rozet dili: gümüş zemin, ince #bbb çerçeve, #666 SF Pro

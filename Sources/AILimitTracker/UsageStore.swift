@@ -11,14 +11,15 @@ struct Limit: Identifiable {
 
 extension Limit {
     /// Pencere başından beri ortalama hızla devam edilirse dolmasına kalan süre.
-    /// Sıfırlanmadan önce dolmayacaksa ya da veri yetersizse (pencerenin ilk %5'i) nil.
+    /// Sadece belirgin şekilde erken dolacaksa (kalan sürenin %90'ından önce) döner; tam tempoda
+    /// giden limit için "dolar" uyarısı gürültü olur. Veri yetersizse (pencerenin ilk %5'i) nil.
     var timeToFull: TimeInterval? {
         guard let window, let resetsAt, percent > 0, percent < 100 else { return nil }
         let remaining = resetsAt.timeIntervalSinceNow
         let elapsed = window - remaining
         guard remaining > 0, elapsed > window * 0.05 else { return nil }
         let eta = (100 - percent) / (percent / elapsed)
-        return eta < remaining ? eta : nil
+        return eta < remaining * 0.9 ? eta : nil
     }
 }
 
