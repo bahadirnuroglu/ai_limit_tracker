@@ -1,0 +1,6 @@
+#!/bin/bash
+# Çalışan eski sürümü kapat, eski adlı kopyayı kaldır
+pkill -x AILimitTracker || true
+pkill -x ClaudeLimit || true
+rm -rf "/Applications/AILimit.app"
+exit 0

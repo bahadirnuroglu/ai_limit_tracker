@@ -1,0 +1,26 @@
+import SwiftUI
+
+@main
+struct AILimitTrackerApp: App {
+    @StateObject private var store = UsageStore()
+    @StateObject private var loginItem = LoginItem()  // ilk çalıştırmada açılışta başlatmayı açar
+    @StateObject private var updater = UpdateChecker()
+
+    private static let hotKey = HotKey { HotKey.toggleMenuBarWindow() }
+
+    init() {
+        // Dock ikonu yok, sadece menü çubuğu
+        NSApplication.shared.setActivationPolicy(.accessory)
+        Notifier.shared.setup()
+        _ = Self.hotKey
+    }
+
+    var body: some Scene {
+        MenuBarExtra {
+            PopoverView(store: store, loginItem: loginItem, updater: updater)
+        } label: {
+            Image(nsImage: store.menuIcon)
+        }
+        .menuBarExtraStyle(.window)
+    }
+}

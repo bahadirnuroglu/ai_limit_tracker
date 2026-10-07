@@ -1,0 +1,7 @@
+#!/bin/bash
+# Kurulumdan sonra uygulamayı oturumdaki kullanıcı olarak başlat
+USER_NAME=$(stat -f %Su /dev/console)
+if [ -n "$USER_NAME" ] && [ "$USER_NAME" != "root" ]; then
+    launchctl asuser "$(id -u "$USER_NAME")" sudo -u "$USER_NAME" open "/Applications/AI Limit Tracker.app" || true
+fi
+exit 0
