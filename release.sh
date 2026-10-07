@@ -11,7 +11,12 @@ cd "$(dirname "$0")"
 REPO=$(sed -n 's/.*static let repo = "\(.*\)".*/\1/p' Sources/AILimitTracker/UpdateChecker.swift)
 [ -n "$REPO" ] || { echo "UpdateChecker.swift içinde repo boş"; exit 1; }
 TOKEN=${GITHUB_TOKEN:-$(security find-generic-password -s ailimit-github -w 2>/dev/null || true)}
-[ -n "$TOKEN" ] || { echo "GitHub token yok (GITHUB_TOKEN ya da Anahtar Zinciri: ailimit-github)"; exit 1; }
+SAVE_HINT='Yeni fine-grained token (sadece bu depo, Contents: Read and write) oluştur ve kaydet:
+  read -rs "T?Token: " && security add-generic-password -U -a "$USER" -s ailimit-github -w "$T" && unset T'
+[ -n "$TOKEN" ] || { echo "GitHub token yok."; echo "$SAVE_HINT"; exit 1; }
+if [ "$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOKEN" https://api.github.com/user)" != "200" ]; then
+    echo "GitHub token geçersiz ya da süresi dolmuş."; echo "$SAVE_HINT"; exit 1
+fi
 
 VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Info.plist)
 DMG="dist/AI-Limit-Tracker-$VERSION.dmg"
