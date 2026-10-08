@@ -3,6 +3,44 @@ import UserNotifications
 
 /// macOS bildirimleri: limit %75 / %90'ı geçince bir kez haber verir; yüksek kullanılan limit
 /// sıfırlanınca "yenilendi" bildirimi (sıfırlanma anına zamanlanır, uygulama yenilemesini beklemez).
+/// Kullanıcının seçtiği bildirim türleri (kurulumda ve Ayarlar → Bildirimler'de; varsayılan hepsi açık)
+enum NotificationPrefs {
+    enum Kind: String, CaseIterable, Identifiable {
+        case at75 = "notify.75", at90 = "notify.90", reset = "notify.reset"
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .at75: return "Limitin %75'ine ulaşınca"
+            case .at90: return "Limitin %90'ına ulaşınca"
+            case .reset: return "Limit yenilenince"
+            }
+        }
+
+        var detail: String {
+            switch self {
+            case .at75: return "Hızını ayarlaman için erken uyarı"
+            case .at90: return "Limite çok yaklaştığında"
+            case .reset: return "Yüksek kullandığın limit sıfırlanınca, devam edebileceğini bildirir"
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .at75: return "gauge.with.dots.needle.67percent"
+            case .at90: return "exclamationmark.triangle.fill"
+            case .reset: return "arrow.counterclockwise.circle.fill"
+            }
+        }
+    }
+
+    static func isOn(_ kind: Kind) -> Bool {
+        UserDefaults.standard.object(forKey: kind.rawValue) as? Bool ?? true
+    }
+
+    static func set(_ kind: Kind, _ on: Bool) { UserDefaults.standard.set(on, forKey: kind.rawValue) }
+}
+
 @MainActor
 final class Notifier: NSObject, UNUserNotificationCenterDelegate {
     static let shared = Notifier()
@@ -44,6 +82,8 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
             return
         }
         defaults.set("\(window):\(level)", forKey: key)
+        // Kapalı türün bildirimi gönderilmez; eşik yine kaydedilir ki açınca eskiler birden gelmesin
+        guard NotificationPrefs.isOn(level == 90 ? .at90 : .at75) else { return }
 
         var body = level == 90 ? "Limite çok yaklaştın." : "Limitin dörtte üçünü kullandın."
         if let reset = limit.resetsAt { body += " \(Countdown.text(to: reset)) sonra sıfırlanır." }
@@ -52,7 +92,7 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
 
     private func scheduleReset(provider: String, limit: Limit) {
         let id = "reset.\(limit.id)"
-        guard limit.percent >= 75, let reset = limit.resetsAt, reset.timeIntervalSinceNow > 0 else {
+        guard NotificationPrefs.isOn(.reset), limit.percent >= 75, let reset = limit.resetsAt, reset.timeIntervalSinceNow > 0 else {
             center.removePendingNotificationRequests(withIdentifiers: [id])
             return
         }

@@ -1,35 +1,62 @@
 import AppKit
 import SwiftUI
 
-/// İlk kurulum ve Ayarlar penceresi. Menü çubuğu popup'ı odak kaybedince kapandığı için
-/// (tarayıcıda giriş, macOS izin sorusu) kurulum ayrı, yerinde kalan bir pencerededir.
+/// İlk kurulum asistanı ve Ayarlar penceresi. Menü çubuğu popup'ı odak kaybedince kapandığı için
+/// (tarayıcıda giriş, macOS izin sorusu) ikisi de yerinde kalan ayrı pencerelerdir.
+/// Sistem bileşenleri (Form, Toggle, borderedProminent) kullanılır; açık/koyu temaya uyar.
 @MainActor
 enum Onboarding {
     static let doneKey = "onboardingDone"
 
-    private static var window: NSWindow?
+    private static var setupWindow: NSWindow?
+    private static var settingsWindow: NSWindow?
 
     static var isDone: Bool { UserDefaults.standard.bool(forKey: doneKey) }
 
-    /// İlk kurulum (5 adım) ya da `settings: true` ile doğrudan Sağlayıcılar sayfası
+    /// İlk kurulum. `settings: true` ile Ayarlar penceresini açar.
     static func show(store: UsageStore, loginItem: LoginItem, settings: Bool = false) {
-        let root = SetupView(store: store, loginItem: loginItem, startInSettings: settings) { close() }
-        if let window {
-            window.contentView = NSHostingView(rootView: root)
-        } else {
-            let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 460, height: 560),
-                             styleMask: [.titled, .closable], backing: .buffered, defer: false)
-            w.isReleasedWhenClosed = false
-            w.contentView = NSHostingView(rootView: root)
-            w.center()
-            window = w
-        }
-        window?.title = settings ? "AI Limit Tracker · Ayarlar" : "AI Limit Tracker'a hoş geldin"
-        NSApp.activate(ignoringOtherApps: true)
-        window?.makeKeyAndOrderFront(nil)
+        settings ? showSettings(store: store, loginItem: loginItem) : showSetup(store: store, loginItem: loginItem)
     }
 
-    static func close() { window?.close() }
+    private static func showSetup(store: UsageStore, loginItem: LoginItem) {
+        let root = SetupAssistant(store: store, loginItem: loginItem) { setupWindow?.close() }
+        let w = setupWindow ?? {
+            // Başlık çubuğu içerikle bütünleşik, başlık gizli: Apple kurulum asistanları gibi
+            let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 540, height: 620),
+                             styleMask: [.titled, .closable, .fullSizeContentView], backing: .buffered, defer: false)
+            w.titlebarAppearsTransparent = true
+            w.titleVisibility = .hidden
+            w.isMovableByWindowBackground = true
+            w.isReleasedWhenClosed = false
+            w.title = "AI Limit Tracker"
+            return w
+        }()
+        w.contentView = NSHostingView(rootView: root)
+        w.center()
+        setupWindow = w
+        settingsWindow?.close()
+        NSApp.activate(ignoringOtherApps: true)
+        w.makeKeyAndOrderFront(nil)
+    }
+
+    private static func showSettings(store: UsageStore, loginItem: LoginItem) {
+        let root = SettingsView(store: store, loginItem: loginItem) {
+            UserDefaults.standard.set(false, forKey: doneKey)
+            showSetup(store: store, loginItem: loginItem)
+        }
+        let w = settingsWindow ?? {
+            let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 540, height: 440),
+                             styleMask: [.titled, .closable], backing: .buffered, defer: false)
+            w.isReleasedWhenClosed = false
+            w.title = "AI Limit Tracker Ayarları"
+            w.center()
+            return w
+        }()
+        w.contentView = NSHostingView(rootView: root)
+        settingsWindow = w
+        NSApp.activate(ignoringOtherApps: true)
+        w.makeKeyAndOrderFront(nil)
+    }
 }
 
 // MARK: - Codex CLI yardımcıları
@@ -53,6 +80,8 @@ enum CodexCLI {
         await Task.detached { shell("codex login") == 0 }.value
     }
 
+    static let installCommand = "npm i -g @openai/codex && codex login"
+
     private static func shell(_ command: String) -> Int32 {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/bin/zsh")
@@ -65,220 +94,408 @@ enum CodexCLI {
     }
 }
 
-// MARK: - Görünümler
+// MARK: - Kurulum asistanı
 
-private enum Step: Int, CaseIterable { case welcome, select, connect, permissions, done }
+private enum Step: Int, CaseIterable { case welcome, tools, connect, notifications, general, done }
 
-private struct SetupView: View {
+private struct SetupAssistant: View {
     @ObservedObject var store: UsageStore
     @ObservedObject var loginItem: LoginItem
-    let startInSettings: Bool
     let close: () -> Void
 
     @State private var step: Step = .welcome
-    @State private var selection: Set<ProviderID> = []
-    @State private var skipped: Set<ProviderID> = []
-    @State private var notificationsOn = false
+    @State private var forward = true
+    @State private var selection: Set<ProviderID> = Set(ProviderID.allCases.filter(\.isDetected))
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Group {
-                if startInSettings { settings } else { wizard }
+        VStack(spacing: 0) {
+            ZStack {
+                page
+                    .id(step)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: forward ? .trailing : .leading).combined(with: .opacity),
+                        removal: .move(edge: forward ? .leading : .trailing).combined(with: .opacity)))
             }
-            .padding(22)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        }
-        .frame(width: 460, height: 560)
-        .background(Color(white: 0.93))
-        .environment(\.colorScheme, .light)
-        .foregroundStyle(Color(white: 0.2))
-        .onAppear {
-            selection = Set(ProviderID.allCases.filter(\.isDetected))
-            Task { notificationsOn = await Notifier.shared.isAuthorized() }
-        }
-    }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .clipped()
 
-    // MARK: Kurulum sihirbazı
-
-    @ViewBuilder private var wizard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            switch step {
-            case .welcome: welcome
-            case .select: select
-            case .connect: connect
-            case .permissions: permissions
-            case .done: done
-            }
-            Spacer(minLength: 0)
-            HStack {
+            Divider()
+            HStack(spacing: 10) {
                 if step != .welcome && step != .done {
-                    Button("Geri") { step = Step(rawValue: step.rawValue - 1)! }.buttonStyle(SecondaryButton())
+                    Button("Geri") { go(-1) }
+                        .keyboardShortcut(.cancelAction)
+                        .controlSize(.large)
                 }
                 Spacer()
-                HStack(spacing: 6) {
-                    ForEach(Step.allCases, id: \.self) { s in
-                        Circle().fill(s == step ? Color.accentBlue : Color(white: 0.78)).frame(width: 7, height: 7)
-                    }
-                }
-                Spacer()
-                primaryButton
+                footerNote
+                Button(primaryTitle) { primary() }
+                    .keyboardShortcut(.defaultAction)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .disabled(step == .tools && selection.isEmpty)
             }
+            .padding(.horizontal, 24).padding(.vertical, 16)
         }
+        .frame(width: 540, height: 620)
+        .background(Color(nsColor: .windowBackgroundColor))
     }
 
-    @ViewBuilder private var primaryButton: some View {
+    @ViewBuilder private var page: some View {
         switch step {
-        case .welcome:
-            Button("Başla") { step = .select }.buttonStyle(PrimaryButton())
-        case .select:
-            Button("Devam (\(selection.count))") {
-                for id in ProviderID.allCases { store.setEnabled(id, selection.contains(id)) }
-                step = .connect
+        case .welcome: WelcomePage()
+        case .tools: ToolsPage(selection: $selection)
+        case .connect: ConnectPage(store: store)
+        case .notifications: NotificationsPage()
+        case .general: GeneralPage(loginItem: loginItem)
+        case .done: DonePage(store: store)
+        }
+    }
+
+    private var primaryTitle: String {
+        switch step {
+        case .welcome: return "Başla"
+        case .done: return "Popup'ı Göster"
+        default: return "Devam"
+        }
+    }
+
+    @ViewBuilder private var footerNote: some View {
+        if step == .connect {
+            let waiting = store.enabled.filter { !store[$0].isConnected }.count
+            if waiting > 0 {
+                Text("\(waiting) sağlayıcı bağlı değil · sonra da bağlayabilirsin")
+                    .font(.callout).foregroundStyle(.secondary)
             }
-            .buttonStyle(PrimaryButton()).disabled(selection.isEmpty)
-        case .connect:
-            let waiting = store.enabled.filter { !isConnected($0) && !skipped.contains($0) }.count
-            Button(waiting > 0 ? "Devam (\(waiting) bekliyor)" : "Devam") { step = .permissions }.buttonStyle(PrimaryButton())
-        case .permissions:
-            Button("Bitir") {
-                UserDefaults.standard.set(true, forKey: Onboarding.doneKey)
-                step = .done
-            }.buttonStyle(PrimaryButton())
+        }
+    }
+
+    private func primary() {
+        switch step {
+        case .tools:
+            for id in ProviderID.allCases { store.setEnabled(id, selection.contains(id)) }
+            go(1)
+        case .general:
+            UserDefaults.standard.set(true, forKey: Onboarding.doneKey)
+            go(1)
         case .done:
-            Button("Popup'ı göster") {
-                close()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { HotKey.toggleMenuBarWindow() }
-            }.buttonStyle(PrimaryButton())
+            close()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { HotKey.toggleMenuBarWindow() }
+        default:
+            go(1)
         }
     }
 
-    private var welcome: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 64, height: 64)
-            Text("Limitlerine takılmadan çalış").font(.system(size: 20, weight: .bold))
-            Text("AI Limit Tracker, Claude, Codex, Cursor ve Antigravity kullanımını menü çubuğunda tek bakışta gösterir. Limite yaklaşınca ve limit yenilenince haber verir.")
-                .font(.system(size: 13)).foregroundStyle(Color(white: 0.4))
-            Note(text: "Veriler sadece bağladığın hizmetlere (claude.ai, chatgpt.com, cursor.com) ve bu Mac'teki uygulamalara gider. Başka hiçbir sunucuya gönderilmez.")
+    private func go(_ delta: Int) {
+        guard let next = Step(rawValue: step.rawValue + delta) else { return }
+        forward = delta > 0
+        withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) { step = next }
+    }
+}
+
+/// Sayfa başlığı: büyük simge, başlık, açıklama (ortalı)
+private struct PageHeader<Icon: View>: View {
+    let title: String
+    let subtitle: String
+    @ViewBuilder var icon: Icon
+
+    var body: some View {
+        VStack(spacing: 10) {
+            icon
+            Text(title).font(.system(size: 26, weight: .bold)).multilineTextAlignment(.center)
+            Text(subtitle).font(.system(size: 13)).foregroundStyle(.secondary)
+                .multilineTextAlignment(.center).frame(maxWidth: 400)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.top, 44)
+        .padding(.horizontal, 32)
+    }
+}
+
+/// Renkli yuvarlak kare içinde SF Symbol (Apple kurulum ekranlarındaki gibi)
+private struct SymbolTile: View {
+    let symbol: String
+    let color: Color
+    var size: CGFloat = 52
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: size * 0.46, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: size, height: size)
+            .background(color.gradient, in: RoundedRectangle(cornerRadius: size * 0.24, style: .continuous))
+    }
+}
+
+private struct WelcomePage: View {
+    var body: some View {
+        VStack(spacing: 28) {
+            PageHeader(title: "AI Limit Tracker'a Hoş Geldin",
+                       subtitle: "Claude, Codex, Cursor ve Antigravity limitlerini menü çubuğunda tek bakışta gör.") {
+                Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 96, height: 96)
+                    .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
+            }
+            VStack(alignment: .leading, spacing: 18) {
+                feature("gauge.with.dots.needle.50percent", .orange, "Tüm limitler tek yerde",
+                        "5 saatlik ve haftalık pencereler, sıfırlanmaya kalan süre ve bu tempoyla ne zaman dolacağı.")
+                feature("bell.badge.fill", .red, "Limite takılmadan haber al",
+                        "Limite yaklaşınca ve limit yenilenince bildirim; hangilerini alacağını sen seçersin.")
+                feature("lock.fill", .blue, "Verilerin sende kalır",
+                        "Sadece bağladığın hizmetlerle ve bu Mac'teki uygulamalarla konuşur, başka sunucuya veri göndermez.")
+            }
+            .frame(maxWidth: 400)
+            Spacer()
         }
     }
 
-    private var select: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Header(title: "Hangi araçları kullanıyorsun?",
-                   text: "Bu Mac'te bulduklarımızı işaretledik. İstediğini ekle ya da çıkar; sonradan Ayarlar'dan değiştirebilirsin.")
-            ForEach(ProviderID.allCases) { id in
-                RowCard {
-                    Logo(id: id)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(id.name).font(.system(size: 13, weight: .semibold))
-                        Text(detectText(id)).font(.system(size: 11)).foregroundStyle(Color(white: 0.45))
-                    }
-                    Spacer()
-                    Toggle("", isOn: Binding(get: { selection.contains(id) },
-                                             set: { if $0 { selection.insert(id) } else { selection.remove(id) } }))
-                        .toggleStyle(.checkbox).labelsHidden()
-                }
+    private func feature(_ symbol: String, _ color: Color, _ title: String, _ text: String) -> some View {
+        HStack(alignment: .top, spacing: 14) {
+            SymbolTile(symbol: symbol, color: color, size: 36)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.system(size: 13, weight: .semibold))
+                Text(text).font(.system(size: 12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
         }
     }
+}
 
-    private var connect: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Header(title: "Hesaplarını bağla",
-                   text: "Her satır kendi düğmesiyle bağlanır. Atladıklarını sonra popup'tan ya da Ayarlar'dan bağlayabilirsin.")
-            ScrollView {
-                VStack(spacing: 8) {
-                    ForEach(store.enabled) { id in
-                        ConnectRow(id: id, store: store, skipped: skipped.contains(id)) { skipped.insert(id) }
-                    }
-                }
+private struct ToolsPage: View {
+    @Binding var selection: Set<ProviderID>
+
+    var body: some View {
+        VStack(spacing: 8) {
+            PageHeader(title: "Hangi araçları kullanıyorsun?",
+                       subtitle: "Bu Mac'te bulduklarımızı açtık. Sonradan Ayarlar'dan değiştirebilirsin.") {
+                SymbolTile(symbol: "square.stack.3d.up.fill", color: .indigo)
             }
-        }
-    }
-
-    private var permissions: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Header(title: "Son ayarlar", text: "Limite yaklaşınca haber vermemiz için bildirim izni gerekiyor.")
-            RowCard {
-                Image(systemName: "bell.badge").frame(width: 22)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Bildirimler").font(.system(size: 13, weight: .semibold))
-                    Text("%75, %90 ve limit yenilenince").font(.system(size: 11)).foregroundStyle(Color(white: 0.45))
-                }
-                Spacer()
-                if notificationsOn {
-                    Status(text: "Açık", color: .okGreen)
-                } else {
-                    Button("İzin ver") {
-                        Notifier.shared.requestPermission { granted in
-                            Task { @MainActor in notificationsOn = granted }
-                        }
-                    }.buttonStyle(PrimaryButton())
-                }
-            }
-            RowCard {
-                Image(systemName: "power").frame(width: 22)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Mac açılınca başlat").font(.system(size: 13, weight: .semibold))
-                    Text("Önerilir").font(.system(size: 11)).foregroundStyle(Color(white: 0.45))
-                }
-                Spacer()
-                Toggle("", isOn: Binding(get: { loginItem.enabled }, set: { if $0 != loginItem.enabled { loginItem.toggle() } }))
-                    .toggleStyle(.switch).labelsHidden().controlSize(.small)
-            }
-            RowCard {
-                Image(systemName: "command").frame(width: 22)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Kısayol").font(.system(size: 13, weight: .semibold))
-                    Text("\(HotKey.display) ile her yerden aç").font(.system(size: 11)).foregroundStyle(Color(white: 0.45))
-                }
-                Spacer()
-                Status(text: "Hazır", color: .okGreen)
-            }
-        }
-    }
-
-    private var done: some View {
-        let connected = store.enabled.filter(isConnected).count
-        return VStack(alignment: .leading, spacing: 12) {
-            Image(systemName: "checkmark.circle.fill").font(.system(size: 44)).foregroundStyle(Color.okGreen)
-            Text("Her şey hazır").font(.system(size: 20, weight: .bold))
-            Text("\(connected) sağlayıcı bağlı. AI Limit Tracker artık menü çubuğunda, sağ üstte halka ikonuyla duruyor. Popup'ı açmak için ikona tıkla ya da \(HotKey.display)'ye bas.")
-                .font(.system(size: 13)).foregroundStyle(Color(white: 0.4))
-            Note(text: "Bağlanmayan sağlayıcılar popup'ta \"Bağlan\" ipucuyla görünür. Sağlayıcıları sonradan alt şeritteki dişli simgesinden değiştirebilirsin.")
-        }
-    }
-
-    // MARK: Ayarlar
-
-    private var settings: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Header(title: "Sağlayıcılar", text: "Popup'ta hangi araçların görüneceğini seç ve bağlantılarını yönet.")
-            ScrollView {
-                VStack(spacing: 8) {
+            Form {
+                Section {
                     ForEach(ProviderID.allCases) { id in
-                        ConnectRow(id: id, store: store, skipped: false, toggle: Binding(
-                            get: { store.enabledSet.contains(id) }, set: { store.setEnabled(id, $0) }))
+                        Toggle(isOn: Binding(get: { selection.contains(id) },
+                                             set: { if $0 { selection.insert(id) } else { selection.remove(id) } })) {
+                            ProviderLabel(id: id, detail: id.detectionText)
+                        }
+                        .toggleStyle(.switch)
                     }
                 }
             }
-            Divider().padding(.vertical, 4)
-            HStack {
+            .formStyle(.grouped)
+            .scrollDisabled(true)
+        }
+    }
+}
+
+private struct ConnectPage: View {
+    @ObservedObject var store: UsageStore
+
+    var body: some View {
+        VStack(spacing: 8) {
+            PageHeader(title: "Hesaplarını bağla",
+                       subtitle: "Çoğu araç kendi oturumundan okunur, şifre gerekmez. Bağlanmayanları popup'tan sonra da bağlayabilirsin.") {
+                SymbolTile(symbol: "link", color: .blue)
+            }
+            Form {
+                Section {
+                    ForEach(store.enabled) { id in ConnectRow(id: id, store: store) }
+                }
+            }
+            .formStyle(.grouped)
+        }
+    }
+}
+
+private struct NotificationsPage: View {
+    @State private var authorized: Bool?
+    @State private var prefs = Dictionary(uniqueKeysWithValues: NotificationPrefs.Kind.allCases.map { ($0, NotificationPrefs.isOn($0)) })
+
+    var body: some View {
+        VStack(spacing: 8) {
+            PageHeader(title: "Bildirimler",
+                       subtitle: "Hangi anlarda haber vermemizi istediğini seç. Hiçbiri gürültü yapmaz: her eşik, her pencerede bir kez gelir.") {
+                SymbolTile(symbol: "bell.badge.fill", color: .red)
+            }
+            Form {
+                Section {
+                    HStack {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Bildirim izni")
+                                Text(authorized == true ? "macOS bildirimlerine izin verildi." : "Bildirimlerin gelmesi için macOS izni gerekiyor.")
+                                    .font(.callout).foregroundStyle(.secondary)
+                            }
+                        } icon: { Image(systemName: "app.badge") }
+                        Spacer()
+                        if authorized == true {
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).font(.title3)
+                        } else {
+                            Button("İzin Ver") {
+                                Notifier.shared.requestPermission { granted in Task { @MainActor in authorized = granted } }
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+                    }
+                }
+                Section("Haber ver") {
+                    NotificationToggles(prefs: $prefs)
+                }
+            }
+            .formStyle(.grouped)
+            .scrollDisabled(true)
+        }
+        .task { authorized = await Notifier.shared.isAuthorized() }
+    }
+}
+
+private struct NotificationToggles: View {
+    @Binding var prefs: [NotificationPrefs.Kind: Bool]
+
+    var body: some View {
+        ForEach(NotificationPrefs.Kind.allCases) { kind in
+            Toggle(isOn: Binding(get: { prefs[kind] ?? true },
+                                 set: { prefs[kind] = $0; NotificationPrefs.set(kind, $0) })) {
+                Label {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(kind.title)
+                        Text(kind.detail).font(.callout).foregroundStyle(.secondary)
+                    }
+                } icon: { Image(systemName: kind.symbol) }
+            }
+            .toggleStyle(.switch)
+        }
+    }
+}
+
+private struct GeneralPage: View {
+    @ObservedObject var loginItem: LoginItem
+
+    var body: some View {
+        VStack(spacing: 8) {
+            PageHeader(title: "Her zaman elinin altında",
+                       subtitle: "Mac açılınca kendiliğinden başlasın, istediğin yerden bir kısayolla açılsın.") {
+                SymbolTile(symbol: "menubar.arrow.up.rectangle", color: .teal)
+            }
+            Form {
+                Section {
+                    Toggle(isOn: Binding(get: { loginItem.enabled }, set: { if $0 != loginItem.enabled { loginItem.toggle() } })) {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Mac açılınca başlat")
+                                Text("Önerilir; limitlerini her zaman menü çubuğunda görürsün.").font(.callout).foregroundStyle(.secondary)
+                            }
+                        } icon: { Image(systemName: "power") }
+                    }
+                    .toggleStyle(.switch)
+                    HStack {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Kısayol")
+                                Text("Popup'ı her uygulamadan açar ve kapatır.").font(.callout).foregroundStyle(.secondary)
+                            }
+                        } icon: { Image(systemName: "command") }
+                        Spacer()
+                        KeyCaps(keys: ["⌃", "⌥", "L"])
+                    }
+                }
+            }
+            .formStyle(.grouped)
+            .scrollDisabled(true)
+        }
+    }
+}
+
+private struct DonePage: View {
+    @ObservedObject var store: UsageStore
+    @State private var bounce = 0
+
+    var body: some View {
+        let connected = store.enabled.filter { store[$0].isConnected }.count
+        VStack(spacing: 22) {
+            PageHeader(title: "Hazırsın",
+                       subtitle: "\(connected) sağlayıcı bağlı. AI Limit Tracker menü çubuğunun sağ üstünde, halka simgesiyle duruyor.") {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 64))
+                    .foregroundStyle(.green)
+                    .symbolEffect(.bounce, value: bounce)
+            }
+            // Menü çubuğunda nerede durduğunu gösteren küçük çizim
+            HStack(spacing: 14) {
+                Spacer()
+                Image(systemName: "wifi").foregroundStyle(.secondary)
+                Image(systemName: "battery.75percent").foregroundStyle(.secondary)
+                Image(nsImage: store.menuIcon)
+                    .padding(5)
+                    .background(Color.accentColor.opacity(0.18), in: RoundedRectangle(cornerRadius: 6))
+                Text("Çar 17:54").font(.system(size: 12, weight: .medium))
+            }
+            .padding(.horizontal, 14).frame(height: 32)
+            .background(.bar, in: RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
+            .frame(maxWidth: 360)
+            HStack(spacing: 6) {
+                Text("Ya da her yerden").foregroundStyle(.secondary)
+                KeyCaps(keys: ["⌃", "⌥", "L"])
+            }
+            .font(.callout)
+            Spacer()
+        }
+        .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { bounce += 1 } }
+    }
+}
+
+// MARK: - Ayarlar
+
+private struct SettingsView: View {
+    @ObservedObject var store: UsageStore
+    @ObservedObject var loginItem: LoginItem
+    let restartSetup: () -> Void
+
+    var body: some View {
+        TabView {
+            providers.tabItem { Label("Sağlayıcılar", systemImage: "square.stack.3d.up") }
+            notifications.tabItem { Label("Bildirimler", systemImage: "bell.badge") }
+            general.tabItem { Label("Genel", systemImage: "gearshape") }
+        }
+        .frame(width: 540, height: 440)
+    }
+
+    private var providers: some View {
+        Form {
+            Section {
+                ForEach(ProviderID.allCases) { id in
+                    ConnectRow(id: id, store: store, toggle: Binding(
+                        get: { store.enabledSet.contains(id) }, set: { store.setEnabled(id, $0) }))
+                }
+            } footer: {
+                Text("Kapalı sağlayıcılar popup'ta ve menü çubuğu simgesinde gösterilmez.")
+                    .font(.callout).foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private var notifications: some View {
+        NotificationsSettings()
+    }
+
+    private var general: some View {
+        Form {
+            Section {
                 Toggle("Mac açılınca başlat", isOn: Binding(get: { loginItem.enabled },
                                                            set: { if $0 != loginItem.enabled { loginItem.toggle() } }))
-                    .toggleStyle(.checkbox).font(.system(size: 12))
-                Spacer()
-                Button("Tanılama bilgisini kopyala") { copyDiagnostics() }.buttonStyle(SecondaryButton())
+                LabeledContent("Kısayol") { KeyCaps(keys: ["⌃", "⌥", "L"]) }
             }
-            HStack {
-                Text("Kısayol: \(HotKey.display)").font(.system(size: 11)).foregroundStyle(Color(white: 0.45))
-                Spacer()
-                Button("Kurulumu baştan başlat") {
-                    UserDefaults.standard.set(false, forKey: Onboarding.doneKey)
-                    Onboarding.show(store: store, loginItem: loginItem)
-                }.buttonStyle(SecondaryButton())
+            Section {
+                LabeledContent("Sürüm", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?")
+                HStack {
+                    Button("Tanılama Bilgisini Kopyala") { copyDiagnostics() }
+                    Spacer()
+                    Button("Kurulumu Yeniden Başlat", action: restartSetup)
+                }
+            } footer: {
+                Text("Tanılama bilgisi sürüm, macOS ve her sağlayıcının durumunu içerir; token ya da hesap bilgisi içermez.")
+                    .font(.callout).foregroundStyle(.secondary)
             }
         }
+        .formStyle(.grouped)
     }
 
     /// Sorun bildirmek için: sürüm, macOS ve her sağlayıcının durumu (token ya da hesap bilgisi yok)
@@ -292,78 +509,84 @@ private struct SetupView: View {
                          + "veri=[\(limits)] · ipucu=\(u.issue?.text ?? "-")")
         }
         lines.append("Claude Code oturumu: \(ClaudeCodeAuth.isAvailable) · Codex girişi: \(CodexCLI.isLoggedIn)")
+        lines.append("Bildirimler: " + NotificationPrefs.Kind.allCases.map { "\($0.rawValue)=\(NotificationPrefs.isOn($0))" }.joined(separator: " "))
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(lines.joined(separator: "\n"), forType: .string)
     }
+}
 
-    private func isConnected(_ id: ProviderID) -> Bool {
-        !store[id].limits.isEmpty && store[id].issue == nil
-    }
+private struct NotificationsSettings: View {
+    @State private var authorized: Bool?
+    @State private var prefs = Dictionary(uniqueKeysWithValues: NotificationPrefs.Kind.allCases.map { ($0, NotificationPrefs.isOn($0)) })
 
-    private func detectText(_ id: ProviderID) -> String {
-        switch id {
-        case .claude: return ClaudeCodeAuth.isAvailable ? "Claude Code bulundu" : "claude.ai ile giriş yapılır"
-        case .codex: return CodexCLI.isLoggedIn ? "Codex CLI girişi bulundu" : "Codex CLI ile bağlanır"
-        case .cursor: return CursorProvider.isInstalled ? "Cursor bulundu" : "Bu Mac'te kurulu değil"
-        case .antigravity: return AntigravityProvider.isInstalled ? "Antigravity bulundu" : "Bu Mac'te kurulu değil"
+    var body: some View {
+        Form {
+            if authorized == false {
+                Section {
+                    HStack {
+                        Text("Bildirimlere izin verilmemiş.").foregroundStyle(.secondary)
+                        Spacer()
+                        Button("İzin Ver") {
+                            Notifier.shared.requestPermission { granted in
+                                Task { @MainActor in
+                                    authorized = granted
+                                    // Daha önce reddedildiyse macOS tekrar sormaz: Sistem Ayarları'na götür
+                                    if !granted, let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension") {
+                                        NSWorkspace.shared.open(url)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Section("Haber ver") { NotificationToggles(prefs: $prefs) }
         }
+        .formStyle(.grouped)
+        .task { authorized = await Notifier.shared.isAuthorized() }
     }
 }
 
-/// Bir sağlayıcının bağlantı satırı: durum + tek eylem. Kurulumda ve Ayarlar'da ortak.
+// MARK: - Bağlantı satırı (kurulum ve Ayarlar ortak)
+
 private struct ConnectRow: View {
     let id: ProviderID
     @ObservedObject var store: UsageStore
-    let skipped: Bool
     var toggle: Binding<Bool>? = nil
-    var onSkip: (() -> Void)? = nil
 
     @State private var busy = false
     @State private var codexInstalled: Bool?
     @State private var showCodexHelp = false
 
-    init(id: ProviderID, store: UsageStore, skipped: Bool, toggle: Binding<Bool>? = nil, onSkip: (() -> Void)? = nil) {
-        self.id = id; self.store = store; self.skipped = skipped; self.toggle = toggle; self.onSkip = onSkip
-    }
-
     private var usage: ProviderUsage { store[id] }
-    private var connected: Bool { !usage.limits.isEmpty && usage.issue == nil }
     private var enabled: Bool { toggle?.wrappedValue ?? true }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            RowCard {
-                Logo(id: id)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(id.name).font(.system(size: 13, weight: .semibold))
-                    Text(detail).font(.system(size: 11)).foregroundStyle(Color(white: 0.45))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: 6)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                ProviderLabel(id: id, detail: detail)
+                Spacer(minLength: 8)
                 if enabled { trailing }
-                if let toggle { Toggle("", isOn: toggle).toggleStyle(.switch).labelsHidden().controlSize(.small) }
+                if let toggle { Toggle("", isOn: toggle).toggleStyle(.switch).labelsHidden() }
             }
-            .opacity(skipped ? 0.55 : 1)
-            if showCodexHelp { codexHelp }
-            if let onSkip, !connected, !skipped, !busy {
-                HStack { Spacer(); Button("Şimdilik atla", action: onSkip).buttonStyle(LinkButton()) }
-            }
+            if showCodexHelp && enabled { codexHelp }
         }
+        .animation(.easeInOut(duration: 0.2), value: showCodexHelp)
         .task { if id == .codex { codexInstalled = await CodexCLI.isInstalled() } }
     }
 
     private var detail: String {
         if !enabled { return "Popup'ta gösterilmiyor" }
-        if connected {
-            let first = usage.frontLimits.first.map { "\($0.short ?? $0.label) %\(Int($0.percent.rounded()))" } ?? ""
-            return [usage.plan, first].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
+        if usage.isConnected {
+            let first = usage.frontLimits.first.map { "\($0.short ?? $0.label) %\(Int($0.percent.rounded()))" }
+            return [usage.plan, first].compactMap { $0 }.joined(separator: " · ")
         }
         if let issue = usage.issue { return issue.text }
         switch id {
         case .claude:
             return ClaudeCodeAuth.isAvailable
-                ? "Claude Code oturumu kullanılacak. macOS bir kez izin isteyebilir; Her Zaman İzin Ver'i seç."
-                : "claude.ai hesabınla giriş yap. Google ile giriyorsan e-posta kodu seçeneğini kullan."
+                ? "Claude Code oturumu kullanılır. macOS bir kez izin isteyebilir; Her Zaman İzin Ver'i seç."
+                : "claude.ai hesabınla giriş yap. Google ile giriyorsan e-posta kodunu kullan."
         case .codex:
             if CodexCLI.isLoggedIn { return "Codex CLI girişi bulundu." }
             return codexInstalled == false ? "Codex CLI kurulu değil." : "Tarayıcıda Codex girişi açılır."
@@ -375,14 +598,13 @@ private struct ConnectRow: View {
     }
 
     @ViewBuilder private var trailing: some View {
-        if connected {
-            Status(text: "Bağlı", color: .okGreen)
+        if usage.isConnected {
+            Label("Bağlı", systemImage: "checkmark.circle.fill")
+                .labelStyle(.titleAndIcon).foregroundStyle(.green).font(.callout.weight(.medium))
         } else if busy || (usage.state == .loading && usage.issue == nil && store.isRefreshing) {
-            HStack(spacing: 5) { ProgressView().controlSize(.small); Text("Bekleniyor").font(.system(size: 11)) }
-        } else if skipped {
-            Status(text: "Atlandı", color: Color(white: 0.55))
+            ProgressView().controlSize(.small)
         } else if let (title, action) = primaryAction {
-            Button(title, action: action).buttonStyle(PrimaryButton())
+            Button(title, action: action).buttonStyle(.borderedProminent).controlSize(.small)
         }
     }
 
@@ -393,29 +615,25 @@ private struct ConnectRow: View {
         }
         switch id {
         case .claude:
-            if ClaudeCodeAuth.isAvailable { return ("İzin ver", { run { store.reload(.claude, allowPrompt: true) } }) }
-            return ("Giriş yap", { store.loginClaude() })
+            if ClaudeCodeAuth.isAvailable { return ("İzin Ver", { run { store.reload(.claude, allowPrompt: true) } }) }
+            return ("Giriş Yap", { store.loginClaude() })
         case .codex:
-            if CodexCLI.isLoggedIn { return ("Kontrol et", { run { store.reload(.codex) } }) }
-            if codexInstalled == false { return ("Nasıl kurulur?", { showCodexHelp.toggle() }) }
+            if CodexCLI.isLoggedIn { return ("Tekrar Dene", { run { store.reload(.codex) } }) }
+            if codexInstalled == false { return ("Nasıl Kurulur?", { showCodexHelp.toggle() }) }
             return ("Bağlan", {
                 busy = true
-                Task {
-                    _ = await CodexCLI.login()
-                    busy = false
-                    store.reload(.codex)
-                }
+                Task { _ = await CodexCLI.login(); busy = false; store.reload(.codex) }
             })
         case .cursor:
-            if CursorProvider.isInstalled { return ("Kontrol et", { run { store.reload(.cursor) } }) }
+            if CursorProvider.isInstalled { return ("Tekrar Dene", { run { store.reload(.cursor) } }) }
             return ("İndir", { NSWorkspace.shared.open(URL(string: "https://cursor.com/download")!) })
         case .antigravity:
-            if AntigravityProvider.isInstalled { return ("Antigravity'yi aç", { run { store.perform(.openApp("Antigravity"), for: id) } }) }
+            if AntigravityProvider.isInstalled { return ("Aç", { run { store.perform(.openApp("Antigravity"), for: id) } }) }
             return ("İndir", { NSWorkspace.shared.open(URL(string: "https://antigravity.google/download")!) })
         }
     }
 
-    /// Kısa "Bekleniyor" durumu; sonuç store'dan gelir
+    /// Kısa bekleme göstergesi; sonuç store'dan gelir
     private func run(_ action: () -> Void) {
         busy = true
         action()
@@ -424,97 +642,80 @@ private struct ConnectRow: View {
 
     private var codexHelp: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Terminalde şunu çalıştır, sonra burada Tekrar kontrol et'e bas:").font(.system(size: 11))
+            Text("Terminalde şunu çalıştır, sonra Tekrar Dene'ye bas:").font(.callout).foregroundStyle(.secondary)
             HStack {
-                Text("npm i -g @openai/codex && codex login")
-                    .font(.system(size: 11, design: .monospaced)).textSelection(.enabled)
+                Text(CodexCLI.installCommand).font(.system(.callout, design: .monospaced)).textSelection(.enabled)
                 Spacer()
                 Button("Kopyala") {
                     NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString("npm i -g @openai/codex && codex login", forType: .string)
-                }.buttonStyle(SecondaryButton())
+                    NSPasteboard.general.setString(CodexCLI.installCommand, forType: .string)
+                }
+                Button("Tekrar Dene") {
+                    Task {
+                        codexInstalled = await CodexCLI.isInstalled()
+                        if CodexCLI.isLoggedIn { showCodexHelp = false; store.reload(.codex) }
+                    }
+                }
             }
-            Button("Tekrar kontrol et") {
-                Task { codexInstalled = await CodexCLI.isInstalled(); if CodexCLI.isLoggedIn { showCodexHelp = false; store.reload(.codex) } }
-            }.buttonStyle(SecondaryButton())
+            .controlSize(.small)
         }
         .padding(10)
-        .background(Color.white, in: RoundedRectangle(cornerRadius: 9))
-        .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Color(white: 0.82)))
+        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
     }
 }
 
 // MARK: - Küçük parçalar
 
-private struct Header: View {
-    let title: String, text: String
+/// Logo + ad + açıklama (Form satırı)
+private struct ProviderLabel: View {
+    let id: ProviderID
+    let detail: String
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(.system(size: 18, weight: .bold))
-            Text(text).font(.system(size: 12)).foregroundStyle(Color(white: 0.42)).fixedSize(horizontal: false, vertical: true)
+        HStack(spacing: 10) {
+            BrandLogoShape(logo: id.logo)
+                .fill(.primary.opacity(0.75))
+                .frame(width: 18, height: 18)
+                .frame(width: 30, height: 30)
+                .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(id.name).font(.system(size: 13, weight: .semibold))
+                Text(detail).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 }
 
-private struct RowCard<Content: View>: View {
-    @ViewBuilder var content: Content
+/// ⌃ ⌥ L tuş kapakları
+private struct KeyCaps: View {
+    let keys: [String]
     var body: some View {
-        HStack(spacing: 10) { content }
-            .padding(.horizontal, 11).padding(.vertical, 10)
-            .background(Color.white, in: RoundedRectangle(cornerRadius: 9))
-            .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Color(white: 0.84)))
+        HStack(spacing: 4) {
+            ForEach(keys, id: \.self) { key in
+                Text(key)
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .frame(minWidth: 22, minHeight: 22)
+                    .padding(.horizontal, 3)
+                    .background(.background, in: RoundedRectangle(cornerRadius: 5))
+                    .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(.separator))
+                    .shadow(color: .black.opacity(0.08), radius: 0, y: 1)
+            }
+        }
     }
 }
 
-private struct Logo: View {
-    let id: ProviderID
-    var body: some View { BrandLogoShape(logo: id.logo).fill(Color(white: 0.35)).frame(width: 22, height: 22) }
-}
-
-private struct Note: View {
-    let text: String
-    var body: some View {
-        Text(text).font(.system(size: 11.5)).foregroundStyle(Color(white: 0.4))
-            .padding(10).frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.white.opacity(0.7), in: RoundedRectangle(cornerRadius: 8))
+extension ProviderID {
+    /// Kurulumdaki "araç seçimi" satırında görünen algılama sonucu
+    var detectionText: String {
+        switch self {
+        case .claude: return ClaudeCodeAuth.isAvailable ? "Claude Code bulundu" : "claude.ai hesabınla bağlanır"
+        case .codex: return CodexCLI.isLoggedIn ? "Codex CLI girişi bulundu" : "Codex CLI ile bağlanır"
+        case .cursor: return CursorProvider.isInstalled ? "Cursor bulundu" : "Bu Mac'te kurulu değil"
+        case .antigravity: return AntigravityProvider.isInstalled ? "Antigravity bulundu" : "Bu Mac'te kurulu değil"
+        }
     }
 }
 
-private struct Status: View {
-    let text: String, color: Color
-    var body: some View {
-        HStack(spacing: 4) { Circle().fill(color).frame(width: 7, height: 7); Text(text) }
-            .font(.system(size: 11, weight: .semibold)).foregroundStyle(color)
-    }
-}
-
-private struct PrimaryButton: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 12, weight: .semibold)).foregroundStyle(.white)
-            .padding(.horizontal, 11).padding(.vertical, 6)
-            .background(Color.accentBlue.opacity(configuration.isPressed ? 0.8 : 1), in: RoundedRectangle(cornerRadius: 7))
-            .opacity(isEnabled ? 1 : 0.45)
-    }
-}
-
-private struct SecondaryButton: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 12, weight: .medium)).foregroundStyle(Color(white: 0.25))
-            .padding(.horizontal, 10).padding(.vertical, 6)
-            .background(Color(white: configuration.isPressed ? 0.8 : 0.86), in: RoundedRectangle(cornerRadius: 7))
-    }
-}
-
-private struct LinkButton: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label.font(.system(size: 11)).foregroundStyle(Color(white: configuration.isPressed ? 0.3 : 0.45))
-    }
-}
-
-extension Color {
-    static let accentBlue = Color(red: 0.29, green: 0.42, blue: 0.94)
-    static let okGreen = Color(red: 0.18, green: 0.56, blue: 0.36)
+extension ProviderUsage {
+    var isConnected: Bool { !limits.isEmpty && issue == nil }
 }
