@@ -9,6 +9,8 @@ struct PopoverView: View {
     @State private var shown = false
     @State private var opens = 0
     @State private var flipped: ProviderID?
+    @Environment(\.colorScheme) private var systemScheme
+    private var palette: CardPalette { systemScheme == .dark ? .graphite : .silver }
 
     var body: some View {
         VStack(spacing: 6) {
@@ -27,6 +29,7 @@ struct PopoverView: View {
         .padding(6)
         .frame(width: 340)
         .background(Color.primary.opacity(0.04))
+        .environment(\.cardPalette, systemScheme == .dark ? .graphite : .silver)
         // iOS tarzı açılış: tüm panel menü çubuğu ikonundan (üst orta) yaylanarak büyür, hafif taşar, oturur
         .scaleEffect(shown ? 1 : 0.88, anchor: .top)
         .offset(y: shown ? 0 : -10)
@@ -53,13 +56,13 @@ struct PopoverView: View {
                 NSWorkspace.shared.open(release.url)
             }
         }
-        .foregroundStyle(BadgeTheme.ink)
+        .foregroundStyle(palette.ink)
         .padding(.leading, 12).padding(.trailing, 6).padding(.vertical, 6)
         .background {
             let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
-            shape.fill(Color(white: 0.867)).overlay(shape.strokeBorder(Color(white: 0.733), lineWidth: 1))
+            shape.fill(palette.metal).overlay(shape.strokeBorder(palette.frame, lineWidth: 1))
         }
-        .environment(\.colorScheme, .light)
+        .environment(\.colorScheme, palette.scheme)
         .opacity(shown ? 1 : 0)
         .animation(.easeOut(duration: 0.3).delay(0.2), value: shown)
     }
@@ -121,6 +124,7 @@ private struct WindowFader: NSViewRepresentable {
 
 /// Kartlarla aynı rozet dili: gümüş zemin, ince #bbb çerçeve, #666 SF Pro
 private struct BadgeButton: View {
+    @Environment(\.cardPalette) private var palette
     let title: String
     let icon: String
     let spinning: Bool
@@ -137,14 +141,14 @@ private struct BadgeButton: View {
                                value: spinning)
                 Text(title).font(.system(size: 11, weight: .medium)).lineLimit(1)
             }
-            .foregroundStyle(BadgeTheme.ink)
+            .foregroundStyle(palette.ink)
             .padding(.horizontal, 7)
             .padding(.vertical, 5)
             .fixedSize()
             .background {
                 let shape = RoundedRectangle(cornerRadius: 7, style: .continuous)
-                shape.fill(Color(white: hovering ? 0.91 : 0.867))
-                    .overlay(shape.strokeBorder(Color(white: 0.733), lineWidth: 1))
+                shape.fill(palette.metal.opacity(hovering ? 0.8 : 1))
+                    .overlay(shape.strokeBorder(palette.frame, lineWidth: 1))
             }
             .contentShape(Rectangle())
         }
@@ -176,9 +180,7 @@ private struct ProviderCard: View {
 
     enum BackTab { case limits, activity }
 
-    static var ink: Color { BadgeTheme.ink }
-    private let metal = Color(white: 0.867)           // #ddd
-    private let frameLine = Color(white: 0.733)       // #bbb
+    @Environment(\.cardPalette) private var palette
 
     private var front: [Limit] { usage.frontLimits }
     private var hiddenCount: Int { max(usage.limits.count - front.count, 0) }
@@ -192,9 +194,9 @@ private struct ProviderCard: View {
         ZStack {
             // Statik katman ayrı çizilir: overlay sadece kartla karışır, pencerenin koyu zeminiyle değil
             ZStack {
-                shape.fill(metal)
+                shape.fill(palette.metal)
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .strokeBorder(frameLine, lineWidth: 1)
+                    .strokeBorder(palette.frame, lineWidth: 1)
                     .padding(4)
                 content(interactive: false)
                 Hologram(hover: hover, size: size).clipShape(shape)
@@ -226,7 +228,7 @@ private struct ProviderCard: View {
         .opacity(shown ? 1 : 0)
         .offset(y: shown ? 0 : -14)
         .animation(.spring(response: 0.5, dampingFraction: 0.72).delay(0.04 + Double(order) * 0.06), value: shown)
-        .environment(\.colorScheme, .light)
+        .environment(\.colorScheme, palette.scheme)
         .onChange(of: flipped) { _, value in if value != showBack { flip() } }
         .onChange(of: shown) { _, visible in if !visible { showBack = false; flipAngle = 0; tab = nil } }
     }
@@ -254,7 +256,7 @@ private struct ProviderCard: View {
         let staticPart: Double = interactive ? 0 : 1
         VStack(alignment: .leading, spacing: 9) {
             HStack(alignment: .center, spacing: 10) {
-                BrandLogoShape(logo: id.logo).fill(Self.ink).frame(width: 24, height: 24)
+                BrandLogoShape(logo: id.logo).fill(palette.ink).frame(width: 24, height: 24)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 5) {
                         Text(id.name).font(.system(size: 15, weight: .bold))
@@ -262,7 +264,7 @@ private struct ProviderCard: View {
                             Text("+\(hiddenCount)")
                                 .font(.system(size: 9, weight: .semibold))
                                 .padding(.horizontal, 5).padding(.vertical, 2)
-                                .background(Color.black.opacity(0.08), in: RoundedRectangle(cornerRadius: 5))
+                                .background(palette.subtle, in: RoundedRectangle(cornerRadius: 5))
                                 .help("Arka yüzde \(hiddenCount) limit daha")
                         }
                     }
@@ -286,7 +288,7 @@ private struct ProviderCard: View {
             }
             if let issue = usage.issue { hint(issue, interactive: interactive) }
         }
-        .foregroundStyle(Self.ink)
+        .foregroundStyle(palette.ink)
         .padding(.horizontal, 14).padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -305,13 +307,13 @@ private struct ProviderCard: View {
     private var chip: Chip? {
         if let full = usage.limits.filter({ $0.percent >= 100 }).min(by: { ($0.resetsAt ?? .distantFuture) < ($1.resetsAt ?? .distantFuture) }) {
             let reset = full.resetsAt.map { " · \(Countdown.text(to: $0)) sonra açılır" } ?? ""
-            return Chip(text: "Doldu\(reset)", color: Color(red: 0.76, green: 0.19, blue: 0.31))
+            return Chip(text: "Doldu\(reset)", color: palette.alert)
         }
         let soon = usage.limits.compactMap { l in l.timeToFull.map { (l, $0) } }.min { $0.1 < $1.1 }
         guard let (limit, eta) = soon else {
-            return usage.note.map { Chip(text: $0, color: Color(white: 0.4)) }
+            return usage.note.map { Chip(text: $0, color: palette.ink) }
         }
-        let color = limit.percent >= 90 ? Color(red: 0.76, green: 0.19, blue: 0.31) : Color(red: 0.35, green: 0.25, blue: 0.75)
+        let color = limit.percent >= 90 ? palette.alert : palette.notice
         return Chip(text: "≈ \(Countdown.short(seconds: eta)) sonra dolar", color: color)
     }
 
@@ -345,8 +347,8 @@ private struct ProviderCard: View {
             }
         }
         .padding(.horizontal, 8).padding(.vertical, 7)
-        .background(Color.white.opacity(interactive ? 0 : 0.55), in: RoundedRectangle(cornerRadius: 8))
-        .foregroundStyle(Color(white: 0.33))
+        .background(interactive ? Color.clear : palette.hintBackground, in: RoundedRectangle(cornerRadius: 8))
+        .foregroundStyle(palette.hintText)
     }
 
     // MARK: Arka yüz
@@ -356,7 +358,7 @@ private struct ProviderCard: View {
         let staticPart: Double = interactive ? 0 : 1
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                BrandLogoShape(logo: id.logo).fill(Self.ink).frame(width: 18, height: 18).opacity(staticPart)
+                BrandLogoShape(logo: id.logo).fill(palette.ink).frame(width: 18, height: 18).opacity(staticPart)
                 Text(id.name).font(.system(size: 13, weight: .bold)).opacity(staticPart)
                 Spacer()
                 segment.opacity(interactive ? 1 : 0)
@@ -401,7 +403,7 @@ private struct ProviderCard: View {
                 }
             }
         }
-        .foregroundStyle(Self.ink)
+        .foregroundStyle(palette.ink)
         .padding(.horizontal, 14).padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -413,7 +415,7 @@ private struct ProviderCard: View {
             if id.activity != nil { segButton("Etkinlik", .activity) }
         }
         .padding(2)
-        .background(Color.black.opacity(0.08), in: RoundedRectangle(cornerRadius: 7))
+        .background(palette.subtle, in: RoundedRectangle(cornerRadius: 7))
     }
 
     private func segButton(_ title: String, _ value: BackTab) -> some View {
@@ -427,11 +429,11 @@ private struct ProviderCard: View {
             Text(title)
                 .font(.system(size: 9.5, weight: .semibold))
                 .padding(.horizontal, 8).padding(.vertical, 4)
-                .background(on ? Color.white : Color.clear, in: RoundedRectangle(cornerRadius: 5))
+                .background(on ? palette.segmentOn : Color.clear, in: RoundedRectangle(cornerRadius: 5))
                 .shadow(color: .black.opacity(on ? 0.12 : 0), radius: 1, y: 1)
         }
         .buttonStyle(.plain)
-        .foregroundStyle(Self.ink)
+        .foregroundStyle(palette.ink)
     }
 
     private var tilt: (x: Double, y: Double) {
@@ -443,6 +445,7 @@ private struct ProviderCard: View {
 
 /// Uygulama ikonundaki gibi 270° halka: ortada yüzde, altında kısa ad ve sıfırlanmaya kalan süre.
 private struct RingGauge: View {
+    @Environment(\.cardPalette) private var palette
     let limit: Limit
     let shown: Bool
     let delay: Double
@@ -456,7 +459,7 @@ private struct RingGauge: View {
             ZStack {
                 Group {
                     Circle().trim(from: 0, to: 0.75)
-                        .stroke(Color.black.opacity(0.09), style: StrokeStyle(lineWidth: line, lineCap: .round))
+                        .stroke(palette.track, style: StrokeStyle(lineWidth: line, lineCap: .round))
                     Circle().trim(from: 0, to: 0.75 * (shown ? max(fraction, 0.012) : 0))
                         .stroke(LinearGradient(colors: limit.colors, startPoint: .bottomLeading, endPoint: .topTrailing),
                                 style: StrokeStyle(lineWidth: line, lineCap: .round))
@@ -510,7 +513,7 @@ private struct Heatmap: View {
     /// Seviye 0 boş; 1–4 marka renginin artan yoğunluğu.
     /// Claude: marka turuncusu (#D97757). Codex: bardaki mor doğrusal gradyan.
     static func fill(level: Int, source: ActivitySource) -> AnyShapeStyle {
-        guard level > 0 else { return AnyShapeStyle(Color.black.opacity(0.07)) }
+        guard level > 0 else { return AnyShapeStyle(Color.primary.opacity(0.07)) }
         let colors: [Color] = source == .claudeCode
             ? [Color(red: 0.93, green: 0.58, blue: 0.45), Color(red: 0.851, green: 0.467, blue: 0.341)]
             : [Color(red: 0.24, green: 0.22, blue: 0.75), Color(red: 0.62, green: 0.45, blue: 0.98)]
@@ -593,6 +596,7 @@ private struct Heatmap: View {
 /// Rozetteki hologram: on bulanık, gökkuşağı renkli papyon (rozet oranında, 260×54), overlay.
 /// Boştayken yavaşça salınır (±10°, 5 sn); fare üstündeyken merkeze uzaklık kadar döner.
 private struct Hologram: View {
+    @Environment(\.cardPalette) private var palette
     let hover: CGPoint?
     let size: CGSize
 
@@ -627,7 +631,8 @@ private struct Hologram: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .blendMode(.overlay)
+            .blendMode(palette.hologramBlend)
+            .opacity(palette.hologramStrength)
         }
         .allowsHitTesting(false)
         .onChange(of: hover) { _, point in
@@ -706,8 +711,45 @@ private struct Sparkles: View {
     private static func fraction(_ value: Double) -> Double { value - value.rounded(.down) }
 }
 
-enum BadgeTheme {
-    static let ink = Color(white: 0.4)  // #666
+/// Kart malzemesi: açık temada gümüş metal (21st.dev rozeti), koyu temada grafit metal.
+/// Popup sistem temasını okur ve ortam değeri olarak kartlara, halkalara, düğmelere verir.
+struct CardPalette {
+    let scheme: ColorScheme
+    let metal: Color          // kart zemini
+    let frame: Color          // 4 pt içerideki ince çerçeve
+    let ink: Color            // yazı ve logolar
+    let track: Color          // halka izi
+    let subtle: Color         // "+2" etiketi, sekme seçici zemini
+    let segmentOn: Color      // seçili sekme
+    let hintBackground: Color
+    let hintText: Color
+    let hologramBlend: BlendMode
+    let hologramStrength: Double
+    let notice: Color         // "≈ 12 sa sonra dolar"
+    let alert: Color          // %90+ ve "Doldu"
+
+    static let silver = CardPalette(
+        scheme: .light, metal: Color(white: 0.867), frame: Color(white: 0.733), ink: Color(white: 0.4),
+        track: Color.black.opacity(0.09), subtle: Color.black.opacity(0.08), segmentOn: .white,
+        hintBackground: Color.white.opacity(0.55), hintText: Color(white: 0.33),
+        hologramBlend: .overlay, hologramStrength: 1,
+        notice: Color(red: 0.35, green: 0.25, blue: 0.75), alert: Color(red: 0.76, green: 0.19, blue: 0.31))
+
+    static let graphite = CardPalette(
+        scheme: .dark, metal: Color(white: 0.19), frame: Color(white: 0.31), ink: Color(white: 0.8),
+        track: Color.white.opacity(0.1), subtle: Color.white.opacity(0.09), segmentOn: Color(white: 0.32),
+        hintBackground: Color.black.opacity(0.28), hintText: Color(white: 0.82),
+        hologramBlend: .screen, hologramStrength: 0.45,
+        notice: Color(red: 0.74, green: 0.66, blue: 1.0), alert: Color(red: 1.0, green: 0.52, blue: 0.56))
+}
+
+private struct CardPaletteKey: EnvironmentKey { static let defaultValue = CardPalette.silver }
+
+extension EnvironmentValues {
+    var cardPalette: CardPalette {
+        get { self[CardPaletteKey.self] }
+        set { self[CardPaletteKey.self] = newValue }
+    }
 }
 
 extension Limit {
