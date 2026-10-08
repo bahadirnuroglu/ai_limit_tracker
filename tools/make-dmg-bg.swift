@@ -1,35 +1,11 @@
 // dmg penceresinin arka planı: build/dmg-bg.png (640×400) ve @2x. build-dmg.sh çağırır.
-// Kartlarla aynı dil: gümüş metal, iç çerçeve, bulanık gökkuşağı hologram; uygulamadan Applications'a ok.
+// 21st.dev "grid pulse"un donmuş bir anı: ince çizgili ızgara, fare uygulamadan Applications'a geçmiş gibi
+// ok boyunca yanan pastel gökkuşağı kareler (izin başı soluk, ucu canlı). Finder arka planı sabit görsel
+// olduğu için animasyon yok. Üstte ad ve açıklama, altta ilk açılış notu.
 // Simge konumları build-dmg.sh ile aynı olmalı: uygulama (170, 205), Applications (470, 205) — üstten.
 import AppKit
-import CoreImage
 
 let W: CGFloat = 640, H: CGFloat = 400
-let rainbow: [(CGFloat, CGFloat, CGFloat)] = [
-    (1.00, 0.24, 0.27), (1.00, 0.50, 0.00), (1.00, 1.00, 0.00), (0.40, 1.00, 0.00),
-    (0.07, 0.20, 0.87), (0.48, 0.07, 0.87), (0.42, 0.28, 0.42),
-]
-
-func hologram(width: Int, height: Int, scale: CGFloat) -> CGImage {
-    let ctx = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
-                        space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
-    let w = CGFloat(width) * 1.1, h = w * 54 / 260
-    for (i, c) in rainbow.enumerated() {
-        ctx.saveGState()
-        ctx.translateBy(x: CGFloat(width) * 0.62, y: CGFloat(height) * 0.5)
-        ctx.rotate(by: CGFloat(i * 10 + 28) * .pi / 180)
-        ctx.move(to: CGPoint(x: -w / 2, y: h / 2)); ctx.addLine(to: CGPoint(x: w / 2, y: -h / 2))
-        ctx.addLine(to: CGPoint(x: w / 2, y: h / 2)); ctx.addLine(to: CGPoint(x: -w / 2, y: -h / 2))
-        ctx.closePath()
-        ctx.setFillColor(CGColor(red: c.0, green: c.1, blue: c.2, alpha: 0.6))
-        ctx.fillPath()
-        ctx.restoreGState()
-    }
-    let img = CIImage(cgImage: ctx.makeImage()!).applyingGaussianBlur(sigma: 26 * Double(scale))
-        .cropped(to: CGRect(x: 0, y: 0, width: width, height: height))
-    return CIContext().createCGImage(img, from: img.extent)!
-}
-
 func render(scale: CGFloat) -> Data {
     let pw = Int(W * scale), ph = Int(H * scale)
     let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pw, pixelsHigh: ph, bitsPerSample: 8,
@@ -39,14 +15,51 @@ func render(scale: CGFloat) -> Data {
     NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
     let ctx = NSGraphicsContext.current!.cgContext
 
-    // Metal zemin + hologram
-    let metal = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
-                           colors: [CGColor(gray: 0.91, alpha: 1), CGColor(gray: 0.85, alpha: 1)] as CFArray, locations: [0, 1])!
-    ctx.drawLinearGradient(metal, start: CGPoint(x: 0, y: H), end: CGPoint(x: 0, y: 0), options: [])
-    ctx.saveGState()
-    ctx.setBlendMode(.overlay)
-    ctx.draw(hologram(width: pw, height: ph, scale: scale), in: CGRect(x: 0, y: 0, width: W, height: H))
-    ctx.restoreGState()
+    // Açık zemin + ince ızgara (20 pt)
+    ctx.setFillColor(CGColor(gray: 0.965, alpha: 1)); ctx.fill(CGRect(x: 0, y: 0, width: W, height: H))
+    let cell: CGFloat = 20
+    let path = CGMutablePath()
+    for x in stride(from: CGFloat(0), through: W, by: cell) { path.move(to: CGPoint(x: x, y: 0)); path.addLine(to: CGPoint(x: x, y: H)) }
+    for y in stride(from: CGFloat(0), through: H, by: cell) { path.move(to: CGPoint(x: 0, y: y)); path.addLine(to: CGPoint(x: W, y: y)) }
+    ctx.addPath(path)
+    ctx.setStrokeColor(CGColor(gray: 0, alpha: 0.075)); ctx.setLineWidth(1 / scale); ctx.strokePath()
+
+    // Ok boyunca yanan kareler: her noktada imleç hücresi + rastgele komşular; renk izin boyunca tayf
+    var seed: UInt64 = 7
+    func rnd() -> CGFloat { seed = seed &* 6364136223846793005 &+ 1442695040888963407; return CGFloat(seed >> 33) / CGFloat(1 << 31) }
+    let p0 = CGPoint(x: 120, y: H - 205), p1 = CGPoint(x: 280, y: H - 108), p2 = CGPoint(x: 360, y: H - 102), p3 = CGPoint(x: 520, y: H - 205)
+    func bezier(_ t: CGFloat) -> CGPoint {
+        let u = 1 - t
+        return CGPoint(x: u*u*u*p0.x + 3*u*u*t*p1.x + 3*u*t*t*p2.x + t*t*t*p3.x,
+                       y: u*u*u*p0.y + 3*u*u*t*p1.y + 3*u*t*t*p2.y + t*t*t*p3.y)
+    }
+    // Sarı → turuncu → pembe → mor → mavi (grid pulse paleti)
+    let spectrum: [(CGFloat, CGFloat, CGFloat)] = [(0.99, 0.86, 0.55), (0.98, 0.70, 0.55), (0.96, 0.62, 0.66),
+                                                   (0.82, 0.62, 0.92), (0.62, 0.70, 0.98)]
+    func color(_ t: CGFloat) -> (CGFloat, CGFloat, CGFloat) {
+        let f = min(max(t, 0), 0.999) * CGFloat(spectrum.count - 1)
+        let i = Int(f), k = f - CGFloat(i), a = spectrum[i], b = spectrum[i + 1]
+        return (a.0 + (b.0 - a.0) * k, a.1 + (b.1 - a.1) * k, a.2 + (b.2 - a.2) * k)
+    }
+    var lit: [String: (CGRect, CGFloat, CGFloat)] = [:]  // hücre → (dikdörtgen, t, parlaklık)
+    for i in 0...90 {
+        let t = CGFloat(i) / 90
+        let p = bezier(t)
+        let spread = Int(rnd() * 3)
+        for _ in 0...spread {
+            let dx = CGFloat(Int(rnd() * 3) - 1), dy = CGFloat(Int(rnd() * 3) - 1)
+            let cx = (floor(p.x / cell) + dx) * cell, cy = (floor(p.y / cell) + dy) * cell
+            let strength = (0.25 + 0.75 * t) * (dx == 0 && dy == 0 ? 1 : 0.55 + rnd() * 0.3)
+            let key = "\(cx),\(cy)"
+            if (lit[key]?.2 ?? 0) < strength { lit[key] = (CGRect(x: cx, y: cy, width: cell, height: cell), t, strength) }
+        }
+    }
+    for (_, v) in lit {
+        let c = color(v.1)
+        ctx.setFillColor(CGColor(red: c.0, green: c.1, blue: c.2, alpha: 0.85 * v.2))
+        ctx.fill(v.0.insetBy(dx: 0.5 / scale, dy: 0.5 / scale))
+    }
+
     // Kartlardaki iç çerçeve
     ctx.addPath(CGPath(roundedRect: CGRect(x: 10, y: 10, width: W - 20, height: H - 20), cornerWidth: 14, cornerHeight: 14, transform: nil))
     ctx.setStrokeColor(CGColor(gray: 0.62, alpha: 0.6)); ctx.setLineWidth(1); ctx.strokePath()

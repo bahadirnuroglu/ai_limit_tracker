@@ -8,7 +8,8 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
 - `swift build` / `swift run` KULLANMA: bu makinede swift-package bozuk.
 - Script, derleyici/SDK uyumsuzluğunda MacOSX26 SDK'sına kendisi düşer.
 - Sürükle-bırak disk: `bash build-dmg.sh` -> dist/AI-Limit-Tracker-<sürüm>.dmg (paylaşım için tercih edilen).
-  Pencere: tools/make-dmg-bg.swift (gümüş hologram + ok, 640×400 @1x/@2x TIFF), simge konumları Finder'a
+  Pencere: tools/make-dmg-bg.swift (21st.dev grid pulse'un donmuş anı: ince ızgara + ok boyunca
+  yanan tayf kareler; Finder arka planı sabit görsel, animasyon yok; 640×400 @1x/@2x TIFF), simge konumları Finder'a
   AppleScript ile (uygulama 170,205 · Applications 470,205; ikisi arka plandaki okla eşleşmeli).
   Disk ikonu .VolumeIcon.icns + SetFile -a C; .dmg dosyasına da ikon verilir.
 - Yayın: `bash release.sh` (main push + GitHub Release + dmg eki; token Anahtar Zinciri "ailimit-github").
