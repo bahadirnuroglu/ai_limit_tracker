@@ -10,6 +10,7 @@ struct PopoverView: View {
     @State private var opens = 0
     @State private var flipped: ProviderID?
     @Environment(\.colorScheme) private var systemScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var palette: CardPalette { systemScheme == .dark ? .graphite : .silver }
 
     var body: some View {
@@ -31,11 +32,11 @@ struct PopoverView: View {
         .background(Color.primary.opacity(0.04))
         .environment(\.cardPalette, systemScheme == .dark ? .graphite : .silver)
         // iOS tarzı açılış: tüm panel menü çubuğu ikonundan (üst orta) yaylanarak büyür, hafif taşar, oturur
-        .scaleEffect(shown ? 1 : 0.88, anchor: .top)
-        .offset(y: shown ? 0 : -10)
-        .blur(radius: shown ? 0 : 8)
+        .scaleEffect(shown || reduceMotion ? 1 : 0.88, anchor: .top)
+        .offset(y: shown || reduceMotion ? 0 : -10)
+        .blur(radius: shown || reduceMotion ? 0 : 8)
         .opacity(shown ? 1 : 0)
-        .animation(.spring(response: 0.42, dampingFraction: 0.68), value: shown)
+        .animation(reduceMotion ? .easeOut(duration: 0.2) : .spring(response: 0.42, dampingFraction: 0.68), value: shown)
         .background(WindowFader(token: opens))
         .onAppear {
             opens += 1
@@ -58,10 +59,7 @@ struct PopoverView: View {
         }
         .foregroundStyle(palette.ink)
         .padding(.leading, 12).padding(.trailing, 6).padding(.vertical, 6)
-        .background {
-            let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
-            shape.fill(palette.metal).overlay(shape.strokeBorder(palette.frame, lineWidth: 1))
-        }
+        .glassOrMetal(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .environment(\.colorScheme, palette.scheme)
         .opacity(shown ? 1 : 0)
         .animation(.easeOut(duration: 0.3).delay(0.2), value: shown)
@@ -142,14 +140,10 @@ private struct BadgeButton: View {
                 Text(title).font(.system(size: 11, weight: .medium)).lineLimit(1)
             }
             .foregroundStyle(palette.ink)
-            .padding(.horizontal, 7)
+            .padding(.horizontal, 8)
             .padding(.vertical, 5)
             .fixedSize()
-            .background {
-                let shape = RoundedRectangle(cornerRadius: 7, style: .continuous)
-                shape.fill(palette.metal.opacity(hovering ? 0.8 : 1))
-                    .overlay(shape.strokeBorder(palette.frame, lineWidth: 1))
-            }
+            .glassOrMetal(Capsule(), interactive: true)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -181,6 +175,7 @@ private struct ProviderCard: View {
     enum BackTab { case limits, activity }
 
     @Environment(\.cardPalette) private var palette
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var front: [Limit] { usage.frontLimits }
     private var hiddenCount: Int { max(usage.limits.count - front.count, 0) }
@@ -230,10 +225,29 @@ private struct ProviderCard: View {
         .animation(.spring(response: 0.5, dampingFraction: 0.72).delay(0.04 + Double(order) * 0.06), value: shown)
         .environment(\.colorScheme, palette.scheme)
         .onChange(of: flipped) { _, value in if value != showBack { flip() } }
+        // VoiceOver: kart tek öğe; durum cümle olarak okunur, ipucunun düzeltmesi eylem olarak sunulur
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
+        .accessibilityHint(showBack ? "Ön yüze dönmek için çift dokun" : "Tüm limitleri ve etkinliği görmek için çift dokun")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { onTap() }
+        .accessibilityActions {
+            if let issue = usage.issue, let title = issue.actionTitle, let action = issue.action {
+                Button(title) { onAction(action) }
+            }
+        }
         .onChange(of: shown) { _, visible in if !visible { showBack = false; flipAngle = 0; tab = nil } }
     }
 
     private func flip() {
+        // Trackpad'de hafif tık: kartın döndüğü hissedilsin
+        NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+        if reduceMotion {
+            withAnimation(.easeInOut(duration: 0.2)) { showBack = flipped }
+            if showBack, let source = id.activity { Task { activity = await ActivityLoader.load(source) } }
+            if !showBack { tab = nil }
+            return
+        }
         withAnimation(.easeIn(duration: 0.16)) { flipAngle = 90 } completion: {
             showBack = flipped
             if showBack, let source = id.activity { Task { activity = await ActivityLoader.load(source) } }
@@ -283,7 +297,7 @@ private struct ProviderCard: View {
                     }
                     .opacity(staticPart * (usage.isStale ? 0.45 : 1))
                 } else if usage.state == .loading && usage.issue == nil {
-                    ProgressView().controlSize(.small).opacity(interactive ? 1 : 0)
+                    SkeletonRings(pulsing: !reduceMotion).opacity(staticPart)
                 }
             }
             if let issue = usage.issue { hint(issue, interactive: interactive) }
@@ -291,6 +305,20 @@ private struct ProviderCard: View {
         .foregroundStyle(palette.ink)
         .padding(.horizontal, 14).padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var accessibilitySummary: String {
+        var parts = [id.name]
+        if let plan = usage.plan { parts.append("\(plan) planı") }
+        for limit in showBack ? usage.limits : front {
+            var text = "\(limit.label) yüzde \(Int(limit.percent.rounded()))"
+            if let reset = limit.resetsAt { text += ", \(Countdown.text(to: reset)) sonra sıfırlanır" }
+            parts.append(text)
+        }
+        if let chip { parts.append(chip.text.replacingOccurrences(of: "≈", with: "yaklaşık")) }
+        if usage.isStale, let at = usage.updatedAt { parts.append("Son veri \(Ago.text(at))") }
+        if let issue = usage.issue { parts.append(issue.text) }
+        return parts.joined(separator: ". ")
     }
 
     /// Plan; eski veride "· 12 dk önce"
@@ -437,7 +465,7 @@ private struct ProviderCard: View {
     }
 
     private var tilt: (x: Double, y: Double) {
-        guard let hover, size.width > 0, size.height > 0 else { return (0, 0) }
+        guard !reduceMotion, let hover, size.width > 0, size.height > 0 else { return (0, 0) }
         let nx = hover.x / size.width * 2 - 1, ny = hover.y / size.height * 2 - 1
         return (Double(nx) * 4, Double(-ny) * 4)
     }
@@ -468,7 +496,7 @@ private struct RingGauge: View {
                 .rotationEffect(.degrees(135))  // sol alttan başlar, saat yönünde dolar
                 .padding(line / 2)
                 Text("\(shown ? Int(limit.percent.rounded()) : 0)%")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 12.5, weight: .semibold, design: .rounded))
                     .monospacedDigit()
                     .contentTransition(.numericText())
                     .animation(.easeOut(duration: 0.6).delay(0.15 + delay), value: shown)
@@ -484,6 +512,34 @@ private struct RingGauge: View {
     }
 }
 
+/// Veri ilk kez gelirken halkaların yerinde hafifçe nefes alan boş izler (dönen gösterge yerine)
+private struct SkeletonRings: View {
+    let pulsing: Bool
+    @Environment(\.cardPalette) private var palette
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !pulsing)) { timeline in
+            let t = timeline.date.timeIntervalSinceReferenceDate
+            HStack(spacing: 8) {
+                ForEach(0..<2, id: \.self) { i in
+                    let phase = pulsing ? 0.5 + 0.5 * sin(t * 2.4 - Double(i) * 0.7) : 0.5
+                    VStack(spacing: 4) {
+                        Circle().trim(from: 0, to: 0.75)
+                            .stroke(palette.track.opacity(0.6 + 0.8 * phase), style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                            .rotationEffect(.degrees(135))
+                            .padding(3)
+                            .frame(width: 46, height: 46)
+                        RoundedRectangle(cornerRadius: 3).fill(palette.track.opacity(0.6 + 0.8 * phase)).frame(width: 34, height: 7)
+                        RoundedRectangle(cornerRadius: 3).fill(palette.track.opacity(0.4 + 0.6 * phase)).frame(width: 26, height: 6)
+                    }
+                    .frame(width: 60)
+                }
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
 /// Arka yüzdeki tek limit satırı: ad + yüzde, ince bar, sıfırlanma süresi.
 private struct MiniLimitRow: View {
     let limit: Limit
@@ -493,7 +549,7 @@ private struct MiniLimitRow: View {
             HStack {
                 Text(limit.label).font(.system(size: 10, weight: .medium))
                 Spacer()
-                Text("\(Int(limit.percent.rounded()))%").font(.system(size: 10, weight: .medium)).monospacedDigit()
+                Text("\(Int(limit.percent.rounded()))%").font(.system(size: 10, weight: .semibold, design: .rounded)).monospacedDigit()
             }
             GaugeBar(value: min(max(limit.percent / 100, 0), 1), colors: limit.colors, sparkle: false, height: 6)
             if let reset = limit.resetsAt {
@@ -597,6 +653,7 @@ private struct Heatmap: View {
 /// Boştayken yavaşça salınır (±10°, 5 sn); fare üstündeyken merkeze uzaklık kadar döner.
 private struct Hologram: View {
     @Environment(\.cardPalette) private var palette
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let hover: CGPoint?
     let size: CGSize
 
@@ -615,7 +672,7 @@ private struct Hologram: View {
 
     var body: some View {
         let scale = max(size.width, 1) / 260
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: hover != nil)) { timeline in
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: hover != nil || reduceMotion)) { timeline in
             let t = timeline.date.timeIntervalSinceReferenceDate
             let idle = 10 * (0.5 - 0.5 * cos(t * 2 * .pi / 5))
             ZStack {
@@ -691,8 +748,9 @@ private struct GaugeBar: View {
 
 /// Yüksek kullanımda dolgunun içinde yanıp sönen parçacıklar.
 private struct Sparkles: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { timeline in
+        TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: reduceMotion)) { timeline in
             Canvas { context, size in
                 let t = timeline.date.timeIntervalSinceReferenceDate
                 for i in 0..<16 {
@@ -709,6 +767,28 @@ private struct Sparkles: View {
     }
 
     private static func fraction(_ value: Double) -> Double { value - value.rounded(.down) }
+}
+
+/// macOS 26'da Liquid Glass; daha eski sistemde ya da "Saydamlığı azalt" açıkken kartlardaki metal.
+private struct GlassOrMetal<S: InsettableShape>: ViewModifier {
+    let shape: S
+    let interactive: Bool
+    @Environment(\.cardPalette) private var palette
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *), !reduceTransparency {
+            content.glassEffect(interactive ? .regular.interactive() : .regular, in: shape)
+        } else {
+            content.background(shape.fill(palette.metal).overlay(shape.strokeBorder(palette.frame, lineWidth: 1)))
+        }
+    }
+}
+
+extension View {
+    func glassOrMetal<S: InsettableShape>(_ shape: S, interactive: Bool = false) -> some View {
+        modifier(GlassOrMetal(shape: shape, interactive: interactive))
+    }
 }
 
 /// Kart malzemesi: açık temada gümüş metal (21st.dev rozeti), koyu temada grafit metal.

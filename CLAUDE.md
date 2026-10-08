@@ -61,6 +61,12 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   blur 10*ölçek, opaklık 0.2. Boşta ±10° salınır, hover'da döner; hover'da 3B eğim, çıkınca yay.
   Statik katman .drawingGroup() ile ayrı çizilir (yoksa overlay pencerenin koyu zeminiyle karışıp kartı karartır);
   sistem kontrolleri (Giriş yap, ProgressView) aynı yerleşimin ikinci kopyasında üstte durur.
+- Tema: kartlar açık temada gümüş, koyu temada grafit metal (CardPalette, popup sistem temasını okur;
+  koyuda hologram .screen ve kısık). Alt şerit düğmeleri ve güncelleme şeridi macOS 26'da Liquid Glass
+  (glassOrMetal; eski sistemde ya da Saydamlığı azalt açıkken metal).
+- Halka yüzdeleri SF Pro Rounded; kart dönerken trackpad'de hafif tık (NSHapticFeedbackManager);
+  ilk yüklemede halkaların yerinde nefes alan iskelet. Hareketi azalt: hologram/parçacık durur, eğim yok,
+  dönme yerine solma, açılışta sadece fade. VoiceOver: kart tek öğe, durum cümlesi + ipucu eylemi.
 - Barlar: düz hap (iz + dolgu); topuz, çeyrek noktaları ve tempo noktası YOK; 0%da dolgu yok.
 - Renk: normal mavi; %75+ veya tempodan hızlı ise parıltılı mor gradyan; %90+ turuncu-kırmızı.
 - Açılış (iOS tarzı): tüm panel üst ortadan 0.88 ölçek + blur'dan yayla (response 0.42, damping 0.68) büyür,
