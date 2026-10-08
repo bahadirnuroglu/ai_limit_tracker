@@ -42,7 +42,9 @@ enum CodexProvider {
                     label: prefix + windowName(seconds),
                     percent: used,
                     resetsAt: reset,
-                    window: seconds
+                    window: seconds,
+                    model: prefix.isEmpty ? nil : "review",
+                    short: prefix.isEmpty ? nil : "Review"
                 ))
             }
         }

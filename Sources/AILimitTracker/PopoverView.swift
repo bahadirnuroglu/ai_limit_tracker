@@ -8,24 +8,19 @@ struct PopoverView: View {
     @ObservedObject var updater: UpdateChecker
     @State private var shown = false
     @State private var opens = 0
+    @State private var flipped: ProviderID?
 
     var body: some View {
         VStack(spacing: 6) {
-            ProviderCard(
-                name: "Claude", maker: "Anthropic", logo: .claude,
-                url: URL(string: "https://claude.ai/settings/usage")!, source: .claudeCode,
-                usage: store.claude, shown: shown, order: 0
-            ) {
-                Button("Giriş yap") { store.loginClaude() }.controlSize(.small)
+            // Limite en yakın sağlayıcı en üstte; aynı anda tek kart döner
+            ForEach(Array(store.ordered.enumerated()), id: \.element) { index, id in
+                ProviderCard(
+                    id: id, usage: store[id], shown: shown, order: index, flipped: flipped == id,
+                    onTap: { flipped = flipped == id ? nil : id },
+                    onAction: { store.perform($0, for: id) }
+                )
             }
-            ProviderCard(
-                name: "Codex", maker: "OpenAI", logo: .openai,
-                url: URL(string: "https://chatgpt.com/codex/settings/usage")!, source: .codex,
-                usage: store.codex, shown: shown, order: 1
-            ) {
-                Text("Terminalde bir kez `codex login` çalıştır.")
-                    .font(.system(size: 11, weight: .regular))
-            }
+            .animation(.spring(response: 0.45, dampingFraction: 0.8), value: store.ordered)
             if let release = updater.available { updateBanner(release) }
             footer
         }
@@ -42,9 +37,10 @@ struct PopoverView: View {
         .onAppear {
             opens += 1
             shown = false
+            store.refreshIfStale()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { shown = true }
         }
-        .onDisappear { shown = false }
+        .onDisappear { shown = false; flipped = nil }
     }
 
     /// Yeni sürüm varsa kartlarla aynı rozet dilinde ince bir şerit
@@ -57,7 +53,7 @@ struct PopoverView: View {
                 NSWorkspace.shared.open(release.url)
             }
         }
-        .foregroundStyle(ProviderCard<EmptyView>.ink)
+        .foregroundStyle(BadgeTheme.ink)
         .padding(.leading, 12).padding(.trailing, 6).padding(.vertical, 6)
         .background {
             let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -140,7 +136,7 @@ private struct BadgeButton: View {
                                value: spinning)
                 Text(title).font(.system(size: 11, weight: .medium)).lineLimit(1)
             }
-            .foregroundStyle(ProviderCard<EmptyView>.ink)
+            .foregroundStyle(BadgeTheme.ink)
             .padding(.horizontal, 7)
             .padding(.vertical, 5)
             .fixedSize()
@@ -158,28 +154,37 @@ private struct BadgeButton: View {
     }
 }
 
-/// 21st.dev award-badge'in birebir stili: gümüş #ddd zemin, 4 pt içeride 1 px #bbb çerçeve,
-/// her şey #666 SF Pro; hologram yazıların da ÜSTÜNDE overlay karışımla durur.
-private struct ProviderCard<Login: View>: View {
-    let name: String
-    let maker: String
-    let logo: BrandLogo
-    let url: URL  // arka yüzdeki "Kullanım" düğmesinin açtığı sayfa
-    let source: ActivitySource
+/// 21st.dev award-badge stili satır kart: gümüş #ddd zemin, 4 pt içeride 1 px #bbb çerçeve, #666 SF Pro,
+/// hologram yazıların da ÜSTÜNDE. Ön yüz: logo + ad solda, en fazla iki 270° halka sağda.
+/// Tıklayınca döner; arka yüzde "Limitler" (tüm kovalar) ve "Etkinlik" (ısı haritası) sekmeleri.
+private struct ProviderCard: View {
+    let id: ProviderID
     let usage: ProviderUsage
     let shown: Bool
     let order: Int
-    @ViewBuilder var login: Login
+    let flipped: Bool
+    let onTap: () -> Void
+    let onAction: (Issue.Action) -> Void
 
     @State private var hover: CGPoint?
     @State private var size: CGSize = .zero
     @State private var flipAngle: Double = 0
     @State private var showBack = false
+    @State private var tab: BackTab?
     @State private var activity: [Date: Int]?
 
-    static var ink: Color { Color(white: 0.4) }       // #666
+    enum BackTab { case limits, activity }
+
+    static var ink: Color { BadgeTheme.ink }
     private let metal = Color(white: 0.867)           // #ddd
     private let frameLine = Color(white: 0.733)       // #bbb
+
+    private var front: [Limit] { usage.frontLimits }
+    private var hiddenCount: Int { max(usage.limits.count - front.count, 0) }
+    private var currentTab: BackTab {
+        if let tab { return tab }
+        return hiddenCount > 0 || id.activity == nil ? .limits : .activity
+    }
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -196,13 +201,13 @@ private struct ProviderCard<Login: View>: View {
             .drawingGroup()
             .allowsHitTesting(false)
 
-            // Düğme ve yükleme göstergesi gibi sistem kontrolleri üstte, aynı yerleşimle
+            // Düğmeler ve yükleme göstergesi üstte, aynı yerleşimle
             content(interactive: true)
         }
         .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
         .contentShape(shape)
-        .onTapGesture(perform: flip)
-        .help(showBack ? "Limitlere dön" : "Etkinlik haritasını göster")
+        .onTapGesture(perform: onTap)
+        .help(showBack ? "Ön yüze dön" : "Tüm limitler ve etkinlik")
         .onContinuousHover { phase in
             switch phase {
             case .active(let point): hover = point; NSCursor.pointingHand.set()
@@ -211,7 +216,7 @@ private struct ProviderCard<Login: View>: View {
         }
         // Tıklayınca kart y ekseninde döner; yan durduğu anda yüz değişir
         .rotation3DEffect(.degrees(flipAngle), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
-        // Fareye doğru eğilir, çıkınca yaylanarak düzelir
+        // Fareye doğru hafifçe eğilir, çıkınca yaylanarak düzelir
         .rotation3DEffect(.degrees(tilt.x), axis: (x: 0, y: 1, z: 0), perspective: 0.6)
         .rotation3DEffect(.degrees(tilt.y), axis: (x: 1, y: 0, z: 0), perspective: 0.6)
         .scaleEffect(hover == nil ? 1 : 0.985)
@@ -221,13 +226,15 @@ private struct ProviderCard<Login: View>: View {
         .offset(y: shown ? 0 : -14)
         .animation(.spring(response: 0.5, dampingFraction: 0.72).delay(0.04 + Double(order) * 0.06), value: shown)
         .environment(\.colorScheme, .light)
-        .onChange(of: shown) { _, visible in if !visible { showBack = false; flipAngle = 0 } }
+        .onChange(of: flipped) { _, value in if value != showBack { flip() } }
+        .onChange(of: shown) { _, visible in if !visible { showBack = false; flipAngle = 0; tab = nil } }
     }
 
     private func flip() {
         withAnimation(.easeIn(duration: 0.16)) { flipAngle = 90 } completion: {
-            showBack.toggle()
-            if showBack { Task { activity = await ActivityLoader.load(source) } }
+            showBack = flipped
+            if showBack, let source = id.activity { Task { activity = await ActivityLoader.load(source) } }
+            if !showBack { tab = nil }
             flipAngle = -90
             withAnimation(.spring(response: 0.38, dampingFraction: 0.72)) { flipAngle = 0 }
         }
@@ -236,96 +243,255 @@ private struct ProviderCard<Login: View>: View {
     /// Aynı yerleşim iki kez çizilir: statik kopyada kontroller, etkileşimli kopyada geri kalanı gizli.
     @ViewBuilder
     private func content(interactive: Bool) -> some View {
-        if showBack { back(interactive: interactive) } else { front(interactive: interactive) }
+        if showBack { back(interactive: interactive) } else { frontFace(interactive: interactive) }
     }
 
-    @ViewBuilder
-    private func front(interactive: Bool) -> some View {
-        let staticPart: Double = interactive ? 0 : 1
-        let controlPart: Double = interactive ? 1 : 0
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 10) {
-                BrandLogoShape(logo: logo)
-                    .fill(Self.ink)
-                    .frame(width: 28, height: 28)
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(maker.uppercased()).font(.system(size: 9, weight: .medium))
-                    Text(name).font(.system(size: 18, weight: .bold))
-                }
-                Spacer()
-                if let plan = usage.plan {
-                    Text(plan.uppercased()).font(.system(size: 10, weight: .medium))
-                }
-            }
-            .opacity(staticPart)
+    // MARK: Ön yüz
 
-            switch usage.state {
-            case .needsLogin:
-                login.opacity(controlPart)
-            case .error(let message):
-                Text(message).font(.system(size: 11, weight: .regular)).foregroundStyle(.red).opacity(staticPart)
-            case .loading where usage.limits.isEmpty:
-                ProgressView().controlSize(.small).opacity(controlPart)
-            default:
-                ForEach(Array(usage.limits.enumerated()), id: \.element.id) { index, limit in
-                    LimitRow(limit: limit, shown: shown, delay: Double(order) * 0.12 + Double(index) * 0.07)
+    @ViewBuilder
+    private func frontFace(interactive: Bool) -> some View {
+        let staticPart: Double = interactive ? 0 : 1
+        VStack(alignment: .leading, spacing: 9) {
+            HStack(alignment: .center, spacing: 10) {
+                BrandLogoShape(logo: id.logo).fill(Self.ink).frame(width: 24, height: 24)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 5) {
+                        Text(id.name).font(.system(size: 15, weight: .bold))
+                        if hiddenCount > 0 {
+                            Text("+\(hiddenCount)")
+                                .font(.system(size: 9, weight: .semibold))
+                                .padding(.horizontal, 5).padding(.vertical, 2)
+                                .background(Color.black.opacity(0.08), in: RoundedRectangle(cornerRadius: 5))
+                                .help("Arka yüzde \(hiddenCount) limit daha")
+                        }
+                    }
+                    if !subtitle.isEmpty {
+                        Text(subtitle).font(.system(size: 8.5, weight: .medium))
+                    }
+                    if let chip { chipView(chip).opacity(usage.isStale ? 0.45 : 1) }
                 }
                 .opacity(staticPart)
+                Spacer(minLength: 4)
+                if !front.isEmpty {
+                    HStack(spacing: 8) {
+                        ForEach(Array(front.enumerated()), id: \.element.id) { index, limit in
+                            RingGauge(limit: limit, shown: shown, delay: Double(order) * 0.1 + Double(index) * 0.07)
+                        }
+                    }
+                    .opacity(staticPart * (usage.isStale ? 0.45 : 1))
+                } else if usage.state == .loading && usage.issue == nil {
+                    ProgressView().controlSize(.small).opacity(interactive ? 1 : 0)
+                }
             }
+            if let issue = usage.issue { hint(issue, interactive: interactive) }
         }
         .foregroundStyle(Self.ink)
-        .padding(18)
+        .padding(.horizontal, 14).padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Arka yüz: GitHub tarzı 13 haftalık etkinlik haritası (yerel Claude Code / Codex CLI kayıtları)
+    /// Plan; eski veride "· 12 dk önce"
+    private var subtitle: String {
+        var parts: [String] = []
+        if let plan = usage.plan { parts.append(plan.uppercased()) }
+        if usage.isStale, let at = usage.updatedAt { parts.append(Ago.text(at)) }
+        return parts.joined(separator: " · ")
+    }
+
+    private struct Chip { let text: String; let color: Color }
+
+    /// Ad altındaki etiket: doldu / bu tempoyla ne zaman dolar
+    private var chip: Chip? {
+        if let full = usage.limits.filter({ $0.percent >= 100 }).min(by: { ($0.resetsAt ?? .distantFuture) < ($1.resetsAt ?? .distantFuture) }) {
+            let reset = full.resetsAt.map { " · \(Countdown.text(to: $0)) sonra açılır" } ?? ""
+            return Chip(text: "Doldu\(reset)", color: Color(red: 0.76, green: 0.19, blue: 0.31))
+        }
+        let soon = usage.limits.compactMap { l in l.timeToFull.map { (l, $0) } }.min { $0.1 < $1.1 }
+        guard let (limit, eta) = soon else { return nil }
+        let color = limit.percent >= 90 ? Color(red: 0.76, green: 0.19, blue: 0.31) : Color(red: 0.35, green: 0.25, blue: 0.75)
+        return Chip(text: "≈ \(Countdown.short(seconds: eta)) sonra dolar", color: color)
+    }
+
+    private func chipView(_ chip: Chip) -> some View {
+        Text(chip.text)
+            .font(.system(size: 9, weight: .semibold))
+            .foregroundStyle(chip.color)
+            .lineLimit(1)
+            .padding(.horizontal, 5).padding(.vertical, 3)
+            .background(chip.color.opacity(0.13), in: RoundedRectangle(cornerRadius: 5))
+    }
+
+    /// Kartın altındaki ipucu: sebep cümlesi + tek düzeltme düğmesi
+    private func hint(_ issue: Issue, interactive: Bool) -> some View {
+        HStack(spacing: 7) {
+            Group {
+                Circle().fill(issue.action == nil ? Color(white: 0.55) : Color(red: 0.78, green: 0.47, blue: 0.16))
+                    .frame(width: 7, height: 7)
+                Text(issue.text).font(.system(size: 10, weight: .medium)).fixedSize(horizontal: false, vertical: true)
+            }
+            .opacity(interactive ? 0 : 1)
+            Spacer(minLength: 4)
+            if let title = issue.actionTitle, let action = issue.action {
+                Button(title) { onAction(action) }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 9.5, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 7).padding(.vertical, 5)
+                    .background(Color(red: 0.29, green: 0.42, blue: 0.94), in: RoundedRectangle(cornerRadius: 6))
+                    .opacity(interactive ? 1 : 0)
+            }
+        }
+        .padding(.horizontal, 8).padding(.vertical, 7)
+        .background(Color.white.opacity(interactive ? 0 : 0.55), in: RoundedRectangle(cornerRadius: 8))
+        .foregroundStyle(Color(white: 0.33))
+    }
+
+    // MARK: Arka yüz
+
     @ViewBuilder
     private func back(interactive: Bool) -> some View {
         let staticPart: Double = interactive ? 0 : 1
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                BrandLogoShape(logo: logo)
-                    .fill(Self.ink)
-                    .frame(width: 20, height: 20)
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("Etkinlik").font(.system(size: 15, weight: .bold))
-                    Text("\(source.title) · son 13 hafta").font(.system(size: 10, weight: .regular)).lineLimit(1)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                BrandLogoShape(logo: id.logo).fill(Self.ink).frame(width: 18, height: 18).opacity(staticPart)
+                Text(id.name).font(.system(size: 13, weight: .bold)).opacity(staticPart)
+                Spacer()
+                segment.opacity(interactive ? 1 : 0)
+            }
+
+            switch currentTab {
+            case .limits:
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(usage.limits) { limit in MiniLimitRow(limit: limit) }
+                    if usage.limits.isEmpty { Text("Henüz veri yok.").font(.system(size: 10)) }
                 }
                 .opacity(staticPart)
+            case .activity:
+                if let source = id.activity {
+                    Heatmap(values: activity ?? [:], source: source, interactive: interactive)
+                    HStack(spacing: 4) {
+                        if let activity {
+                            let total = activity.values.reduce(0, +)
+                            Text(total > 0 ? "\(source.title) · \(TokenFormat.short(total)) token · \(activity.count) gün" : "Bu Mac'te \(source.title) kaydı yok")
+                        } else {
+                            Text("Kayıtlar okunuyor…")
+                        }
+                        Spacer()
+                        Text("Az")
+                        ForEach(0..<5, id: \.self) { i in
+                            RoundedRectangle(cornerRadius: 2).fill(Heatmap.fill(level: i, source: source)).frame(width: 8, height: 8)
+                        }
+                        Text("Çok")
+                    }
+                    .font(.system(size: 9.5, weight: .regular))
+                    .opacity(staticPart)
+                }
+            }
+
+            HStack {
+                Text("Geri dönmek için tıkla").font(.system(size: 9, weight: .regular)).opacity(staticPart)
                 Spacer()
-                BadgeButton(title: "Kullanım", icon: "arrow.up.right", spinning: false) { NSWorkspace.shared.open(url) }
-                    .help("Kullanım sayfasını aç")
+                BadgeButton(title: "Kullanım", icon: "arrow.up.right", spinning: false) { NSWorkspace.shared.open(id.usageURL) }
+                    .help("\(id.name) kullanım sayfasını aç")
                     .opacity(interactive ? 1 : 0)
             }
-
-            Heatmap(values: activity ?? [:], source: source, interactive: interactive)
-
-            HStack(spacing: 4) {
-                if let activity {
-                    let total = activity.values.reduce(0, +)
-                    Text(total > 0 ? "\(TokenFormat.short(total)) token · \(activity.count) aktif gün" : "Bu Mac'te kayıt yok")
-                } else {
-                    Text("Kayıtlar okunuyor…")
-                }
-                Spacer()
-                Text("Az")
-                ForEach(0..<5, id: \.self) { i in
-                    RoundedRectangle(cornerRadius: 2).fill(Heatmap.fill(level: i, source: source)).frame(width: 9, height: 9)
-                }
-                Text("Çok")
-            }
-            .font(.system(size: 10, weight: .regular))
-            .opacity(staticPart)
         }
         .foregroundStyle(Self.ink)
-        .padding(18)
+        .padding(.horizontal, 14).padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// "Limitler / Etkinlik" seçici (etkinlik kaydı olmayan sağlayıcıda tek sekme)
+    private var segment: some View {
+        HStack(spacing: 0) {
+            segButton("Limitler", .limits)
+            if id.activity != nil { segButton("Etkinlik", .activity) }
+        }
+        .padding(2)
+        .background(Color.black.opacity(0.08), in: RoundedRectangle(cornerRadius: 7))
+    }
+
+    private func segButton(_ title: String, _ value: BackTab) -> some View {
+        let on = currentTab == value
+        return Button {
+            tab = value
+            if value == .activity, activity == nil, let source = id.activity {
+                Task { activity = await ActivityLoader.load(source) }
+            }
+        } label: {
+            Text(title)
+                .font(.system(size: 9.5, weight: .semibold))
+                .padding(.horizontal, 8).padding(.vertical, 4)
+                .background(on ? Color.white : Color.clear, in: RoundedRectangle(cornerRadius: 5))
+                .shadow(color: .black.opacity(on ? 0.12 : 0), radius: 1, y: 1)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(Self.ink)
     }
 
     private var tilt: (x: Double, y: Double) {
         guard let hover, size.width > 0, size.height > 0 else { return (0, 0) }
         let nx = hover.x / size.width * 2 - 1, ny = hover.y / size.height * 2 - 1
-        return (Double(nx) * 7, Double(-ny) * 7)
+        return (Double(nx) * 4, Double(-ny) * 4)
+    }
+}
+
+/// Uygulama ikonundaki gibi 270° halka: ortada yüzde, altında kısa ad ve sıfırlanmaya kalan süre.
+private struct RingGauge: View {
+    let limit: Limit
+    let shown: Bool
+    let delay: Double
+
+    private let size: CGFloat = 46
+    private let line: CGFloat = 6
+
+    var body: some View {
+        let fraction = min(max(limit.percent / 100, 0), 1)
+        VStack(spacing: 1) {
+            ZStack {
+                Group {
+                    Circle().trim(from: 0, to: 0.75)
+                        .stroke(Color.black.opacity(0.09), style: StrokeStyle(lineWidth: line, lineCap: .round))
+                    Circle().trim(from: 0, to: 0.75 * (shown ? max(fraction, 0.012) : 0))
+                        .stroke(LinearGradient(colors: limit.colors, startPoint: .bottomLeading, endPoint: .topTrailing),
+                                style: StrokeStyle(lineWidth: line, lineCap: .round))
+                        .animation(.spring(response: 0.9, dampingFraction: 0.68).delay(0.15 + delay), value: shown)
+                }
+                .rotationEffect(.degrees(135))  // sol alttan başlar, saat yönünde dolar
+                .padding(line / 2)
+                Text("\(shown ? Int(limit.percent.rounded()) : 0)%")
+                    .font(.system(size: 12, weight: .semibold))
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .animation(.easeOut(duration: 0.6).delay(0.15 + delay), value: shown)
+            }
+            .frame(width: size, height: size)
+            Text(limit.short ?? limit.label).font(.system(size: 9, weight: .medium)).lineLimit(1)
+            if let reset = limit.resetsAt {
+                Text(Countdown.text(to: reset)).font(.system(size: 8.5, weight: .regular)).lineLimit(1)
+            }
+        }
+        .frame(width: 60)
+        .help(limit.resetsAt.map { "\(limit.label): %\(Int(limit.percent.rounded())) · \(Countdown.text(to: $0)) sonra sıfırlanır" } ?? limit.label)
+    }
+}
+
+/// Arka yüzdeki tek limit satırı: ad + yüzde, ince bar, sıfırlanma süresi.
+private struct MiniLimitRow: View {
+    let limit: Limit
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack {
+                Text(limit.label).font(.system(size: 10, weight: .medium))
+                Spacer()
+                Text("\(Int(limit.percent.rounded()))%").font(.system(size: 10, weight: .medium)).monospacedDigit()
+            }
+            GaugeBar(value: min(max(limit.percent / 100, 0), 1), colors: limit.colors, sparkle: false, height: 6)
+            if let reset = limit.resetsAt {
+                Text("\(Countdown.text(to: reset)) sonra sıfırlanır").font(.system(size: 8.5, weight: .regular))
+            }
+        }
     }
 }
 
@@ -485,84 +651,12 @@ private struct Bowtie: Shape {
     }
 }
 
-private struct LimitRow: View {
-    let limit: Limit
-    let shown: Bool
-    let delay: Double
-
-    private var used: Double { min(max(limit.percent / 100, 0), 1) }
-
-    private var elapsed: Double? {
-        guard let window = limit.window, window > 0, let reset = limit.resetsAt else { return nil }
-        return min(max(1 - reset.timeIntervalSinceNow / window, 0), 1)
-    }
-
-    private var overPace: Bool {
-        guard let elapsed else { return false }
-        return used > elapsed + 0.1
-    }
-
-    /// 0 sakin, 1 yüksek ya da tempodan hızlı, 2 kritik
-    private var level: Int {
-        if limit.percent >= 90 { return 2 }
-        return (limit.percent >= 75 || overPace) ? 1 : 0
-    }
-
-    private var colors: [Color] {
-        switch level {
-        case 2:
-            return [Color(red: 0.98, green: 0.45, blue: 0.20), Color(red: 0.93, green: 0.22, blue: 0.38)]
-        case 1:
-            return [Color(red: 0.24, green: 0.22, blue: 0.75), Color(red: 0.62, green: 0.45, blue: 0.98),
-                    Color(red: 0.45, green: 0.30, blue: 0.88)]
-        default:
-            let blue = Color(red: 0.29, green: 0.50, blue: 0.94)
-            return [blue, blue]
-        }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(limit.label).font(.system(size: 13, weight: .medium))
-                Spacer()
-                Text("\(shown ? Int(limit.percent.rounded()) : 0)%")
-                    .font(.system(size: 13, weight: .medium))
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                    .animation(.easeOut(duration: 0.6).delay(0.15 + delay), value: shown)
-            }
-
-            GaugeBar(value: shown ? used : 0, colors: colors, sparkle: level > 0)
-                .animation(.spring(response: 0.9, dampingFraction: 0.68).delay(0.15 + delay), value: shown)
-                .animation(.spring(response: 0.6, dampingFraction: 0.8), value: used)
-
-            HStack {
-                if let reset = limit.resetsAt {
-                    Text(Countdown.text(to: reset) + " sonra sıfırlanır")
-                }
-                Spacer()
-                if limit.percent >= 100 {
-                    Text("doldu").font(.system(size: 11, weight: .medium))
-                } else if let eta = limit.timeToFull {
-                    // bu tempoyla sıfırlanmadan önce dolacak
-                    Text("≈ \(Countdown.text(seconds: eta)) sonra dolar").font(.system(size: 11, weight: .medium))
-                } else if overPace {
-                    Text("tempodan hızlı").font(.system(size: 11, weight: .medium))
-                }
-            }
-            .font(.system(size: 11, weight: .regular))
-        }
-    }
-}
-
 /// Hap şeklinde gösterge: iz + renkli dolgu.
 private struct GaugeBar: View {
     let value: Double      // 0–1
     let colors: [Color]
     let sparkle: Bool
-
-    private let height: CGFloat = 14
+    var height: CGFloat = 14
 
     var body: some View {
         GeometryReader { geo in
@@ -605,4 +699,43 @@ private struct Sparkles: View {
     }
 
     private static func fraction(_ value: Double) -> Double { value - value.rounded(.down) }
+}
+
+enum BadgeTheme {
+    static let ink = Color(white: 0.4)  // #666
+}
+
+extension Limit {
+    /// 0 sakin, 1 yüksek ya da tempodan hızlı (geçen sürenin %10 fazlası), 2 kritik
+    var level: Int {
+        if percent >= 90 { return 2 }
+        var overPace = false
+        if let window, window > 0, let resetsAt {
+            let elapsed = min(max(1 - resetsAt.timeIntervalSinceNow / window, 0), 1)
+            overPace = percent / 100 > elapsed + 0.1
+        }
+        return (percent >= 75 || overPace) ? 1 : 0
+    }
+
+    /// Normal mavi; yüksek/tempodan hızlı mor gradyan; kritik turuncu-kırmızı
+    var colors: [Color] {
+        switch level {
+        case 2: return [Color(red: 0.98, green: 0.45, blue: 0.20), Color(red: 0.93, green: 0.22, blue: 0.38)]
+        case 1: return [Color(red: 0.24, green: 0.22, blue: 0.75), Color(red: 0.62, green: 0.45, blue: 0.98)]
+        default:
+            let blue = Color(red: 0.29, green: 0.50, blue: 0.94)
+            return [blue, blue]
+        }
+    }
+}
+
+/// "12 dk önce" / "3 sa önce"
+enum Ago {
+    static func text(_ date: Date) -> String {
+        let s = max(Int(-date.timeIntervalSinceNow), 0)
+        if s < 60 { return "az önce" }
+        if s < 3600 { return "\(s / 60) dk önce" }
+        if s < 86_400 { return "\(s / 3600) sa önce" }
+        return "\(s / 86_400) g önce"
+    }
 }

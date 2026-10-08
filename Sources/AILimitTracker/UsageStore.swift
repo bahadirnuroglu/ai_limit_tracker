@@ -7,6 +7,8 @@ struct Limit: Identifiable {
     let percent: Double        // 0–100
     let resetsAt: Date?
     let window: TimeInterval?  // pencere uzunluğu (sn); tempo çizgisi için
+    var model: String? = nil   // modele özel limit (opus, sonnet, review); nil = genel
+    var short: String? = nil   // halka altındaki kısa ad
 }
 
 extension Limit {
@@ -33,6 +35,14 @@ enum Countdown {
         if h > 0 { return "\(h) sa \(m) dk" }
         return "\(m) dk"
     }
+
+    /// Sadece en büyük birim: "12 sa", "3 g", "40 dk" (dar yerler için)
+    static func short(seconds: TimeInterval) -> String {
+        let total = max(Int(seconds), 0)
+        if total >= 86_400 { return "\(total / 86_400) g" }
+        if total >= 3600 { return "\(total / 3600) sa" }
+        return "\(max(total / 60, 1)) dk"
+    }
 }
 
 enum ProviderState: Equatable { case loading, ok, needsLogin, error(String) }
@@ -41,65 +51,105 @@ struct ProviderUsage {
     var limits: [Limit] = []
     var state: ProviderState = .loading
     var plan: String?
+    var updatedAt: Date?       // son başarılı okuma; eski veri etiketi için
+    var issue: Issue?          // veri alınamadıysa kartın altındaki ipucu (limitler eski haliyle kalır)
+
+    var isStale: Bool { issue != nil && !limits.isEmpty }
 }
 
 @MainActor
 final class UsageStore: ObservableObject {
-    @Published var claude = ProviderUsage()
-    @Published var codex = ProviderUsage()
+    @Published private(set) var usage: [ProviderID: ProviderUsage] = [:]
     @Published var lastUpdated: Date?
     @Published private var pending = 0
     var isRefreshing: Bool { pending > 0 }
 
+    /// Açık sağlayıcılar (kurulum/ayarlar gelene kadar hepsi)
+    var enabled: [ProviderID] { ProviderID.allCases }
+
+    /// Popup sırası: limite en yakın en üstte; verisi olmayanlar sona
+    var ordered: [ProviderID] {
+        enabled.sorted { self[$0].worst > self[$1].worst }
+    }
+
+    subscript(id: ProviderID) -> ProviderUsage { usage[id] ?? ProviderUsage() }
+
     private let session = WebSession()
     private var timer: Timer?
-    private let interval: TimeInterval = 300 // 5 dk
+    private var lastRefresh = Date.distantPast
 
     /// Menü çubuğu ikonu: dış halka Claude, iç halka Codex (her birinin en kısa penceresi)
     var menuIcon: NSImage {
-        MenuIcon.image(claude: claude.limits.first?.percent, codex: codex.limits.first?.percent)
+        MenuIcon.image(claude: self[.claude].frontLimits.first?.percent, codex: self[.codex].frontLimits.first?.percent)
     }
 
     init() {
         session.onLoginWindowClosed = { [weak self] in self?.refresh() }
         refresh()
-        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.refresh() }
+        // Dakikada bir bakılır: normalde 5 dk'da, bir limit %75'i geçtiyse her dakika yenilenir
+        timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                let busy = self.enabled.contains { self[$0].worst >= 75 }
+                if Date().timeIntervalSince(self.lastRefresh) >= (busy ? 55 : 295) { self.refresh() }
+            }
         }
     }
 
     func loginClaude() { session.showLogin() }
 
-    func refresh() {
-        pending += 2
-        Task {
-            defer { pending -= 1 }
-            do {
-                let data = try await session.fetchUsageJSON()
-                claude.limits = Self.parseClaude(data)
-                claude.state = .ok
-                Notifier.shared.process(provider: "Claude", limits: claude.limits)
-            } catch SessionError.needsLogin {
-                claude.state = .needsLogin
-            } catch {
-                claude.state = .error("\(error)")
-            }
-            lastUpdated = Date()
+    /// Popup açılınca: veri 60 sn'den eskiyse hemen yenile
+    func refreshIfStale() {
+        if Date().timeIntervalSince(lastRefresh) > 60 { refresh() }
+    }
+
+    func perform(_ action: Issue.Action, for id: ProviderID) {
+        switch action {
+        case .login where id == .claude: loginClaude()
+        default: refresh()
         }
-        Task {
-            defer { pending -= 1 }
-            do {
-                let result = try await CodexProvider.fetch()
-                codex.limits = result.limits
-                codex.plan = result.plan
-                codex.state = .ok
-                Notifier.shared.process(provider: "Codex", limits: codex.limits)
-            } catch SessionError.needsLogin {
-                codex.state = .needsLogin
-            } catch {
-                codex.state = .error("\(error)")
+    }
+
+    func refresh() {
+        guard pending == 0 else { return }
+        lastRefresh = Date()
+        for id in enabled {
+            pending += 1
+            Task {
+                defer { pending -= 1 }
+                await load(id)
+                lastUpdated = Date()
             }
-            lastUpdated = Date()
+        }
+    }
+
+    private func load(_ id: ProviderID) async {
+        var current = self[id]
+        do {
+            let (plan, limits) = try await fetch(id)
+            current.limits = limits
+            if plan != nil { current.plan = plan }
+            current.state = .ok
+            current.issue = nil
+            current.updatedAt = Date()
+            UsageHistory.record(limits)
+            Notifier.shared.process(provider: id.name, limits: limits)
+        } catch {
+            // Eski veri kalır; kartın altında sebep ve tek düzeltme görünür
+            current.issue = Issue.from(error, provider: id)
+            if case SessionError.needsLogin = error, current.limits.isEmpty { current.state = .needsLogin }
+            else if current.limits.isEmpty { current.state = .error(current.issue?.text ?? "") }
+        }
+        usage[id] = current
+    }
+
+    private func fetch(_ id: ProviderID) async throws -> (String?, [Limit]) {
+        switch id {
+        case .claude:
+            return (nil, Self.parseClaude(try await session.fetchUsageJSON()))
+        case .codex:
+            let result = try await CodexProvider.fetch()
+            return (result.plan, result.limits)
         }
     }
 
@@ -120,15 +170,19 @@ final class UsageStore: ObservableObject {
 
             let label: String
             let window: TimeInterval?
+            var model: String?
             switch key {
             case "five_hour": label = "5 saat"; window = 18_000
             case "seven_day": label = "Haftalık"; window = 604_800
             default:
-                label = key.replacingOccurrences(of: "seven_day_", with: "Haftalık, ")
-                    .replacingOccurrences(of: "_", with: " ")
+                // seven_day_opus, seven_day_sonnet …: modele özel haftalık
+                model = key.hasPrefix("seven_day_") ? String(key.dropFirst("seven_day_".count)) : key
+                let name = (model ?? key).replacingOccurrences(of: "_", with: " ").capitalized
+                label = key.hasPrefix("seven_day") ? "Haftalık · \(name)" : name
                 window = key.hasPrefix("seven_day") ? 604_800 : nil
             }
-            return Limit(id: "claude.\(key)", label: label, percent: util, resetsAt: date, window: window)
+            return Limit(id: "claude.\(key)", label: label, percent: util, resetsAt: date, window: window,
+                         model: model, short: model.map { $0.replacingOccurrences(of: "_", with: " ").capitalized })
         }
         .sorted { a, b in
             let ia = order.firstIndex { a.id == "claude.\($0)" } ?? Int.max
