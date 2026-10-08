@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import SwiftUI
 
 struct Limit: Identifiable {
@@ -52,6 +52,7 @@ struct ProviderUsage {
     var state: ProviderState = .loading
     var plan: String?
     var updatedAt: Date?       // son başarılı okuma; eski veri etiketi için
+    var note: String?          // ad altındaki ek bilgi (Cursor: "$15,60 / $20")
     var issue: Issue?          // veri alınamadıysa kartın altındaki ipucu (limitler eski haliyle kalır)
 
     var isStale: Bool { issue != nil && !limits.isEmpty }
@@ -64,8 +65,8 @@ final class UsageStore: ObservableObject {
     @Published private var pending = 0
     var isRefreshing: Bool { pending > 0 }
 
-    /// Açık sağlayıcılar (kurulum/ayarlar gelene kadar hepsi)
-    var enabled: [ProviderID] { ProviderID.allCases }
+    /// Açık sağlayıcılar (kurulum/ayarlar gelene kadar: bu Mac'te bulunanlar)
+    var enabled: [ProviderID] { ProviderID.allCases.filter(\.isDetected) }
 
     /// Popup sırası: limite en yakın en üstte; verisi olmayanlar sona
     var ordered: [ProviderID] {
@@ -78,9 +79,18 @@ final class UsageStore: ObservableObject {
     private var timer: Timer?
     private var lastRefresh = Date.distantPast
 
-    /// Menü çubuğu ikonu: dış halka Claude, iç halka Codex (her birinin en kısa penceresi)
+    /// Menü çubuğu ikonu: 1–2 sağlayıcıda iç içe halkalar (kısa pencere), 3+ ise limite en yakın olanın halkası
     var menuIcon: NSImage {
-        MenuIcon.image(claude: self[.claude].frontLimits.first?.percent, codex: self[.codex].frontLimits.first?.percent)
+        let entries = enabled.map { id -> MenuIcon.Entry in
+            let u = self[id]
+            if enabled.count >= 3 {
+                let worst = u.limits.max { $0.percent < $1.percent }
+                return MenuIcon.Entry(logo: id.logo, percent: worst?.percent, resetsAt: worst?.resetsAt)
+            }
+            let first = u.frontLimits.first
+            return MenuIcon.Entry(logo: id.logo, percent: first?.percent, resetsAt: first?.resetsAt)
+        }
+        return MenuIcon.image(entries)
     }
 
     init() {
@@ -106,6 +116,13 @@ final class UsageStore: ObservableObject {
     func perform(_ action: Issue.Action, for id: ProviderID) {
         switch action {
         case .login where id == .claude: loginClaude()
+        case .allowKeychain:
+            Task { await load(id, allowPrompt: true); lastUpdated = Date() }
+        case .openApp(let name):
+            NSWorkspace.shared.openApplication(at: URL(fileURLWithPath: "/Applications/\(name).app"),
+                                               configuration: NSWorkspace.OpenConfiguration())
+            // Uygulama açılınca veri gelsin
+            DispatchQueue.main.asyncAfter(deadline: .now() + 6) { [weak self] in self?.refresh() }
         default: refresh()
         }
     }
@@ -123,11 +140,12 @@ final class UsageStore: ObservableObject {
         }
     }
 
-    private func load(_ id: ProviderID) async {
+    private func load(_ id: ProviderID, allowPrompt: Bool = false) async {
         var current = self[id]
         do {
-            let (plan, limits) = try await fetch(id)
+            let (plan, note, limits) = try await fetch(id, allowPrompt: allowPrompt)
             current.limits = limits
+            current.note = note
             if plan != nil { current.plan = plan }
             current.state = .ok
             current.issue = nil
@@ -143,13 +161,31 @@ final class UsageStore: ObservableObject {
         usage[id] = current
     }
 
-    private func fetch(_ id: ProviderID) async throws -> (String?, [Limit]) {
+    private func fetch(_ id: ProviderID, allowPrompt: Bool) async throws -> (String?, String?, [Limit]) {
         switch id {
         case .claude:
-            return (nil, Self.parseClaude(try await session.fetchUsageJSON()))
+            // Önce Claude Code oturumu (giriş gerekmez); yoksa ya da ağ dışı bir hata verirse claude.ai oturumu
+            if ClaudeCodeAuth.isAvailable {
+                do {
+                    let (plan, data) = try await ClaudeCodeAuth.fetchUsage(allowPrompt: allowPrompt)
+                    return (plan, nil, Self.parseClaude(data))
+                } catch let error as URLError {
+                    throw error
+                } catch {
+                    if let web = try? await session.fetchUsageJSON() { return (nil, nil, Self.parseClaude(web)) }
+                    throw error
+                }
+            }
+            return (nil, nil, Self.parseClaude(try await session.fetchUsageJSON()))
         case .codex:
             let result = try await CodexProvider.fetch()
-            return (result.plan, result.limits)
+            return (result.plan, nil, result.limits)
+        case .cursor:
+            let result = try await CursorProvider.fetch()
+            return (result.plan, result.note, result.limits)
+        case .antigravity:
+            let result = try await AntigravityProvider.fetch()
+            return (result.plan, nil, result.limits)
         }
     }
 
@@ -171,18 +207,21 @@ final class UsageStore: ObservableObject {
             let label: String
             let window: TimeInterval?
             var model: String?
+            var short: String?
             switch key {
             case "five_hour": label = "5 saat"; window = 18_000
             case "seven_day": label = "Haftalık"; window = 604_800
             default:
                 // seven_day_opus, seven_day_sonnet …: modele özel haftalık
                 model = key.hasPrefix("seven_day_") ? String(key.dropFirst("seven_day_".count)) : key
-                let name = (model ?? key).replacingOccurrences(of: "_", with: " ").capitalized
+                let names = ["opus": "Opus", "sonnet": "Sonnet", "oauth_apps": "Uygulamalar", "routines": "Rutinler"]
+                let name = names[model ?? key] ?? (model ?? key).replacingOccurrences(of: "_", with: " ").capitalized
                 label = key.hasPrefix("seven_day") ? "Haftalık · \(name)" : name
+                short = name
                 window = key.hasPrefix("seven_day") ? 604_800 : nil
             }
             return Limit(id: "claude.\(key)", label: label, percent: util, resetsAt: date, window: window,
-                         model: model, short: model.map { $0.replacingOccurrences(of: "_", with: " ").capitalized })
+                         model: model, short: short)
         }
         .sorted { a, b in
             let ia = order.firstIndex { a.id == "claude.\($0)" } ?? Int.max

@@ -307,7 +307,9 @@ private struct ProviderCard: View {
             return Chip(text: "Doldu\(reset)", color: Color(red: 0.76, green: 0.19, blue: 0.31))
         }
         let soon = usage.limits.compactMap { l in l.timeToFull.map { (l, $0) } }.min { $0.1 < $1.1 }
-        guard let (limit, eta) = soon else { return nil }
+        guard let (limit, eta) = soon else {
+            return usage.note.map { Chip(text: $0, color: Color(white: 0.4)) }
+        }
         let color = limit.percent >= 90 ? Color(red: 0.76, green: 0.19, blue: 0.31) : Color(red: 0.35, green: 0.25, blue: 0.75)
         return Chip(text: "≈ \(Countdown.short(seconds: eta)) sonra dolar", color: color)
     }
@@ -391,9 +393,11 @@ private struct ProviderCard: View {
             HStack {
                 Text("Geri dönmek için tıkla").font(.system(size: 9, weight: .regular)).opacity(staticPart)
                 Spacer()
-                BadgeButton(title: "Kullanım", icon: "arrow.up.right", spinning: false) { NSWorkspace.shared.open(id.usageURL) }
-                    .help("\(id.name) kullanım sayfasını aç")
-                    .opacity(interactive ? 1 : 0)
+                if let url = id.usageURL {
+                    BadgeButton(title: "Kullanım", icon: "arrow.up.right", spinning: false) { NSWorkspace.shared.open(url) }
+                        .help("\(id.name) kullanım sayfasını aç")
+                        .opacity(interactive ? 1 : 0)
+                }
             }
         }
         .foregroundStyle(Self.ink)
