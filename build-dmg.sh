@@ -1,36 +1,63 @@
 #!/bin/bash
 # Sürükle-bırak kurulum diski üretir:  ./build-dmg.sh  ->  dist/AI-Limit-Tracker-<sürüm>.dmg
+# Pencere: gümüş hologram arka plan (tools/make-dmg-bg.swift), uygulamadan Applications'a ok.
+# Simge yerleşimi Finder'a AppleScript ile yaptırılır (ilk çalıştırmada macOS "Finder'ı denetleme" izni sorar).
 set -euo pipefail
 cd "$(dirname "$0")"
 
 bash build-app.sh
 
 VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Info.plist)
+NAME="AI Limit Tracker"
+VOL="$NAME $VERSION"
 STAGE="build/dmgroot"
 OUT="dist/AI-Limit-Tracker-$VERSION.dmg"
-
-rm -rf "$STAGE" "$OUT" && mkdir -p "$STAGE" dist
-ditto --norsrc --noextattr "build/AI Limit Tracker.app" "$STAGE/AI Limit Tracker.app"
-ln -s /Applications "$STAGE/Applications"
-cat > "$STAGE/Nasıl Kurulur.txt" <<TXT
-1. AI Limit Tracker'ı yandaki Applications klasörüne sürükle.
-   (Eski "AILimit" uygulaması varsa Applications'tan silebilirsin.)
-2. Applications'tan AI Limit Tracker'ı aç. "Apple doğrulayamadı" uyarısı çıkarsa "Bitti" de.
-3. Sistem Ayarları > Gizlilik ve Güvenlik > en altta "Yine de Aç" > şifreni gir.
-   (Bu adım sadece ilk açılışta gerekir.)
-4. Menü çubuğundaki ikona tıkla (ya da Control-Option-L), claude.ai hesabınla giriş yap.
-   Codex limitleri için Codex CLI kurulu ve giriş yapılmış olmalı.
-5. Bildirim izni sorulursa izin ver: limit %75 / %90'a gelince ve yenilenince haber verir.
-   Uygulama Mac açılınca kendiliğinden başlar (alt şeritteki "Açılışta" ile kapatılabilir).
-TXT
-
-# Disk ikonu: önce yazılabilir imaj, ikon bayrağını koy, sonra sıkıştır
-cp AppIcon.icns "$STAGE/.VolumeIcon.icns"
 RW="build/AI-Limit-Tracker-rw.dmg"
-rm -f "$RW"
-hdiutil create -volname "AI Limit Tracker $VERSION" -srcfolder "$STAGE" -fs HFS+ -format UDRW -ov "$RW" >/dev/null
-MNT=$(hdiutil attach -nobrowse -noverify -noautoopen "$RW" | awk -F'\t' '/\/Volumes\//{print $NF}')
+
+# Arka plan (1x + 2x tek TIFF'te: Retina'da keskin)
+SDK=$(ls -d /Library/Developer/CommandLineTools/SDKs/MacOSX26*.sdk 2>/dev/null | tail -1)
+xcrun swiftc -O ${SDK:+-sdk "$SDK"} tools/make-dmg-bg.swift -o build/make-dmg-bg 2>/dev/null \
+    || xcrun swiftc -O tools/make-dmg-bg.swift -o build/make-dmg-bg
+build/make-dmg-bg build
+tiffutil -cathidpicheck build/dmg-bg.png build/dmg-bg@2x.png -out build/dmg-bg.tiff >/dev/null
+
+rm -rf "$STAGE" "$OUT" "$RW" && mkdir -p "$STAGE/.background" dist
+ditto --norsrc --noextattr "build/$NAME.app" "$STAGE/$NAME.app"
+ln -s /Applications "$STAGE/Applications"
+cp build/dmg-bg.tiff "$STAGE/.background/background.tiff"
+cp AppIcon.icns "$STAGE/.VolumeIcon.icns"
+
+hdiutil detach "/Volumes/$VOL" -quiet 2>/dev/null || true
+hdiutil create -volname "$VOL" -srcfolder "$STAGE" -fs HFS+ -format UDRW -size 60m -ov "$RW" >/dev/null
+MNT=$(hdiutil attach -noverify -noautoopen "$RW" | awk -F'\t' '/\/Volumes\//{print $NF}')
 SetFile -a C "$MNT"
+
+# Finder pencere görünümü: 640×400 içerik, araç çubuğu yok, simgeler arka plandaki oka hizalı
+osascript <<APPLESCRIPT
+tell application "Finder"
+    tell disk "$VOL"
+        open
+        set current view of container window to icon view
+        set toolbar visible of container window to false
+        set statusbar visible of container window to false
+        set the bounds of container window to {200, 120, 840, 520}
+        set opts to the icon view options of container window
+        set arrangement of opts to not arranged
+        set icon size of opts to 112
+        set text size of opts to 13
+        set background picture of opts to file ".background:background.tiff"
+        set position of item "$NAME.app" of container window to {170, 205}
+        set position of item "Applications" of container window to {470, 205}
+        close
+        open
+        update without registering applications
+        delay 1
+        close
+    end tell
+end tell
+APPLESCRIPT
+rm -rf "$MNT/.fseventsd"
+sync
 hdiutil detach "$MNT" -quiet
 hdiutil convert "$RW" -format UDZO -ov -o "$OUT" >/dev/null
 rm -f "$RW"

@@ -7,7 +7,10 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
 - HER ZAMAN: `bash build-app.sh --install` (derler, imzalar, /Applications'a kurar, yeniden açar)
 - `swift build` / `swift run` KULLANMA: bu makinede swift-package bozuk.
 - Script, derleyici/SDK uyumsuzluğunda MacOSX26 SDK'sına kendisi düşer.
-- Sürükle-bırak disk: `bash build-dmg.sh` -> dist/AI-Limit-Tracker-<sürüm>.dmg (paylaşım için tercih edilen). Disk ikonu .VolumeIcon.icns + SetFile -a C; .dmg dosyasına da ikon verilir.
+- Sürükle-bırak disk: `bash build-dmg.sh` -> dist/AI-Limit-Tracker-<sürüm>.dmg (paylaşım için tercih edilen).
+  Pencere: tools/make-dmg-bg.swift (gümüş hologram + ok, 640×400 @1x/@2x TIFF), simge konumları Finder'a
+  AppleScript ile (uygulama 170,205 · Applications 470,205; ikisi arka plandaki okla eşleşmeli).
+  Disk ikonu .VolumeIcon.icns + SetFile -a C; .dmg dosyasına da ikon verilir.
 - Yayın: `bash release.sh` (main push + GitHub Release + dmg eki; token Anahtar Zinciri "ailimit-github").
   Önce Info.plist sürümünü artır ve commit et. UpdateChecker.repo depoyu belirler.
 - Dağıtım paketi: `bash build-pkg.sh` -> dist/AI-Limit-Tracker-<sürüm>.pkg (sürüm Info.plist'ten).
@@ -42,7 +45,8 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
 - MenuIcon.swift: menü çubuğu ikonu, uygulama ikonu gibi iç içe 270° halkalar: dış Claude turuncu,
   iç Codex labelColor (template DEĞİL; renkler çizim anında açık/koyu menü çubuğuna göre)
 - BrandLogos.swift: Claude/OpenAI logoları (Simple Icons SVG path'i + küçük SVG ayrıştırıcı)
-- tools/make-icon.sh: AppIcon.icns'i üretir (tasarım tools/make-icon.swift; iki iç içe gösterge halkası)
+- tools/make-icon.sh: AppIcon.icns'i üretir (tools/make-icon.swift: kartlarla aynı gümüş metal + hologram zemin,
+  iç içe iki halka: dış turuncu, iç grafit)
 
 ## Tasarım kararları
 - Popup: cam dış tepsi > sağlayıcı kartları > alt şerit (solda "Güncellendi HH:mm" tek satır, sağda rozet tarzı
