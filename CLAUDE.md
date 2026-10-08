@@ -32,6 +32,10 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
 - HotKey.swift: ⌃⌥L sistem kısayolu (Carbon); MenuBarExtra'yı status bar düğmesine performClick ile açar
 - UpdateChecker.swift: GitHub Releases latest kontrolü (repo: bahadirnuroglu/ai_limit_tracker), popup'ta "Yeni sürüm" şeridi
 - LoginItem.swift: açılışta başlatma
+- Onboarding.swift: ilk kurulum penceresi (hoş geldin → seç → bağlan → izinler → hazır) ve Ayarlar → Sağlayıcılar
+  (aynı ConnectRow). Açık sağlayıcılar UserDefaults "enabledProviders"; kurulum bitti "onboardingDone".
+  Bildirim izni kurulumun son adımında istenir (kurulum bitmişse açılışta).
+- ClaudeCodeAuth / CursorProvider / AntigravityProvider: yerel oturumdan okuyan sağlayıcılar (bkz. dosya başları)
 - Activity.swift: ısı haritası verisi YEREL kayıtlardan (claude.ai web/ChatGPT dahil değil):
   Claude Code ~/.claude/projects/**/*.jsonl (assistant usage: input+output+cache_creation, message.id ile tekil),
   Codex ~/.codex/sessions/**/*.jsonl (token_count.last_token_usage: input-cached+output). 10 dk önbellek.

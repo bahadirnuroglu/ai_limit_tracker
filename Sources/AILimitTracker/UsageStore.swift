@@ -65,8 +65,27 @@ final class UsageStore: ObservableObject {
     @Published private var pending = 0
     var isRefreshing: Bool { pending > 0 }
 
-    /// Açık sağlayıcılar (kurulum/ayarlar gelene kadar: bu Mac'te bulunanlar)
-    var enabled: [ProviderID] { ProviderID.allCases.filter(\.isDetected) }
+    /// Kullanıcının seçtiği sağlayıcılar (kurulumda ya da Ayarlar → Sağlayıcılar'da).
+    /// Hiç seçim yapılmadıysa bu Mac'te bulunanlar.
+    @Published private(set) var enabledSet: Set<ProviderID> = {
+        if let saved = UserDefaults.standard.stringArray(forKey: "enabledProviders") {
+            return Set(saved.compactMap(ProviderID.init(rawValue:)))
+        }
+        return Set(ProviderID.allCases.filter(\.isDetected))
+    }()
+
+    var enabled: [ProviderID] { ProviderID.allCases.filter { enabledSet.contains($0) } }
+
+    func setEnabled(_ id: ProviderID, _ on: Bool) {
+        if on { enabledSet.insert(id) } else { enabledSet.remove(id) }
+        UserDefaults.standard.set(enabled.map(\.rawValue), forKey: "enabledProviders")
+        if on { Task { await load(id); lastUpdated = Date() } }
+    }
+
+    /// Kurulum ekranı gibi yerlerden tek sağlayıcıyı hemen yeniden dene
+    func reload(_ id: ProviderID, allowPrompt: Bool = false) {
+        Task { await load(id, allowPrompt: allowPrompt); lastUpdated = Date() }
+    }
 
     /// Popup sırası: limite en yakın en üstte; verisi olmayanlar sona
     var ordered: [ProviderID] {

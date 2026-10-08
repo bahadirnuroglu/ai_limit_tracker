@@ -75,9 +75,10 @@ struct PopoverView: View {
                     .fixedSize()
             }
             Spacer()
-            BadgeButton(title: "Açılışta", icon: loginItem.enabled ? "checkmark.square.fill" : "square",
-                        spinning: false) { loginItem.toggle() }
-                .help("Mac açılınca AI Limit Tracker'ı otomatik başlat")
+            BadgeButton(title: "Ayarlar", icon: "gearshape", spinning: false) {
+                Onboarding.show(store: store, loginItem: loginItem, settings: true)
+            }
+            .help("Sağlayıcılar, açılışta başlatma, tanılama")
             BadgeButton(title: "Yenile", icon: "arrow.clockwise", spinning: store.isRefreshing) { store.refresh() }
             BadgeButton(title: "Çık", icon: "power", spinning: false) { NSApp.terminate(nil) }
         }

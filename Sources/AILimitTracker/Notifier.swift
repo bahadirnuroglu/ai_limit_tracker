@@ -9,9 +9,18 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
     private let center = UNUserNotificationCenter.current()
     private let defaults = UserDefaults.standard
 
+    /// Kurulumu bitmiş kullanıcıda izni burada ister; ilk açılışta izin kurulumun "Son ayarlar" adımında sorulur
     func setup() {
         center.delegate = self
-        center.requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        if UserDefaults.standard.bool(forKey: Onboarding.doneKey) { requestPermission { _ in } }
+    }
+
+    func requestPermission(_ done: @escaping @Sendable (Bool) -> Void) {
+        center.requestAuthorization(options: [.alert, .sound]) { granted, _ in done(granted) }
+    }
+
+    func isAuthorized() async -> Bool {
+        await center.notificationSettings().authorizationStatus == .authorized
     }
 
     func process(provider: String, limits: [Limit]) {

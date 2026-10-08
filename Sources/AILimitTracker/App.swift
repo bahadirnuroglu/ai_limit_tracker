@@ -20,6 +20,14 @@ struct AILimitTrackerApp: App {
             PopoverView(store: store, loginItem: loginItem, updater: updater)
         } label: {
             Image(nsImage: store.menuIcon)
+                .onAppear {
+                    // İlk açılışta (ya da 0.3 öncesinden gelen kullanıcıda) kurulum penceresi
+                    if !Onboarding.isDone {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                            Onboarding.show(store: store, loginItem: loginItem)
+                        }
+                    }
+                }
         }
         .menuBarExtraStyle(.window)
     }
