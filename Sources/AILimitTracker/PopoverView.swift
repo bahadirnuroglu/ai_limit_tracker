@@ -29,6 +29,7 @@ struct PopoverView: View {
         }
         .padding(6)
         .frame(width: 340)
+        .fixedSize(horizontal: false, vertical: true)  // pencere yüksekliği her an içeriğe göre
         .background(Color.primary.opacity(0.04))
         .environment(\.cardPalette, systemScheme == .dark ? .graphite : .silver)
         // iOS tarzı açılış: tüm panel menü çubuğu ikonundan (üst orta) yaylanarak büyür, hafif taşar, oturur
@@ -202,6 +203,8 @@ private struct ProviderCard: View {
             // Düğmeler ve yükleme göstergesi üstte, aynı yerleşimle
             content(interactive: true)
         }
+        // Kart içeriği kadar yer kaplar; arka yüzden dönünce pencerede kalan fazlalığı doldurmak için uzamaz
+        .fixedSize(horizontal: false, vertical: true)
         .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
         .contentShape(shape)
         .onTapGesture(perform: onTap)
