@@ -212,6 +212,7 @@ private struct ProviderCard: View {
 
     @Environment(\.cardPalette) private var palette
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ObservedObject private var notifier = Notifier.shared
 
     private var front: [Limit] { usage.frontLimits }
     private var hiddenCount: Int { max(usage.limits.count - front.count, 0) }
@@ -243,6 +244,7 @@ private struct ProviderCard: View {
         .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
         .contentShape(shape)
         .onTapGesture(perform: onTap)
+        .contextMenu { reminderMenu }
         .help(showBack ? "Ön yüze dön" : "Tüm limitler ve etkinlik")
         .onContinuousHover { phase in
             switch phase {
@@ -503,6 +505,26 @@ private struct ProviderCard: View {
         .foregroundStyle(palette.ink)
     }
 
+    /// Sağ tık: her limit için "açılınca haber ver" (Ayarlar → Bildirimler'den kapatılabilir)
+    @ViewBuilder private var reminderMenu: some View {
+        if NotificationPrefs.isOn(.reminders) {
+            let limits = usage.limits.filter { ($0.resetsAt ?? .distantPast) > Date() }
+            if limits.isEmpty {
+                Text("Hatırlatma kurulacak limit yok")
+            } else {
+                ForEach(limits) { limit in
+                    let on = notifier.hasReminder(limit)
+                    Button {
+                        notifier.toggleReminder(provider: id.name, limit: limit)
+                    } label: {
+                        Label(on ? "\(limit.label) hatırlatmasını kaldır" : "\(limit.label) açılınca haber ver",
+                              systemImage: on ? "bell.slash" : "bell")
+                    }
+                }
+            }
+        }
+    }
+
     private var tilt: (x: Double, y: Double) {
         guard !reduceMotion, let hover, size.width > 0, size.height > 0 else { return (0, 0) }
         let nx = hover.x / size.width * 2 - 1, ny = hover.y / size.height * 2 - 1
@@ -513,6 +535,7 @@ private struct ProviderCard: View {
 /// Uygulama ikonundaki gibi 270° halka: ortada yüzde, altında kısa ad ve sıfırlanmaya kalan süre.
 private struct RingGauge: View {
     @Environment(\.cardPalette) private var palette
+    @ObservedObject private var notifier = Notifier.shared
     let limit: Limit
     let shown: Bool
     let delay: Double
@@ -541,7 +564,12 @@ private struct RingGauge: View {
                     .animation(.easeOut(duration: 0.6).delay(0.15 + delay), value: shown)
             }
             .frame(width: size, height: size)
-            Text(limit.short ?? limit.label).font(.system(size: 10.5, weight: .medium)).lineLimit(1)
+            HStack(spacing: 2) {
+                if notifier.hasReminder(limit) {
+                    Image(systemName: "bell.fill").font(.system(size: 8)).help("Açılınca haber verilecek")
+                }
+                Text(limit.short ?? limit.label).font(.system(size: 10.5, weight: .medium)).lineLimit(1)
+            }
             if let reset = limit.resetsAt {
                 Text(Countdown.text(to: reset)).font(.system(size: 10, weight: .regular)).lineLimit(1)
             }
@@ -862,7 +890,7 @@ struct CardPalette {
         scheme: .dark, metal: Color(white: 0.19), frame: Color(white: 0.31), ink: Color(white: 0.8),
         track: Color.white.opacity(0.1), subtle: Color.white.opacity(0.09), segmentOn: Color(white: 0.32),
         hintBackground: Color.black.opacity(0.28), hintText: Color(white: 0.82),
-        hologramBlend: .screen, hologramStrength: 0.45,
+        hologramBlend: .screen, hologramStrength: 0.22,
         notice: Color(red: 0.74, green: 0.66, blue: 1.0), alert: Color(red: 1.0, green: 0.52, blue: 0.56))
 }
 

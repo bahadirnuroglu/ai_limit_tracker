@@ -28,6 +28,15 @@ extension Limit {
 enum Countdown {
     static func text(to date: Date) -> String { text(seconds: date.timeIntervalSinceNow) }
 
+    /// Sesli okumaya uygun: "2 saat 44 dakika", "3 gün 2 saat"
+    static func spoken(to date: Date) -> String {
+        let total = max(Int(date.timeIntervalSinceNow), 0)
+        let d = total / 86_400, h = (total % 86_400) / 3600, m = (total % 3600) / 60
+        if d > 0 { return "\(d) gün \(h) saat" }
+        if h > 0 { return "\(h) saat \(m) dakika" }
+        return "\(m) dakika"
+    }
+
     static func text(seconds: TimeInterval) -> String {
         let total = max(Int(seconds), 0)
         let d = total / 86_400, h = (total % 86_400) / 3600, m = (total % 3600) / 60
@@ -60,6 +69,8 @@ struct ProviderUsage {
 
 @MainActor
 final class UsageStore: ObservableObject {
+    /// URL şeması / Kestirmeler için (uygulamada tek örnek var)
+    private(set) static weak var shared: UsageStore?
     @Published private(set) var usage: [ProviderID: ProviderUsage] = [:]
     @Published var lastUpdated: Date?
     @Published private var pending = 0
@@ -113,6 +124,7 @@ final class UsageStore: ObservableObject {
     }
 
     init() {
+        Self.shared = self
         session.onLoginWindowClosed = { [weak self] in self?.refresh() }
         refresh()
         // Dakikada bir bakılır: normalde 5 dk'da, bir limit %75'i geçtiyse her dakika yenilenir
@@ -144,6 +156,30 @@ final class UsageStore: ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 6) { [weak self] in self?.refresh() }
         default: refresh()
         }
+    }
+
+    /// Kestirmeler: veri 60 sn'den eskiyse bekleyerek tazele
+    func refreshAndWait() async {
+        guard Date().timeIntervalSince(lastRefresh) > 60 else { return }
+        lastRefresh = Date()
+        await withTaskGroup(of: Void.self) { group in
+            for id in enabled { group.addTask { await self.load(id) } }
+        }
+        lastUpdated = Date()
+    }
+
+    /// Siri'nin okuyacağı / Kestirmeler'in göstereceği özet
+    var spokenSummary: String {
+        let parts = enabled.map { id -> String in
+            let u = self[id]
+            guard !u.limits.isEmpty else { return "\(id.name): veri yok" }
+            let limits = u.frontLimits.map { l in
+                "\(l.short ?? l.label) yüzde \(Int(l.percent.rounded()))"
+                    + (l.resetsAt.map { ", \(Countdown.spoken(to: $0)) sonra sıfırlanır" } ?? "")
+            }
+            return "\(id.name): " + limits.joined(separator: "; ")
+        }
+        return parts.isEmpty ? "Açık sağlayıcı yok." : parts.joined(separator: ". ") + "."
     }
 
     func refresh() {

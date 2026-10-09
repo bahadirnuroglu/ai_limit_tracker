@@ -47,6 +47,12 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   sh -c 'sleep 1; open' ile yeniden açar. Karantina yok → Gatekeeper sormaz. Hata → sürüm sayfası.
   (Uçtan uca yerel HTTP sunucusuyla test edildi.) Not: yeni ad-hoc imza Anahtar Zinciri izinlerini yeniden sorabilir.
 - LoginItem.swift: açılışta başlatma
+- Hatırlatma: karta sağ tık → limit başına "açılınca haber ver" (Notifier.toggleReminder, UserDefaults "reminders",
+  halkada zil). Ayarlar → Bildirimler "İstediğin limit açılınca" (notify.reminders) kapalıysa menü gizli.
+- Kestirmeler: App Intents KULLANILAMAZ (Xcode'un appintentsmetadataprocessor'ı yok). Bunun yerine URL şeması
+  ailimittracker:// (AppDelegate): open, refresh, x-callback-url/limits?x-success=… (özet "result" ile döner).
+  tools/make-shortcut.py derlemede "AI Limitlerim.shortcut"u üretip `shortcuts sign` ile imzalar, Resources'a koyar;
+  Kurulum → Genel ve Ayarlar → Genel'de "Kestirmeyi Ekle". Kestirmeye ekleme/Siri gerçek kullanıcıyla test EDİLMEDİ.
 - Onboarding.swift: Apple kurulum asistanı tarzı pencere (şeffaf başlık çubuğu, sistem Form/Toggle/borderedProminent,
   açık/koyu tema, yaylı sayfa geçişi, Enter=devam Esc=geri): hoş geldin → araçlar → bağlan → bildirimler → genel → hazır.
   Ayarlar ayrı pencere, sekmeler: Sağlayıcılar / Bildirimler / Genel (ConnectRow ortak).
@@ -71,7 +77,7 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   1 px #bbb çerçeve, gölge yok, tüm yazı + logo #666 SF Pro; kart adı bold, etiket/yüzde/düğme medium, geri kalan regular. Hologram yazıların ÜSTÜNDE overlay
   (yazıları da renklendirir, istenen "niş" görünüm): 10 papyon şekli rozet oranında (genişlik 260*ölçek, yükseklik max(54*ölçek, kart yüksekliği*0.57)
   ki arka yüz de ön yüz gibi kaplansın),
-  blur 10*ölçek, opaklık 0.22 (boştayken kırmızı/turuncu/sarı katmanlar KAPALI, hover'da tam), açıkta güç 1 / koyuda .screen 0.45. (Güç kısma ve dar tayf şeridi denendi,
+  blur 10*ölçek, opaklık 0.22 (boştayken kırmızı/turuncu/sarı katmanlar KAPALI, hover'da tam), açıkta güç 1 / koyuda .screen 0.22. (Güç kısma ve dar tayf şeridi denendi,
   kullanıcı beğenmeyip eski hale döndürttü.) Boşta ±25° (8 sn) salınır, hover'da döner; hover'da 3B eğim, çıkınca yay.
   Statik katman .drawingGroup() ile ayrı çizilir (yoksa overlay pencerenin koyu zeminiyle karışıp kartı karartır);
   sistem kontrolleri (Giriş yap, ProgressView) aynı yerleşimin ikinci kopyasında üstte durur.

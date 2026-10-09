@@ -394,6 +394,7 @@ private struct GeneralPage: View {
                         Spacer()
                         KeyCaps(keys: ["⌃", "⌥", "L"])
                     }
+                    ShortcutRow()
                 }
             }
             .formStyle(.grouped)
@@ -482,6 +483,7 @@ private struct SettingsView: View {
                 Toggle("Mac açılınca başlat", isOn: Binding(get: { loginItem.enabled },
                                                            set: { if $0 != loginItem.enabled { loginItem.toggle() } }))
                 LabeledContent("Kısayol") { KeyCaps(keys: ["⌃", "⌥", "L"]) }
+                ShortcutRow()
             }
             Section {
                 LabeledContent("Sürüm", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?")
@@ -656,6 +658,27 @@ private struct ConnectRow: View {
         }
         .padding(10)
         .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+/// Siri ve Kestirmeler: hazır "AI Limitlerim" kestirmesini Kestirmeler'e ekler
+private struct ShortcutRow: View {
+    private var file: URL? { Bundle.main.url(forResource: "AI Limitlerim", withExtension: "shortcut") }
+
+    var body: some View {
+        if let file {
+            HStack {
+                Label {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Siri ve Kestirmeler")
+                        Text("\"Hey Siri, AI Limitlerim\" de ya da kendi otomasyonlarında kullan.")
+                            .font(.callout).foregroundStyle(.secondary)
+                    }
+                } icon: { Image(systemName: "square.2.layers.3d.top.filled") }
+                Spacer()
+                Button("Kestirmeyi Ekle") { NSWorkspace.shared.open(file) }
+            }
+        }
     }
 }
 

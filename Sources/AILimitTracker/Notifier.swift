@@ -6,7 +6,7 @@ import UserNotifications
 /// Kullanıcının seçtiği bildirim türleri (kurulumda ve Ayarlar → Bildirimler'de; varsayılan hepsi açık)
 enum NotificationPrefs {
     enum Kind: String, CaseIterable, Identifiable {
-        case at75 = "notify.75", at90 = "notify.90", reset = "notify.reset"
+        case at75 = "notify.75", at90 = "notify.90", reset = "notify.reset", reminders = "notify.reminders"
         var id: String { rawValue }
 
         var title: String {
@@ -14,6 +14,7 @@ enum NotificationPrefs {
             case .at75: return "Limitin %75'ine ulaşınca"
             case .at90: return "Limitin %90'ına ulaşınca"
             case .reset: return "Limit yenilenince"
+            case .reminders: return "İstediğin limit açılınca"
             }
         }
 
@@ -22,6 +23,7 @@ enum NotificationPrefs {
             case .at75: return "Hızını ayarlaman için erken uyarı"
             case .at90: return "Limite çok yaklaştığında"
             case .reset: return "Yüksek kullandığın limit sıfırlanınca, devam edebileceğini bildirir"
+            case .reminders: return "Bir karta sağ tıklayıp \"açılınca haber ver\" seçerek tek seferlik hatırlatma kurarsın"
             }
         }
 
@@ -30,6 +32,7 @@ enum NotificationPrefs {
             case .at75: return "gauge.with.dots.needle.67percent"
             case .at90: return "exclamationmark.triangle.fill"
             case .reset: return "arrow.counterclockwise.circle.fill"
+            case .reminders: return "alarm"
             }
         }
     }
@@ -42,8 +45,36 @@ enum NotificationPrefs {
 }
 
 @MainActor
-final class Notifier: NSObject, UNUserNotificationCenterDelegate {
+final class Notifier: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
     static let shared = Notifier()
+
+    // MARK: Tek seferlik hatırlatma ("açılınca haber ver")
+
+    /// Kurulu hatırlatmalar: limit id → sıfırlanma zamanı (geçmişte kalanlar ayıklanır)
+    @Published private(set) var reminders: [String: Date] = {
+        let raw = UserDefaults.standard.dictionary(forKey: "reminders") as? [String: Double] ?? [:]
+        return raw.mapValues { Date(timeIntervalSince1970: $0) }.filter { $0.value > Date() }
+    }()
+
+    func hasReminder(_ limit: Limit) -> Bool { (reminders[limit.id] ?? .distantPast) > Date() }
+
+    func toggleReminder(provider: String, limit: Limit) {
+        let id = "remind.\(limit.id)"
+        if hasReminder(limit) {
+            center.removePendingNotificationRequests(withIdentifiers: [id])
+            reminders[limit.id] = nil
+        } else if let reset = limit.resetsAt, reset > Date() {
+            requestPermission { _ in }
+            let content = UNMutableNotificationContent()
+            content.title = "\(provider) · \(limit.label) açıldı"
+            content.body = "Hatırlatmanı istemiştin, kaldığın yerden devam edebilirsin."
+            content.sound = .default
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: reset.timeIntervalSinceNow + 30, repeats: false)
+            center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+            reminders[limit.id] = reset
+        }
+        UserDefaults.standard.set(reminders.mapValues { $0.timeIntervalSince1970 }, forKey: "reminders")
+    }
     private let center = UNUserNotificationCenter.current()
     private let defaults = UserDefaults.standard
 
