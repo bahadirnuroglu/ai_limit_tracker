@@ -377,10 +377,7 @@ private struct ProviderCard: View {
         }
         let soon = usage.limits.compactMap { l in l.timeToFull.map { (l, $0) } }.min { $0.1 < $1.1 }
         guard let (limit, eta) = soon else {
-            if let note = usage.note { return Chip(text: note, color: palette.ink) }
-            // Dolma riski yoksa: genel uzun limitin günlük bütçesi
-            let long = usage.limits.first { $0.model == nil && $0.dailyBudget != nil }
-            return long?.dailyBudget.map { Chip(text: "Günlük bütçe ≈%\(Int($0.rounded()))", color: palette.ink) }
+            return usage.note.map { Chip(text: $0, color: palette.ink) }
         }
         let color = limit.percent >= 90 ? palette.alert : palette.notice
         return Chip(text: "≈ \(Countdown.short(seconds: eta)) sonra dolar", color: color)

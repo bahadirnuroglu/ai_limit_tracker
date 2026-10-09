@@ -25,8 +25,7 @@ uygulama kendini indirip kurar ve yeniden açılır, "Yine de Aç" adımı tekra
 - **Üç sağlayıcı:** Claude, Codex, Cursor. Çoğu, bu Mac'te zaten açık olan oturumdan okunur;
   şifre gerekmez.
 - **Halka kartlar:** Her sağlayıcı tek satır: 5 saatlik limit ve son kullandığın modelin limiti.
-  %90'ı geçen limit her zaman öne çıkar; bu tempoyla sıfırlanmadan dolacaksa "≈ 12 sa sonra dolar",
-  değilse haftalık limit için "Günlük bütçe ≈%9" yazar.
+  %90'ı geçen limit her zaman öne çıkar; bu tempoyla sıfırlanmadan dolacaksa "≈ 12 sa sonra dolar" yazar.
 - **Kartın arka yüzü:** Karta tıkla, döner: tüm limitler ve GitHub tarzı 13 haftalık etkinlik haritası
   (Claude Code ve Codex CLI kayıtlarından).
 - **Veri gelmezse:** Son veri soluk ve yaşıyla kalır; altında sebep ve tek düğmelik çözüm
