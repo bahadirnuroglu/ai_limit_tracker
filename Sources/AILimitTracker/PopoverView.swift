@@ -691,7 +691,10 @@ private struct Hologram: View {
                             .fill(color)
                             .frame(width: 260 * scale, height: 54 * scale)
                             .blur(radius: 10 * scale)
-                            .opacity(0.2)  // rozet 54 px yüksek, şekillerin ancak bir dilimi görünür; büyük kartta seyreltildi
+                            // rozet 54 px yüksek, şekillerin ancak bir dilimi görünür; büyük kartta seyreltildi.
+                            // Boştayken sıcak katmanlar (kırmızı, turuncu, sarı) kısık: kart turuncuya çalmasın
+                            .opacity(0.2 * (i < 3 && hover == nil ? 0.3 : 1))
+                            .animation(.easeOut(duration: 0.3), value: hover == nil)
                             .rotationEffect(.degrees(Double(i) * 10 + (hover == nil ? idle : spin)))
                     }
                 }
