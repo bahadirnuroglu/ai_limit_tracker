@@ -1,6 +1,6 @@
 # AI Limit Tracker
 
-Claude, Codex, Cursor ve Antigravity kullanım limitlerini macOS menü çubuğunda tek bakışta gösteren küçük bir uygulama.
+Claude, Codex ve Cursor kullanım limitlerini macOS menü çubuğunda tek bakışta gösteren küçük bir uygulama.
 Limite takılmadan önce haber verir, limit yenilenince "devam edebilirsin" der.
 
 <p align="center"><img src="docs/screenshot.png" width="900" alt="AI Limit Tracker: açık ve koyu temada limit kartları, kartın arka yüzünde etkinlik haritası"></p>
@@ -17,18 +17,20 @@ Limite takılmadan önce haber verir, limit yenilenince "devam edebilirsin" der.
    için bu adım sadece ilk açılışta gerekir.
 3. Kurulum asistanı açılır: kullandığın araçları seç, bağla, hangi bildirimleri alacağını belirle.
 
-macOS 14 (Sonoma) ve üstü · Apple Silicon ve Intel. Yeni sürüm çıkınca uygulama popup'ta haber verir.
+macOS 14 (Sonoma) ve üstü · Apple Silicon ve Intel. Yeni sürüm çıkınca popup'ta **Güncelle**'ye basman yeterli:
+uygulama kendini indirip kurar ve yeniden açılır, "Yine de Aç" adımı tekrar gerekmez.
 
 ## Neler yapar
 
-- **Dört sağlayıcı:** Claude, Codex, Cursor, Antigravity. Çoğu, bu Mac'te zaten açık olan oturumdan okunur;
+- **Üç sağlayıcı:** Claude, Codex, Cursor. Çoğu, bu Mac'te zaten açık olan oturumdan okunur;
   şifre gerekmez.
 - **Halka kartlar:** Her sağlayıcı tek satır: 5 saatlik limit ve son kullandığın modelin limiti.
-  %90'ı geçen limit her zaman öne çıkar; bu tempoyla sıfırlanmadan dolacaksa "≈ 12 sa sonra dolar" yazar.
+  %90'ı geçen limit her zaman öne çıkar; bu tempoyla sıfırlanmadan dolacaksa "≈ 12 sa sonra dolar",
+  değilse haftalık limit için "Günlük bütçe ≈%9" yazar.
 - **Kartın arka yüzü:** Karta tıkla, döner: tüm limitler ve GitHub tarzı 13 haftalık etkinlik haritası
   (Claude Code ve Codex CLI kayıtlarından).
 - **Veri gelmezse:** Son veri soluk ve yaşıyla kalır; altında sebep ve tek düğmelik çözüm
-  ("Antigravity kapalı · Antigravity'yi aç").
+  ("Cursor oturumunun süresi dolmuş · Cursor'u aç").
 - **Bildirimler:** %75, %90 ve limit yenilenince; hangilerini alacağını sen seçersin.
 - **Menü çubuğu:** 1–2 sağlayıcıda iç içe halkalar, daha fazlasında limite en yakın olanın halkası.
   <kbd>⌃</kbd><kbd>⌥</kbd><kbd>L</kbd> popup'ı her yerden açar.
@@ -44,13 +46,12 @@ Her şey senin hesabınla ve senin Mac'inde; üçüncü bir sunucuya hiçbir şe
 | Claude | Claude Code kuruluysa onun oturumu (`api.anthropic.com/api/oauth/usage`, macOS bir kez Anahtar Zinciri izni ister); yoksa uygulama içindeki claude.ai girişi. |
 | Codex | Codex CLI'nin `~/.codex/auth.json` girişi → `chatgpt.com/backend-api/wham/usage`. |
 | Cursor | Cursor uygulamasının kendi oturumu (salt okunur) → `cursor.com/api/usage-summary`. |
-| Antigravity | Uygulama açıkken çalışan yerel dil sunucusu. Kapalıyken son bilinen veri gösterilir. |
 | Etkinlik haritası | Bu Mac'teki Claude Code (`~/.claude/projects`) ve Codex CLI (`~/.codex/sessions`) kayıtları. |
 
 Sorun yaşarsan **Ayarlar → Genel → Tanılama Bilgisini Kopyala** ile durumu paylaşabilirsin; token ya da hesap
 bilgisi içermez.
 
-> Resmi bir uygulama değildir; Anthropic, OpenAI, Anysphere ya da Google ile bağlantısı yoktur. Kullanılan
+> Resmi bir uygulama değildir; Anthropic, OpenAI ya da Anysphere ile bağlantısı yoktur. Kullanılan
 > adresler belgesizdir ve değişebilir; değişirse kartta ipucu çıkar ve uygulamanın güncellenmesi gerekir.
 
 ## Kaynaktan derleme
@@ -75,13 +76,13 @@ Uygulama ikonu `tools/make-icon.swift` ile çizilir: `bash tools/make-icon.sh`.
 <details>
 <summary><b>English</b></summary>
 
-AI Limit Tracker is a macOS menu bar app that shows your Claude, Codex, Cursor and Antigravity usage limits at a
+AI Limit Tracker is a macOS menu bar app that shows your Claude, Codex and Cursor usage limits at a
 glance, warns you at 75% / 90% (you choose which), estimates when a limit will run out at your current pace, notifies
 you when it resets, and flips each card to all limits plus a GitHub-style 13-week activity heatmap built from local
 Claude Code / Codex CLI logs. Most providers are read from sessions already on your Mac, no password needed.
 
 Download the latest `.dmg` from [Releases](https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest),
 drag the app to Applications, then allow it once in System Settings → Privacy & Security → Open Anyway
-(the app is ad-hoc signed). Requires macOS 14+. Unofficial; not affiliated with Anthropic, OpenAI, Anysphere or Google.
+(the app is ad-hoc signed). Requires macOS 14+. Unofficial; not affiliated with Anthropic, OpenAI or Anysphere.
 
 </details>

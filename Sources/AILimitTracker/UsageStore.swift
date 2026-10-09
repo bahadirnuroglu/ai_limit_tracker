@@ -25,6 +25,17 @@ extension Limit {
     }
 }
 
+extension Limit {
+    /// Uzun pencerede (haftalık, aylık) kalan yüzdeyi kalan güne eşit bölersen bugün kullanabileceğin yüzde.
+    /// Son 6 saatte ya da dolmuş limitte anlamsız: nil.
+    var dailyBudget: Double? {
+        guard let window, window >= 6 * 86_400, let resetsAt, percent < 100 else { return nil }
+        let days = resetsAt.timeIntervalSinceNow / 86_400
+        guard days > 0.25 else { return nil }
+        return (100 - percent) / max(days, 1)
+    }
+}
+
 enum Countdown {
     static func text(to date: Date) -> String { text(seconds: date.timeIntervalSinceNow) }
 

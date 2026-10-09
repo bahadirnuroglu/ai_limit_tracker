@@ -1,6 +1,7 @@
 # AI Limit Tracker
 
-macOS menü çubuğu uygulaması: Claude ve Codex kullanım limitlerini tek popup'ta gösterir.
+macOS menü çubuğu uygulaması: Claude, Codex ve Cursor kullanım limitlerini tek popup'ta gösterir.
+(Antigravity desteği eklenip kullanıcı isteğiyle KALDIRILDI; geri ekleme.)
 Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıfırdan yazma, mevcut kodu düzenle.
 
 ## Derleme
@@ -23,18 +24,28 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
 
 ## Mimari (Sources/AILimitTracker)
 - App.swift: MenuBarExtra (.window), Dock ikonu yok
-- UsageStore.swift: iki sağlayıcının durumu, 5 dk'da bir yenileme, Claude JSON ayrıştırma
+- Providers.swift: ProviderID (claude, codex, cursor), Issue (veri gelmezse ipucu + tek eylem), UsageHistory
+  (son kullanılan model), frontLimits (satırda 2 halka: kısa pencere + genel/son kullanılan modelden dolu olan, %90+ öne).
+- UsageStore.swift: sağlayıcı durumları (usage[id]), açık sağlayıcılar (enabledSet), sıralama (en dolu üstte),
+  yenileme: popup açılınca veri 60 sn'den eskiyse, normalde 5 dk, bir limit %75+ ise 1 dk. Hata olursa eski veri
+  kalır + issue. Claude JSON ayrıştırma; Limit.timeToFull (≈ dolar) ve Limit.dailyBudget (uzun pencerede günlük bütçe).
 - WebSession.swift: gizli WKWebView ile claude.ai oturumu; /api/organizations/{id}/usage
   sayfa bağlamından fetch edilir (alanlar: utilization, resets_at). Token'a dokunulmaz.
 - CodexProvider.swift: ~/.codex/auth.json token'ı ile GET chatgpt.com/backend-api/wham/usage
   (rate_limit.primary_window / secondary_window: used_percent, limit_window_seconds, reset_at)
-- PopoverView.swift: popup arayüzü; karta tıklayınca kart döner (y ekseni, 90°'de yüz değişir), arka yüzde
-  GitHub tarzı 13 haftalık ısı haritası (Claude: marka turuncusu, Codex: bardaki mor gradyan; 4 seviye opaklık) + "Kullanım" düğmesi (claude.ai/settings/usage,
-  chatgpt.com/codex/settings/usage); limit satırında "≈ X sonra dolar" (Limit.timeToFull, pencere ortalaması)
+- PopoverView.swift: popup. Her sağlayıcı yatay halka satırı (ProviderCard): logo + ad + plan + etiket
+  (öncelik: Doldu > ≈ X sonra dolar > Cursor $ notu > Günlük bütçe), sağda en fazla iki 270° halka (RingGauge).
+  Karta tıklayınca döner (y ekseni, 90°'de yüz değişir); kartlar BAĞIMSIZ döner (birden çoğu aynı anda).
+  Arka yüz sekmeleri: Limitler (tüm kovalar, MiniLimitRow) / Etkinlik (13 haftalık ısı haritası; Claude turuncu,
+  Codex mor). Kart alanı içerik boyunda ScrollView; tavan ekranın %80'i. WindowFader'ın NSView'u hitTest nil
+  (yoksa büyüyen pencerede alttaki kartlara tıklama ulaşmıyordu).
 - Notifier.swift: %75/%90 eşik bildirimi (pencere başına bir kez, UserDefaults "notify.level.<id>"),
   %75+ limit için sıfırlanma anına zamanlanmış "yenilendi" bildirimi
 - HotKey.swift: ⌃⌥L sistem kısayolu (Carbon); MenuBarExtra'yı status bar düğmesine performClick ile açar
-- UpdateChecker.swift: GitHub Releases latest kontrolü (repo: bahadirnuroglu/ai_limit_tracker), popup'ta "Yeni sürüm" şeridi
+- UpdateChecker.swift: GitHub Releases latest (repo: bahadirnuroglu/ai_limit_tracker). Şeritte "Güncelle": dmg'yi
+  uygulama indirir, hdiutil ile bağlar, .app'i aynı diskte hazırlayıp replaceItemAt ile değiştirir, dmg'yi çıkarır,
+  sh -c 'sleep 1; open' ile yeniden açar. Karantina yok → Gatekeeper sormaz. Hata → sürüm sayfası.
+  (Uçtan uca yerel HTTP sunucusuyla test edildi.) Not: yeni ad-hoc imza Anahtar Zinciri izinlerini yeniden sorabilir.
 - LoginItem.swift: açılışta başlatma
 - Onboarding.swift: Apple kurulum asistanı tarzı pencere (şeffaf başlık çubuğu, sistem Form/Toggle/borderedProminent,
   açık/koyu tema, yaylı sayfa geçişi, Enter=devam Esc=geri): hoş geldin → araçlar → bağlan → bildirimler → genel → hazır.
@@ -42,20 +53,21 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   UserDefaults: "enabledProviders", "onboardingDone", bildirim türleri "notify.75/.90/.reset" (NotificationPrefs).
   Bildirim izni kurulumun Bildirimler adımında istenir (kurulum bitmişse açılışta).
   Görsel kontrol: Form/Toggle ekran dışı çizilmez; uygulama içinden cacheDisplay ile anlık görüntü alınır.
-- ClaudeCodeAuth / CursorProvider / AntigravityProvider: yerel oturumdan okuyan sağlayıcılar (bkz. dosya başları)
+- ClaudeCodeAuth / CursorProvider: yerel oturumdan okuyan sağlayıcılar (bkz. dosya başları).
+  Claude: önce Claude Code oturumu (Anahtar Zinciri), yoksa WebSession.
 - Activity.swift: ısı haritası verisi YEREL kayıtlardan (claude.ai web/ChatGPT dahil değil):
   Claude Code ~/.claude/projects/**/*.jsonl (assistant usage: input+output+cache_creation, message.id ile tekil),
   Codex ~/.codex/sessions/**/*.jsonl (token_count.last_token_usage: input-cached+output). 10 dk önbellek.
-- MenuIcon.swift: menü çubuğu ikonu, uygulama ikonu gibi iç içe 270° halkalar: dış Claude turuncu,
-  iç Codex labelColor (template DEĞİL; renkler çizim anında açık/koyu menü çubuğuna göre)
-- BrandLogos.swift: Claude/OpenAI logoları (Simple Icons SVG path'i + küçük SVG ayrıştırıcı)
+- MenuIcon.swift: 1–2 sağlayıcıda iç içe 270° halkalar (dış turuncu, iç labelColor), 3'te en dolu sağlayıcının
+  halkası + ortada logosu, %90+ kırmızı ve yanında kalan süre. Template DEĞİL.
+- BrandLogos.swift: Claude/OpenAI/Cursor logoları (Simple Icons SVG path'i + küçük SVG ayrıştırıcı)
 - tools/make-icon.sh: AppIcon.icns'i üretir (tools/make-icon.swift: kartlarla aynı gümüş metal + hologram zemin,
   iç içe iki halka: dış turuncu, iç grafit)
 
 ## Tasarım kararları
-- Popup: cam dış tepsi > sağlayıcı kartları > alt şerit (solda "Güncellendi HH:mm" tek satır, sağda rozet tarzı
-  Açılışta/Yenile/Çık düğmeleri; Yenile ikonu store.isRefreshing iken döner). Sistem temasına uyar.
-- Kartlar 21st.dev award-badge (Product Hunt rozeti) BİREBİR stili: ikisi de gümüş #ddd zemin, 4 pt içeride
+- Popup: sağlayıcı kartları > (varsa) yeni sürüm şeridi > alt şerit (solda "Güncellendi HH:mm", sağda
+  Ayarlar/Yenile/Çık; Yenile ikonu store.isRefreshing iken döner). Sistem temasına uyar.
+- Kartlar 21st.dev award-badge (Product Hunt rozeti) BİREBİR stili: gümüş #ddd zemin, 4 pt içeride
   1 px #bbb çerçeve, gölge yok, tüm yazı + logo #666 SF Pro; kart adı bold, etiket/yüzde/düğme medium, geri kalan regular. Hologram yazıların ÜSTÜNDE overlay
   (yazıları da renklendirir, istenen "niş" görünüm): 10 papyon şekli rozet oranında (260×54, genişliğe ölçekli),
   blur 10*ölçek, opaklık 0.22 (boştayken kırmızı/turuncu/sarı katmanlar KAPALI, hover'da tam), açıkta güç 1 / koyuda .screen 0.45. (Güç kısma ve dar tayf şeridi denendi,
@@ -68,8 +80,8 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
 - Halka yüzdeleri SF Pro Rounded; kart dönerken trackpad'de hafif tık (NSHapticFeedbackManager);
   ilk yüklemede halkaların yerinde nefes alan iskelet. Hareketi azalt: hologram/parçacık durur, eğim yok,
   dönme yerine solma, açılışta sadece fade. VoiceOver: kart tek öğe, durum cümlesi + ipucu eylemi.
-- Barlar: düz hap (iz + dolgu); topuz, çeyrek noktaları ve tempo noktası YOK; 0%da dolgu yok.
-- Renk: normal mavi; %75+ veya tempodan hızlı ise parıltılı mor gradyan; %90+ turuncu-kırmızı.
+- Halka/bar rengi (Limit.colors): normal mavi; %75+ veya tempodan hızlı mor gradyan; %90+ turuncu-kırmızı.
+  Arka yüzdeki barlar düz hap; topuz/çeyrek noktaları YOK.
 - Açılış (iOS tarzı): tüm panel üst ortadan 0.88 ölçek + blur'dan yayla (response 0.42, damping 0.68) büyür,
   kartlar 0.06 sn arayla iner, barlar yaylanarak dolar. Cam zemin pencereye ait (ölçeklenemez): WindowFader
   her onAppear'da pencere alphaValue'yu 0->1 (0.18 sn) yapar. Her açılışta oynadığı log ile doğrulandı.
@@ -82,4 +94,5 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
 - Endpoint'ler dahili ve belgesiz; değişebilir.
 - ChatGPT sohbet limiti için okunabilir kaynak yok, sadece Codex pencereleri ve plan adı gösteriliyor.
 - Açılışta başlatma: LoginItem.swift (SMAppService.mainApp); varsayılan açık, her açılışta yeniden kaydolur,
-  alt şeritteki "Açılışta" ile kapatılırsa UserDefaults loginItemOptOut=true.
+  Ayarlar → Genel'den kapatılırsa UserDefaults loginItemOptOut=true.
+- Gerçek hesapla test EDİLMEDİ: Cursor, Claude Code oturumu (bu Mac'te yok), claude.ai'ye Google ile giriş.

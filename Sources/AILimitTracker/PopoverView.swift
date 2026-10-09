@@ -61,18 +61,34 @@ struct PopoverView: View {
         .onDisappear { shown = false; flipped = [] }
     }
 
-    /// Yeni sürüm varsa kartlarla aynı rozet dilinde ince bir şerit
+    /// Yeni sürüm varsa ince bir şerit: Güncelle → indiriliyor → kuruluyor → yeniden başlar
     private func updateBanner(_ release: UpdateChecker.Release) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: "sparkles").font(.system(size: 11, weight: .medium))
-            Text("Yeni sürüm \(release.version) hazır").font(.system(size: 12, weight: .medium))
-            Spacer()
-            BadgeButton(title: "İndir", icon: "arrow.down.circle", spinning: false) {
-                NSWorkspace.shared.open(release.url)
+            switch updater.phase {
+            case .idle:
+                Image(systemName: "sparkles").font(.system(size: 11, weight: .medium))
+                Text("Yeni sürüm \(release.version) hazır").font(.system(size: 12, weight: .medium))
+                Spacer()
+                BadgeButton(title: "Güncelle", icon: "arrow.down.circle", spinning: false) { updater.install() }
+                    .help("İndirir, kurar ve yeniden başlatır")
+            case .downloading(let fraction):
+                ProgressView(value: fraction).progressViewStyle(.linear).frame(width: 90)
+                Text("İndiriliyor %\(Int(fraction * 100))").font(.system(size: 12, weight: .medium)).monospacedDigit()
+                Spacer()
+            case .installing:
+                ProgressView().controlSize(.small)
+                Text("Kuruluyor, birazdan yeniden açılacak…").font(.system(size: 12, weight: .medium))
+                Spacer()
+            case .failed(let message):
+                Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 11))
+                Text(message).font(.system(size: 11, weight: .medium)).lineLimit(2)
+                Spacer()
+                BadgeButton(title: "Sayfayı aç", icon: "arrow.up.right", spinning: false) { updater.openReleasePage() }
             }
         }
         .foregroundStyle(palette.ink)
         .padding(.leading, 12).padding(.trailing, 6).padding(.vertical, 6)
+        .frame(minHeight: 34)
         .glassOrMetal(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .environment(\.colorScheme, palette.scheme)
         .opacity(shown ? 1 : 0)
@@ -361,7 +377,10 @@ private struct ProviderCard: View {
         }
         let soon = usage.limits.compactMap { l in l.timeToFull.map { (l, $0) } }.min { $0.1 < $1.1 }
         guard let (limit, eta) = soon else {
-            return usage.note.map { Chip(text: $0, color: palette.ink) }
+            if let note = usage.note { return Chip(text: note, color: palette.ink) }
+            // Dolma riski yoksa: genel uzun limitin günlük bütçesi
+            let long = usage.limits.first { $0.model == nil && $0.dailyBudget != nil }
+            return long?.dailyBudget.map { Chip(text: "Günlük bütçe ≈%\(Int($0.rounded()))", color: palette.ink) }
         }
         let color = limit.percent >= 90 ? palette.alert : palette.notice
         return Chip(text: "≈ \(Countdown.short(seconds: eta)) sonra dolar", color: color)
@@ -575,7 +594,8 @@ private struct MiniLimitRow: View {
             }
             GaugeBar(value: min(max(limit.percent / 100, 0), 1), colors: limit.colors, sparkle: false, height: 6)
             if let reset = limit.resetsAt {
-                Text("\(Countdown.text(to: reset)) sonra sıfırlanır").font(.system(size: 8.5, weight: .regular))
+                let budget = limit.dailyBudget.map { " · günlük bütçe ≈%\(Int($0.rounded()))" } ?? ""
+                Text("\(Countdown.text(to: reset)) sonra sıfırlanır\(budget)").font(.system(size: 8.5, weight: .regular))
             }
         }
     }

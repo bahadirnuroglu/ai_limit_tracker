@@ -1,14 +1,20 @@
-import Foundation
+import AppKit
 
-/// GitHub Releases'tan yeni sürüm kontrolü (açılışta ve 6 saatte bir).
-/// Sürüm etiketi "v0.3.0" ya da "0.3.0"; varsa .dmg eki doğrudan indirilir, yoksa sürüm sayfası açılır.
+/// GitHub Releases'tan yeni sürüm kontrolü (açılışta ve 6 saatte bir) ve uygulama içi güncelleme.
+/// Sürüm etiketi "v0.3.0" ya da "0.3.0". "Güncelle": dmg'yi uygulama kendisi indirir, açar, kendi yerine koyar
+/// ve yeniden başlar. Uygulamanın indirdiği dosya karantinaya girmediği için Gatekeeper ("Yine de Aç") sormaz.
+/// dmg eki yoksa ya da bir adım başarısız olursa sürüm sayfası açılır.
 @MainActor
 final class UpdateChecker: ObservableObject {
     /// "kullanıcı/depo" — boşsa kontrol yapılmaz
     static let repo = "bahadirnuroglu/ai_limit_tracker"
 
-    struct Release: Equatable { let version: String; let url: URL }
+    struct Release: Equatable { let version: String; let page: URL; let dmg: URL? }
     @Published private(set) var available: Release?
+
+    enum Phase: Equatable { case idle, downloading(Double), installing, failed(String) }
+    @Published private(set) var phase: Phase = .idle
+    private var progressObservation: NSKeyValueObservation?
 
     private var timer: Timer?
     private let current = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
@@ -34,7 +40,98 @@ final class UpdateChecker: ObservableObject {
         guard Self.isNewer(version, than: current) else { available = nil; return }
         let dmg = (json["assets"] as? [[String: Any]])?
             .first { ($0["name"] as? String)?.hasSuffix(".dmg") == true }?["browser_download_url"] as? String
-        available = Release(version: version, url: dmg.flatMap(URL.init(string:)) ?? page)
+        available = Release(version: version, page: page, dmg: dmg.flatMap(URL.init(string:)))
+    }
+
+    // MARK: Uygulama içi güncelleme
+
+    func install() {
+        guard let release = available else { return }
+        guard let dmg = release.dmg else { NSWorkspace.shared.open(release.page); return }
+        phase = .downloading(0)
+        Task {
+            do {
+                let file = try await download(dmg)
+                phase = .installing
+                let target = Bundle.main.bundleURL
+                try await Task.detached { try Self.replaceApp(at: target, fromDMG: file) }.value
+                relaunch(target)
+            } catch {
+                phase = .failed("Güncellenemedi. Sürüm sayfasından indirebilirsin.")
+            }
+        }
+    }
+
+    func openReleasePage() {
+        if let page = available?.page { NSWorkspace.shared.open(page) }
+        phase = .idle
+    }
+
+    private func download(_ url: URL) async throws -> URL {
+        try await withCheckedThrowingContinuation { cont in
+            let task = URLSession.shared.downloadTask(with: url) { temp, response, error in
+                guard let temp, (response as? HTTPURLResponse)?.statusCode == 200 else {
+                    cont.resume(throwing: error ?? URLError(.badServerResponse)); return
+                }
+                // Geçici dosya bu blok bitince silinir: kalıcı bir yere taşı
+                let dest = FileManager.default.temporaryDirectory.appendingPathComponent("AILimitTracker-update.dmg")
+                try? FileManager.default.removeItem(at: dest)
+                do { try FileManager.default.moveItem(at: temp, to: dest); cont.resume(returning: dest) }
+                catch { cont.resume(throwing: error) }
+            }
+            progressObservation = task.progress.observe(\.fractionCompleted) { [weak self] progress, _ in
+                let value = progress.fractionCompleted
+                Task { @MainActor in if case .downloading = self?.phase { self?.phase = .downloading(value) } }
+            }
+            task.resume()
+        }
+    }
+
+    /// dmg'yi bağla, içindeki .app'i hedefin yanına kopyala, eskisinin yerine koy, dmg'yi çıkar
+    nonisolated private static func replaceApp(at target: URL, fromDMG dmg: URL) throws {
+        let mount = FileManager.default.temporaryDirectory.appendingPathComponent("ailt-mount-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: mount, withIntermediateDirectories: true)
+        guard run("/usr/bin/hdiutil", ["attach", dmg.path, "-nobrowse", "-noautoopen", "-readonly", "-mountpoint", mount.path]) == 0 else {
+            throw CocoaError(.fileReadUnknown)
+        }
+        defer {
+            // Kopyalama sonrası disk kısa süre meşgul kalabiliyor: birkaç kez dene
+            for attempt in 0..<5 {
+                if run("/usr/bin/hdiutil", ["detach", mount.path, attempt < 2 ? "-quiet" : "-force"]) == 0 { break }
+                Thread.sleep(forTimeInterval: 0.6)
+            }
+            try? FileManager.default.removeItem(at: mount)
+            try? FileManager.default.removeItem(at: dmg)
+        }
+        guard let app = try FileManager.default.contentsOfDirectory(at: mount, includingPropertiesForKeys: nil)
+            .first(where: { $0.pathExtension == "app" }) else { throw CocoaError(.fileNoSuchFile) }
+
+        // Aynı diskte hazırla, sonra tek adımda değiştir (yarım kalmış uygulama bırakmaz)
+        let staging = target.deletingLastPathComponent().appendingPathComponent(".\(target.lastPathComponent).update")
+        try? FileManager.default.removeItem(at: staging)
+        guard run("/usr/bin/ditto", [app.path, staging.path]) == 0 else { throw CocoaError(.fileWriteUnknown) }
+        _ = run("/usr/bin/xattr", ["-dr", "com.apple.quarantine", staging.path])
+        _ = try FileManager.default.replaceItemAt(target, withItemAt: staging)
+    }
+
+    nonisolated private static func run(_ path: String, _ args: [String]) -> Int32 {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: path)
+        p.arguments = args
+        p.standardOutput = FileHandle.nullDevice
+        p.standardError = FileHandle.nullDevice
+        do { try p.run() } catch { return -1 }
+        p.waitUntilExit()
+        return p.terminationStatus
+    }
+
+    /// Bu süreç kapandıktan sonra yeni uygulamayı aç
+    private func relaunch(_ app: URL) {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/bin/sh")
+        p.arguments = ["-c", "sleep 1; /usr/bin/open \"$0\"", app.path]
+        try? p.run()
+        NSApp.terminate(nil)
     }
 
     static func isNewer(_ a: String, than b: String) -> Bool {
