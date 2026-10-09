@@ -59,16 +59,16 @@ enum MenuIcon {
 
     /// Yan yana halkalar, ortalarında logo
     private static func sideBySide(_ entries: [Entry]) -> NSImage {
-        let step: CGFloat = 18
-        let image = NSImage(size: NSSize(width: step * CGFloat(entries.count) - 2, height: 18), flipped: false) { _ in
+        let step: CGFloat = 23
+        let image = NSImage(size: NSSize(width: step * CGFloat(entries.count) - 1, height: 22), flipped: false) { _ in
             guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
             let label = NSColor.labelColor
             for (i, e) in entries.enumerated() {
-                let c = CGPoint(x: 8 + CGFloat(i) * step, y: 8.7)
+                let c = CGPoint(x: 11 + CGFloat(i) * step, y: 10.7)
                 let critical = (e.percent ?? 0) >= 90
-                ring(ctx, center: c, radius: 6.6, value: e.percent, track: label.withAlphaComponent(0.22),
-                     fill: critical ? Self.critical : e.tint, width: 1.9)
-                var t = CGAffineTransform(translationX: c.x - 3.3, y: c.y + 3.3).scaledBy(x: 6.6 / 24, y: -6.6 / 24)
+                ring(ctx, center: c, radius: 9, value: e.percent, track: label.withAlphaComponent(0.22),
+                     fill: critical ? Self.critical : e.tint, width: 2.4)
+                var t = CGAffineTransform(translationX: c.x - 4.6, y: c.y + 4.6).scaledBy(x: 9.2 / 24, y: -9.2 / 24)
                 if let p = e.logo.cgPath.copy(using: &t) { ctx.addPath(p); ctx.setFillColor(label.cgColor); ctx.fillPath() }
             }
             return true
@@ -80,19 +80,19 @@ enum MenuIcon {
     /// Alt alta ince barlar (en fazla 3)
     private static func bars(_ entries: [Entry]) -> NSImage {
         let shown = Array(entries.prefix(3))
-        let image = NSImage(size: NSSize(width: 30, height: 18), flipped: false) { _ in
+        let image = NSImage(size: NSSize(width: 38, height: 22), flipped: false) { _ in
             guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
             let label = NSColor.labelColor
-            let gap: CGFloat = shown.count == 3 ? 5.5 : 7
-            let top: CGFloat = shown.count == 3 ? 13.5 : 11.5
+            let gap: CGFloat = shown.count == 3 ? 7 : 8.5
+            let top: CGFloat = shown.count == 3 ? 16.5 : 14
             for (i, e) in shown.enumerated() {
-                let rect = CGRect(x: 2, y: top - CGFloat(i) * gap, width: 26, height: 3)
-                ctx.addPath(CGPath(roundedRect: rect, cornerWidth: 1.5, cornerHeight: 1.5, transform: nil))
+                let rect = CGRect(x: 2, y: top - CGFloat(i) * gap, width: 34, height: 4)
+                ctx.addPath(CGPath(roundedRect: rect, cornerWidth: 2, cornerHeight: 2, transform: nil))
                 ctx.setFillColor(label.withAlphaComponent(0.22).cgColor); ctx.fillPath()
                 let f = CGFloat(min(max((e.percent ?? 0) / 100, 0), 1))
                 if f > 0 {
-                    ctx.addPath(CGPath(roundedRect: CGRect(x: 2, y: rect.minY, width: max(26 * f, 3), height: 3),
-                                       cornerWidth: 1.5, cornerHeight: 1.5, transform: nil))
+                    ctx.addPath(CGPath(roundedRect: CGRect(x: 2, y: rect.minY, width: max(34 * f, 4), height: 4),
+                                       cornerWidth: 2, cornerHeight: 2, transform: nil))
                     ctx.setFillColor(((e.percent ?? 0) >= 90 ? Self.critical : e.tint).cgColor); ctx.fillPath()
                 }
             }
@@ -106,15 +106,15 @@ enum MenuIcon {
     static let critical = NSColor(red: 0.94, green: 0.33, blue: 0.29, alpha: 1)
 
     private static func stacked(outer: Double?, inner: Double?, hasInner: Bool) -> NSImage {
-        let size: CGFloat = 18
+        let size: CGFloat = 22
         let image = NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in
             guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
             let center = CGPoint(x: rect.midX, y: rect.midY - 0.3)
             let label = NSColor.labelColor
-            ring(ctx, center: center, radius: hasInner ? 7.4 : 6.6, value: outer,
+            ring(ctx, center: center, radius: hasInner ? 9.2 : 8.6, value: outer,
                  track: label.withAlphaComponent(0.22), fill: claudeOrange)
             if hasInner {
-                ring(ctx, center: center, radius: 3.8, value: inner, track: label.withAlphaComponent(0.22), fill: label)
+                ring(ctx, center: center, radius: 4.8, value: inner, track: label.withAlphaComponent(0.22), fill: label, width: 2.6)
             }
             return true
         }
@@ -128,21 +128,21 @@ enum MenuIcon {
         let text = showTime ? clock(entry.resetsAt!) as NSString : nil
         let font = NSFont.monospacedDigitSystemFont(ofSize: 11.5, weight: .semibold)
         let textWidth = text.map { ceil($0.size(withAttributes: [.font: font]).width) + 3 } ?? 0
-        let size = NSSize(width: 18 + textWidth, height: 18)
+        let size = NSSize(width: 22 + textWidth, height: 22)
 
         let image = NSImage(size: size, flipped: false) { _ in
             guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
             let label = NSColor.labelColor
-            let center = CGPoint(x: 9, y: 8.7)
-            ring(ctx, center: center, radius: 7.4, value: entry.percent, track: label.withAlphaComponent(0.22),
+            let center = CGPoint(x: 11, y: 10.7)
+            ring(ctx, center: center, radius: 9.2, value: entry.percent, track: label.withAlphaComponent(0.22),
                  fill: percent >= 90 ? critical : claudeOrange)
             // Ortada logo (SVG koordinatları y aşağı; çevirip 7 pt'ye ölçekle)
-            var t = CGAffineTransform(translationX: 5.5, y: 12.2).scaledBy(x: 7 / 24, y: -7 / 24)
+            var t = CGAffineTransform(translationX: 6.6, y: 15.1).scaledBy(x: 8.8 / 24, y: -8.8 / 24)
             if let path = entry.logo.cgPath.copy(using: &t) {
                 ctx.addPath(path); ctx.setFillColor(label.cgColor); ctx.fillPath()
             }
             if let text {
-                text.draw(at: NSPoint(x: 21, y: (18 - font.ascender + font.descender) / 2 - 0.5),
+                text.draw(at: NSPoint(x: 25, y: (22 - font.ascender + font.descender) / 2 - 0.5),
                           withAttributes: [.font: font, .foregroundColor: label])
             }
             return true
@@ -160,7 +160,7 @@ enum MenuIcon {
 
     /// Altta açıklığı olan, sol alttan saat yönünde dolan halka
     private static func ring(_ ctx: CGContext, center: CGPoint, radius: CGFloat, value: Double?,
-                             track: NSColor, fill: NSColor, width: CGFloat = 2.3) {
+                             track: NSColor, fill: NSColor, width: CGFloat = 2.6) {
         let start = CGFloat.pi * 1.25, sweep = CGFloat.pi * 1.5
         ctx.setLineWidth(width)
         ctx.setLineCap(.round)

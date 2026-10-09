@@ -66,7 +66,8 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   Codex ~/.codex/sessions/**/*.jsonl (token_count.last_token_usage: input-cached+output). 10 dk önbellek.
 - MenuIcon.swift: MenuBarStyle (UsageStore.menuBarStyle, UserDefaults "menuBarStyle"): recentTwo (varsayılan; en son
   kullanılan iki sağlayıcı iç içe halka), mostFull (en dolu sağlayıcı halkası + logo, %90+ kırmızı + kalan süre),
-  sideBySide (yan yana halka + logo), bars (alt alta ince barlar). Renkler ProviderID.menuTint. Template DEĞİL.
+  sideBySide (yan yana halka + logo), bars (alt alta ince barlar). Hepsi 22 pt (menü çubuğu azamisi).
+  Renkler ProviderID.menuTint. Template DEĞİL.
   Ayarlar → Menü Çubuğu: 2×2 seçim kartı, her kartta gerçek veriyle çizilmiş ikon (store.menuIcon(style:)).
   Ayarlar son açılan sekmeyi hatırlar (@AppStorage "settingsTab").
 - BrandLogos.swift: Claude/OpenAI/Cursor logoları (Simple Icons SVG path'i + küçük SVG ayrıştırıcı)
