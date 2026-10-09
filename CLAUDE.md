@@ -64,8 +64,11 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
 - Activity.swift: ısı haritası verisi YEREL kayıtlardan (claude.ai web/ChatGPT dahil değil):
   Claude Code ~/.claude/projects/**/*.jsonl (assistant usage: input+output+cache_creation, message.id ile tekil),
   Codex ~/.codex/sessions/**/*.jsonl (token_count.last_token_usage: input-cached+output). 10 dk önbellek.
-- MenuIcon.swift: 1–2 sağlayıcıda iç içe 270° halkalar (dış turuncu, iç labelColor), 3'te en dolu sağlayıcının
-  halkası + ortada logosu, %90+ kırmızı ve yanında kalan süre. Template DEĞİL.
+- MenuIcon.swift: MenuBarStyle (UsageStore.menuBarStyle, UserDefaults "menuBarStyle"): recentTwo (varsayılan; en son
+  kullanılan iki sağlayıcı iç içe halka), mostFull (en dolu sağlayıcı halkası + logo, %90+ kırmızı + kalan süre),
+  sideBySide (yan yana halka + logo), bars (alt alta ince barlar). Renkler ProviderID.menuTint. Template DEĞİL.
+  Ayarlar → Menü Çubuğu: 2×2 seçim kartı, her kartta gerçek veriyle çizilmiş ikon (store.menuIcon(style:)).
+  Ayarlar son açılan sekmeyi hatırlar (@AppStorage "settingsTab").
 - BrandLogos.swift: Claude/OpenAI/Cursor logoları (Simple Icons SVG path'i + küçük SVG ayrıştırıcı)
 - tools/make-icon.sh: AppIcon.icns'i üretir (tools/make-icon.swift: kartlarla aynı gümüş metal + hologram zemin,
   iç içe iki halka: dış turuncu, iç grafit)

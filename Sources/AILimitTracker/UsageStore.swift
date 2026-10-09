@@ -109,18 +109,23 @@ final class UsageStore: ObservableObject {
     private var timer: Timer?
     private var lastRefresh = Date.distantPast
 
-    /// Menü çubuğu ikonu: 1–2 sağlayıcıda iç içe halkalar (kısa pencere), 3+ ise limite en yakın olanın halkası
-    var menuIcon: NSImage {
+    /// Menü çubuğu ikonunun görünümü (Ayarlar → Menü Çubuğu)
+    @Published var menuBarStyle: MenuBarStyle =
+        MenuBarStyle(rawValue: UserDefaults.standard.string(forKey: "menuBarStyle") ?? "") ?? .recentTwo {
+        didSet { UserDefaults.standard.set(menuBarStyle.rawValue, forKey: "menuBarStyle") }
+    }
+
+    var menuIcon: NSImage { menuIcon(style: menuBarStyle) }
+
+    /// Ayarlar'daki önizlemeler de bunu kullanır: halkalarda kısa pencere, "En dolu"da en dolu limit
+    func menuIcon(style: MenuBarStyle) -> NSImage {
         let entries = enabled.map { id -> MenuIcon.Entry in
             let u = self[id]
-            if enabled.count >= 3 {
-                let worst = u.limits.max { $0.percent < $1.percent }
-                return MenuIcon.Entry(logo: id.logo, percent: worst?.percent, resetsAt: worst?.resetsAt)
-            }
-            let first = u.frontLimits.first
-            return MenuIcon.Entry(logo: id.logo, percent: first?.percent, resetsAt: first?.resetsAt)
+            let limit = style == .mostFull ? u.limits.max { $0.percent < $1.percent } : u.frontLimits.first
+            return MenuIcon.Entry(logo: id.logo, percent: limit?.percent, resetsAt: limit?.resetsAt,
+                                  tint: id.menuTint, lastUsed: u.limits.map { UsageHistory.lastIncrease($0.id) }.max() ?? 0)
         }
-        return MenuIcon.image(entries)
+        return MenuIcon.image(entries, style: style)
     }
 
     init() {

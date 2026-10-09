@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 
 /// Desteklenen sağlayıcılar. Yeni sağlayıcı: buraya bir durum + UsageStore'da bir getirici.
 enum ProviderID: String, CaseIterable, Identifiable {
@@ -45,6 +45,15 @@ enum ProviderID: String, CaseIterable, Identifiable {
         switch self {
         case .claude, .codex: return true
         case .cursor: return CursorProvider.isInstalled
+        }
+    }
+
+    /// Menü çubuğunda yan yana halka / bar rengi
+    var menuTint: NSColor {
+        switch self {
+        case .claude: return MenuIcon.claudeOrange
+        case .codex: return .labelColor
+        case .cursor: return NSColor(red: 0.42, green: 0.55, blue: 0.98, alpha: 1)
         }
     }
 

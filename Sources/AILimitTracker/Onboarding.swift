@@ -45,7 +45,7 @@ enum Onboarding {
             showSetup(store: store, loginItem: loginItem)
         }
         let w = settingsWindow ?? {
-            let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 540, height: 440),
+            let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 560, height: 500),
                              styleMask: [.titled, .closable], backing: .buffered, defer: false)
             w.isReleasedWhenClosed = false
             w.title = "AI Limit Tracker Ayarları"
@@ -448,14 +448,16 @@ private struct SettingsView: View {
     @ObservedObject var store: UsageStore
     @ObservedObject var loginItem: LoginItem
     let restartSetup: () -> Void
+    @AppStorage("settingsTab") private var tab = 0   // son açılan sekme hatırlanır
 
     var body: some View {
-        TabView {
-            providers.tabItem { Label("Sağlayıcılar", systemImage: "square.stack.3d.up") }
-            notifications.tabItem { Label("Bildirimler", systemImage: "bell.badge") }
-            general.tabItem { Label("Genel", systemImage: "gearshape") }
+        TabView(selection: $tab) {
+            providers.tabItem { Label("Sağlayıcılar", systemImage: "square.stack.3d.up") }.tag(0)
+            MenuBarSettings(store: store).tabItem { Label("Menü Çubuğu", systemImage: "menubar.rectangle") }.tag(1)
+            notifications.tabItem { Label("Bildirimler", systemImage: "bell.badge") }.tag(2)
+            general.tabItem { Label("Genel", systemImage: "gearshape") }.tag(3)
         }
-        .frame(width: 540, height: 440)
+        .frame(width: 560, height: 500)
     }
 
     private var providers: some View {
@@ -658,6 +660,86 @@ private struct ConnectRow: View {
         }
         .padding(10)
         .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+/// Ayarlar → Menü Çubuğu: ikon stilleri, macOS Görünüm seçicisi gibi kartlarla; her kartta senin
+/// verinle çizilmiş gerçek ikon, menü çubuğunu taklit eden bir şeritte
+private struct MenuBarSettings: View {
+    @ObservedObject var store: UsageStore
+
+    var body: some View {
+        Form {
+            Section {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)], spacing: 14) {
+                    ForEach(MenuBarStyle.allCases) { style in
+                        StyleCard(style: style, icon: store.menuIcon(style: style),
+                                  selected: store.menuBarStyle == style) {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { store.menuBarStyle = style }
+                        }
+                    }
+                }
+                .padding(.vertical, 6)
+            } header: {
+                Text("Simge")
+            } footer: {
+                Text("Önizlemeler şu anki limitlerinle çizilir. Hangi sağlayıcıların gösterileceğini Sağlayıcılar sekmesinden seçebilirsin.")
+                    .font(.callout).foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+private struct StyleCard: View {
+    let style: MenuBarStyle
+    let icon: NSImage
+    let selected: Bool
+    let action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 10) {
+                // Menü çubuğu şeridi: wifi, ikon, saat
+                HStack(spacing: 10) {
+                    Spacer(minLength: 0)
+                    Image(systemName: "wifi").font(.system(size: 12, weight: .medium))
+                    Image(nsImage: icon)
+                        .padding(.horizontal, 4).padding(.vertical, 2)
+                        .background(selected ? Color.accentColor.opacity(0.18) : .clear, in: RoundedRectangle(cornerRadius: 5))
+                    Text("18:42").font(.system(size: 12, weight: .semibold))
+                }
+                .foregroundStyle(.primary.opacity(0.85))
+                .padding(.horizontal, 10)
+                .frame(height: 30)
+                .background(.bar, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(.separator))
+
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(selected ? Color.accentColor : .secondary)
+                        .font(.system(size: 14))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(style.title).font(.system(size: 13, weight: .semibold))
+                        Text(style.detail).font(.callout).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)  // satırdaki kartlar eşit boy
+            .background(.background.opacity(hovering ? 0.9 : 0.6), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(selected ? Color.accentColor : Color.primary.opacity(0.08), lineWidth: selected ? 2 : 1)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .accessibilityLabel("\(style.title): \(style.detail)")
+        .accessibilityAddTraits(selected ? [.isSelected] : [])
     }
 }
 

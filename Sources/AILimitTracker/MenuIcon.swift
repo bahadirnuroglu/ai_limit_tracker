@@ -4,18 +4,106 @@ import AppKit
 /// - 1–2 sağlayıcı: iç içe iki halka (dış turuncu = ilk sağlayıcı, iç = ikinci, menü çubuğu metin renginde)
 /// - 3+ sağlayıcı: limite en yakın sağlayıcının halkası, ortasında logosu; %90+ ise yanında sıfırlanmaya kalan süre
 /// Template değil (turuncu kalsın diye); diğer renkler çizim anında açık/koyu menü çubuğuna uyar.
-enum MenuIcon {
-    struct Entry { let logo: BrandLogo; let percent: Double?; let resetsAt: Date? }
+/// Menü çubuğu ikonunun görünümü (Ayarlar → Menü Çubuğu; UserDefaults "menuBarStyle")
+enum MenuBarStyle: String, CaseIterable, Identifiable {
+    case recentTwo, mostFull, sideBySide, bars
+    var id: String { rawValue }
 
-    static func image(_ entries: [Entry]) -> NSImage {
-        if entries.count >= 3, let top = entries.max(by: { ($0.percent ?? -1) < ($1.percent ?? -1) }) {
-            return focused(top)
+    var title: String {
+        switch self {
+        case .recentTwo: return "Son kullanılan iki"
+        case .mostFull: return "En dolu"
+        case .sideBySide: return "Yan yana"
+        case .bars: return "Barlar"
         }
-        return stacked(outer: entries.first?.percent, inner: entries.dropFirst().first?.percent, hasInner: entries.count > 1)
     }
 
-    private static let claudeOrange = NSColor(red: 0.93, green: 0.52, blue: 0.36, alpha: 1)
-    private static let critical = NSColor(red: 0.94, green: 0.33, blue: 0.29, alpha: 1)
+    var detail: String {
+        switch self {
+        case .recentTwo: return "En son kullandığın iki sağlayıcı, iç içe halkalar"
+        case .mostFull: return "Limite en yakın sağlayıcı, ortasında logosu"
+        case .sideBySide: return "Her sağlayıcı kendi halkası ve logosuyla"
+        case .bars: return "Her sağlayıcı için ince bir bar"
+        }
+    }
+}
+
+enum MenuIcon {
+    struct Entry {
+        let logo: BrandLogo
+        let percent: Double?
+        let resetsAt: Date?
+        var tint: NSColor = .labelColor
+        var lastUsed: TimeInterval = 0
+    }
+
+    static func image(_ entries: [Entry], style: MenuBarStyle = .recentTwo) -> NSImage {
+        switch style {
+        case _ where entries.count <= 1:
+            return stacked(outer: entries.first?.percent, inner: nil, hasInner: false)
+        case .recentTwo:
+            // En son kullanılan önce; dış halka o
+            let two = entries.enumerated().sorted { a, b in
+                a.element.lastUsed != b.element.lastUsed ? a.element.lastUsed > b.element.lastUsed : a.offset < b.offset
+            }.prefix(2).map(\.element)
+            return stacked(outer: two.first?.percent, inner: two.dropFirst().first?.percent, hasInner: two.count > 1)
+        case .mostFull:
+            let top = entries.max { ($0.percent ?? -1) < ($1.percent ?? -1) }!
+            return focused(top)
+        case .sideBySide:
+            return sideBySide(entries)
+        case .bars:
+            return bars(entries)
+        }
+    }
+
+    /// Yan yana halkalar, ortalarında logo
+    private static func sideBySide(_ entries: [Entry]) -> NSImage {
+        let step: CGFloat = 18
+        let image = NSImage(size: NSSize(width: step * CGFloat(entries.count) - 2, height: 18), flipped: false) { _ in
+            guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
+            let label = NSColor.labelColor
+            for (i, e) in entries.enumerated() {
+                let c = CGPoint(x: 8 + CGFloat(i) * step, y: 8.7)
+                let critical = (e.percent ?? 0) >= 90
+                ring(ctx, center: c, radius: 6.6, value: e.percent, track: label.withAlphaComponent(0.22),
+                     fill: critical ? Self.critical : e.tint, width: 1.9)
+                var t = CGAffineTransform(translationX: c.x - 3.3, y: c.y + 3.3).scaledBy(x: 6.6 / 24, y: -6.6 / 24)
+                if let p = e.logo.cgPath.copy(using: &t) { ctx.addPath(p); ctx.setFillColor(label.cgColor); ctx.fillPath() }
+            }
+            return true
+        }
+        image.isTemplate = false
+        return image
+    }
+
+    /// Alt alta ince barlar (en fazla 3)
+    private static func bars(_ entries: [Entry]) -> NSImage {
+        let shown = Array(entries.prefix(3))
+        let image = NSImage(size: NSSize(width: 30, height: 18), flipped: false) { _ in
+            guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
+            let label = NSColor.labelColor
+            let gap: CGFloat = shown.count == 3 ? 5.5 : 7
+            let top: CGFloat = shown.count == 3 ? 13.5 : 11.5
+            for (i, e) in shown.enumerated() {
+                let rect = CGRect(x: 2, y: top - CGFloat(i) * gap, width: 26, height: 3)
+                ctx.addPath(CGPath(roundedRect: rect, cornerWidth: 1.5, cornerHeight: 1.5, transform: nil))
+                ctx.setFillColor(label.withAlphaComponent(0.22).cgColor); ctx.fillPath()
+                let f = CGFloat(min(max((e.percent ?? 0) / 100, 0), 1))
+                if f > 0 {
+                    ctx.addPath(CGPath(roundedRect: CGRect(x: 2, y: rect.minY, width: max(26 * f, 3), height: 3),
+                                       cornerWidth: 1.5, cornerHeight: 1.5, transform: nil))
+                    ctx.setFillColor(((e.percent ?? 0) >= 90 ? Self.critical : e.tint).cgColor); ctx.fillPath()
+                }
+            }
+            return true
+        }
+        image.isTemplate = false
+        return image
+    }
+
+    static let claudeOrange = NSColor(red: 0.93, green: 0.52, blue: 0.36, alpha: 1)
+    static let critical = NSColor(red: 0.94, green: 0.33, blue: 0.29, alpha: 1)
 
     private static func stacked(outer: Double?, inner: Double?, hasInner: Bool) -> NSImage {
         let size: CGFloat = 18
@@ -72,9 +160,9 @@ enum MenuIcon {
 
     /// Altta açıklığı olan, sol alttan saat yönünde dolan halka
     private static func ring(_ ctx: CGContext, center: CGPoint, radius: CGFloat, value: Double?,
-                             track: NSColor, fill: NSColor) {
+                             track: NSColor, fill: NSColor, width: CGFloat = 2.3) {
         let start = CGFloat.pi * 1.25, sweep = CGFloat.pi * 1.5
-        ctx.setLineWidth(2.3)
+        ctx.setLineWidth(width)
         ctx.setLineCap(.round)
 
         ctx.addArc(center: center, radius: radius, startAngle: start, endAngle: start - sweep, clockwise: true)
