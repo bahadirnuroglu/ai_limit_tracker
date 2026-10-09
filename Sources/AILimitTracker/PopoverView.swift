@@ -314,14 +314,14 @@ private struct ProviderCard: View {
                         Text(id.name).font(.system(size: 15, weight: .bold))
                         if hiddenCount > 0 {
                             Text("+\(hiddenCount)")
-                                .font(.system(size: 9, weight: .semibold))
+                                .font(.system(size: 10, weight: .semibold))
                                 .padding(.horizontal, 5).padding(.vertical, 2)
                                 .background(palette.subtle, in: RoundedRectangle(cornerRadius: 5))
                                 .help("Arka yüzde \(hiddenCount) limit daha")
                         }
                     }
                     if !subtitle.isEmpty {
-                        Text(subtitle).font(.system(size: 8.5, weight: .medium))
+                        Text(subtitle).font(.system(size: 10, weight: .medium))
                     }
                     if let chip { chipView(chip).opacity(usage.isStale ? 0.45 : 1) }
                 }
@@ -385,9 +385,10 @@ private struct ProviderCard: View {
 
     private func chipView(_ chip: Chip) -> some View {
         Text(chip.text)
-            .font(.system(size: 9, weight: .semibold))
+            .font(.system(size: 10.5, weight: .semibold))
             .foregroundStyle(chip.color)
             .lineLimit(1)
+            .minimumScaleFactor(0.8)
             .padding(.horizontal, 5).padding(.vertical, 3)
             .background(chip.color.opacity(0.13), in: RoundedRectangle(cornerRadius: 5))
     }
@@ -405,7 +406,7 @@ private struct ProviderCard: View {
             if let title = issue.actionTitle, let action = issue.action {
                 Button(title) { onAction(action) }
                     .buttonStyle(.plain)
-                    .font(.system(size: 9.5, weight: .semibold))
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 7).padding(.vertical, 5)
                     .background(Color(red: 0.29, green: 0.42, blue: 0.94), in: RoundedRectangle(cornerRadius: 6))
@@ -424,8 +425,8 @@ private struct ProviderCard: View {
         let staticPart: Double = interactive ? 0 : 1
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                BrandLogoShape(logo: id.logo).fill(palette.ink).frame(width: 18, height: 18).opacity(staticPart)
-                Text(id.name).font(.system(size: 13, weight: .bold)).opacity(staticPart)
+                BrandLogoShape(logo: id.logo).fill(palette.ink).frame(width: 20, height: 20).opacity(staticPart)
+                Text(id.name).font(.system(size: 15, weight: .bold)).opacity(staticPart)
                 Spacer()
                 segment.opacity(interactive ? 1 : 0)
             }
@@ -454,13 +455,13 @@ private struct ProviderCard: View {
                         }
                         Text("Çok")
                     }
-                    .font(.system(size: 9.5, weight: .regular))
+                    .font(.system(size: 11, weight: .regular))
                     .opacity(staticPart)
                 }
             }
 
             HStack {
-                Text("Geri dönmek için tıkla").font(.system(size: 9, weight: .regular)).opacity(staticPart)
+                Text("Geri dönmek için tıkla").font(.system(size: 11, weight: .regular)).opacity(staticPart)
                 Spacer()
                 if let url = id.usageURL {
                     BadgeButton(title: "Kullanım", icon: "arrow.up.right", spinning: false) { NSWorkspace.shared.open(url) }
@@ -493,8 +494,8 @@ private struct ProviderCard: View {
             }
         } label: {
             Text(title)
-                .font(.system(size: 9.5, weight: .semibold))
-                .padding(.horizontal, 8).padding(.vertical, 4)
+                .font(.system(size: 11, weight: .semibold))
+                .padding(.horizontal, 9).padding(.vertical, 4)
                 .background(on ? palette.segmentOn : Color.clear, in: RoundedRectangle(cornerRadius: 5))
                 .shadow(color: .black.opacity(on ? 0.12 : 0), radius: 1, y: 1)
         }
@@ -540,12 +541,12 @@ private struct RingGauge: View {
                     .animation(.easeOut(duration: 0.6).delay(0.15 + delay), value: shown)
             }
             .frame(width: size, height: size)
-            Text(limit.short ?? limit.label).font(.system(size: 9, weight: .medium)).lineLimit(1)
+            Text(limit.short ?? limit.label).font(.system(size: 10.5, weight: .medium)).lineLimit(1)
             if let reset = limit.resetsAt {
-                Text(Countdown.text(to: reset)).font(.system(size: 8.5, weight: .regular)).lineLimit(1)
+                Text(Countdown.text(to: reset)).font(.system(size: 10, weight: .regular)).lineLimit(1)
             }
         }
-        .frame(width: 60)
+        .frame(width: 62)
         .help(limit.resetsAt.map { "\(limit.label): %\(Int(limit.percent.rounded())) · \(Countdown.text(to: $0)) sonra sıfırlanır" } ?? limit.label)
     }
 }
@@ -585,13 +586,13 @@ private struct MiniLimitRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             HStack {
-                Text(limit.label).font(.system(size: 10, weight: .medium))
+                Text(limit.label).font(.system(size: 12.5, weight: .medium))
                 Spacer()
-                Text("\(Int(limit.percent.rounded()))%").font(.system(size: 10, weight: .semibold, design: .rounded)).monospacedDigit()
+                Text("\(Int(limit.percent.rounded()))%").font(.system(size: 12.5, weight: .semibold, design: .rounded)).monospacedDigit()
             }
-            GaugeBar(value: min(max(limit.percent / 100, 0), 1), colors: limit.colors, sparkle: false, height: 6)
+            GaugeBar(value: min(max(limit.percent / 100, 0), 1), colors: limit.colors, sparkle: false, height: 7)
             if let reset = limit.resetsAt {
-                Text("\(Countdown.text(to: reset)) sonra sıfırlanır").font(.system(size: 8.5, weight: .regular))
+                Text("\(Countdown.text(to: reset)) sonra sıfırlanır").font(.system(size: 11, weight: .regular))
             }
         }
     }
@@ -637,7 +638,7 @@ private struct Heatmap: View {
                 Color.clear.frame(width: 1, height: 11)
                 ForEach(0..<7, id: \.self) { row in
                     Text(["Pzt", "", "Çar", "", "Cum", "", ""][row])
-                        .font(.system(size: 9, weight: .regular))
+                        .font(.system(size: 10.5, weight: .regular))
                         .frame(height: cell)
                 }
             }
@@ -646,7 +647,7 @@ private struct Heatmap: View {
             ForEach(0..<Self.weeks, id: \.self) { week in
                 VStack(spacing: gap) {
                     Text(monthLabel(week: week, start: start))
-                        .font(.system(size: 9, weight: .regular))
+                        .font(.system(size: 10.5, weight: .regular))
                         .fixedSize()
                         .frame(width: cell, height: 11, alignment: .leading)
                         .opacity(interactive ? 0 : 1)
