@@ -659,7 +659,7 @@ private struct Heatmap: View {
 }
 
 /// Rozetteki hologram: on bulanık, gökkuşağı renkli papyon (rozet oranında, 260×54), overlay.
-/// Boştayken yavaşça salınır (±10°, 5 sn); fare üstündeyken merkeze uzaklık kadar döner.
+/// Boştayken yavaşça salınır (±25°, 8 sn); fare üstündeyken merkeze uzaklık kadar döner.
 private struct Hologram: View {
     @Environment(\.cardPalette) private var palette
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -683,7 +683,7 @@ private struct Hologram: View {
         let scale = max(size.width, 1) / 260
         TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: hover != nil || reduceMotion)) { timeline in
             let t = timeline.date.timeIntervalSinceReferenceDate
-            let idle = 10 * (0.5 - 0.5 * cos(t * 2 * .pi / 5))
+            let idle = 25 * sin(t * 2 * .pi / 8)  // boşta ±25°, 8 sn: yansımalar kartın üstünde sakince gezinir
             ZStack {
                 ForEach(0..<Self.hues.count, id: \.self) { i in
                     if let color = Self.hues[i] {

@@ -59,7 +59,7 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   1 px #bbb çerçeve, gölge yok, tüm yazı + logo #666 SF Pro; kart adı bold, etiket/yüzde/düğme medium, geri kalan regular. Hologram yazıların ÜSTÜNDE overlay
   (yazıları da renklendirir, istenen "niş" görünüm): 10 papyon şekli rozet oranında (260×54, genişliğe ölçekli),
   blur 10*ölçek, opaklık 0.32 (boştayken kırmızı/turuncu/sarı katmanlar KAPALI, hover'da tam), açıkta güç 1 / koyuda .screen 0.45. (Güç kısma ve dar tayf şeridi denendi,
-  kullanıcı beğenmeyip eski hale döndürttü.) Boşta ±10° salınır, hover'da döner; hover'da 3B eğim, çıkınca yay.
+  kullanıcı beğenmeyip eski hale döndürttü.) Boşta ±25° (8 sn) salınır, hover'da döner; hover'da 3B eğim, çıkınca yay.
   Statik katman .drawingGroup() ile ayrı çizilir (yoksa overlay pencerenin koyu zeminiyle karışıp kartı karartır);
   sistem kontrolleri (Giriş yap, ProgressView) aynı yerleşimin ikinci kopyasında üstte durur.
 - Tema: kartlar açık temada gümüş, koyu temada grafit metal (CardPalette, popup sistem temasını okur;
