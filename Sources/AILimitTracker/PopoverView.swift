@@ -591,8 +591,7 @@ private struct MiniLimitRow: View {
             }
             GaugeBar(value: min(max(limit.percent / 100, 0), 1), colors: limit.colors, sparkle: false, height: 6)
             if let reset = limit.resetsAt {
-                let budget = limit.dailyBudget.map { " · günlük bütçe ≈%\(Int($0.rounded()))" } ?? ""
-                Text("\(Countdown.text(to: reset)) sonra sıfırlanır\(budget)").font(.system(size: 8.5, weight: .regular))
+                Text("\(Countdown.text(to: reset)) sonra sıfırlanır").font(.system(size: 8.5, weight: .regular))
             }
         }
     }
@@ -719,7 +718,8 @@ private struct Hologram: View {
                     if let color = Self.hues[i] {
                         Bowtie()
                             .fill(color)
-                            .frame(width: 260 * scale, height: 54 * scale)
+                            // Yükseklik karta göre: ön yüz (~120 pt) ve uzun arka yüz aynı oranda kaplansın
+                            .frame(width: 260 * scale, height: max(54 * scale, size.height * 0.57))
                             .blur(radius: 10 * scale)
                             // rozet 54 px yüksek, şekillerin ancak bir dilimi görünür; büyük kartta seyreltildi.
                             // Boştayken sıcak katmanlar (kırmızı, turuncu, sarı) kısık: kart turuncuya çalmasın

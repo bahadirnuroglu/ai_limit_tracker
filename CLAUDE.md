@@ -28,14 +28,13 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   (son kullanılan model), frontLimits (satırda 2 halka: kısa pencere + genel/son kullanılan modelden dolu olan, %90+ öne).
 - UsageStore.swift: sağlayıcı durumları (usage[id]), açık sağlayıcılar (enabledSet), sıralama (en dolu üstte),
   yenileme: popup açılınca veri 60 sn'den eskiyse, normalde 5 dk, bir limit %75+ ise 1 dk. Hata olursa eski veri
-  kalır + issue. Claude JSON ayrıştırma; Limit.timeToFull (≈ dolar) ve Limit.dailyBudget (uzun pencerede günlük bütçe).
+  kalır + issue. Claude JSON ayrıştırma; Limit.timeToFull (≈ dolar). Günlük bütçe denendi, kullanıcı istemedi: KALDIRILDI.
 - WebSession.swift: gizli WKWebView ile claude.ai oturumu; /api/organizations/{id}/usage
   sayfa bağlamından fetch edilir (alanlar: utilization, resets_at). Token'a dokunulmaz.
 - CodexProvider.swift: ~/.codex/auth.json token'ı ile GET chatgpt.com/backend-api/wham/usage
   (rate_limit.primary_window / secondary_window: used_percent, limit_window_seconds, reset_at)
 - PopoverView.swift: popup. Her sağlayıcı yatay halka satırı (ProviderCard): logo + ad + plan + etiket
-  (öncelik: Doldu > ≈ X sonra dolar > Cursor $ notu; günlük bütçe ön yüzde YOK, kullanıcı istemedi,
-  sadece arka yüz satırlarında), sağda en fazla iki 270° halka (RingGauge).
+  (öncelik: Doldu > ≈ X sonra dolar > Cursor $ notu), sağda en fazla iki 270° halka (RingGauge).
   Karta tıklayınca döner (y ekseni, 90°'de yüz değişir); kartlar BAĞIMSIZ döner (birden çoğu aynı anda).
   Arka yüz sekmeleri: Limitler (tüm kovalar, MiniLimitRow) / Etkinlik (13 haftalık ısı haritası; Claude turuncu,
   Codex mor). Kart alanı içerik boyunda ScrollView; tavan ekranın %80'i. WindowFader'ın NSView'u hitTest nil
@@ -70,7 +69,8 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   Ayarlar/Yenile/Çık; Yenile ikonu store.isRefreshing iken döner). Sistem temasına uyar.
 - Kartlar 21st.dev award-badge (Product Hunt rozeti) BİREBİR stili: gümüş #ddd zemin, 4 pt içeride
   1 px #bbb çerçeve, gölge yok, tüm yazı + logo #666 SF Pro; kart adı bold, etiket/yüzde/düğme medium, geri kalan regular. Hologram yazıların ÜSTÜNDE overlay
-  (yazıları da renklendirir, istenen "niş" görünüm): 10 papyon şekli rozet oranında (260×54, genişliğe ölçekli),
+  (yazıları da renklendirir, istenen "niş" görünüm): 10 papyon şekli rozet oranında (genişlik 260*ölçek, yükseklik max(54*ölçek, kart yüksekliği*0.57)
+  ki arka yüz de ön yüz gibi kaplansın),
   blur 10*ölçek, opaklık 0.22 (boştayken kırmızı/turuncu/sarı katmanlar KAPALI, hover'da tam), açıkta güç 1 / koyuda .screen 0.45. (Güç kısma ve dar tayf şeridi denendi,
   kullanıcı beğenmeyip eski hale döndürttü.) Boşta ±25° (8 sn) salınır, hover'da döner; hover'da 3B eğim, çıkınca yay.
   Statik katman .drawingGroup() ile ayrı çizilir (yoksa overlay pencerenin koyu zeminiyle karışıp kartı karartır);
