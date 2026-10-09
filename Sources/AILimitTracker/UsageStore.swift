@@ -202,9 +202,6 @@ final class UsageStore: ObservableObject {
         case .cursor:
             let result = try await CursorProvider.fetch()
             return (result.plan, result.note, result.limits)
-        case .antigravity:
-            let result = try await AntigravityProvider.fetch()
-            return (result.plan, nil, result.limits)
         }
     }
 

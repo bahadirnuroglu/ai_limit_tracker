@@ -71,7 +71,7 @@ func render(scale: CGFloat) -> Data {
         (s as NSString).draw(at: NSPoint(x: center ? x - size.width / 2 : x, y: H - top - size.height), withAttributes: attrs)
     }
     text("AI Limit Tracker", .systemFont(ofSize: 24, weight: .bold), ink, x: 36, top: 30)
-    text("Claude, Codex, Cursor ve Antigravity limitleri menü çubuğunda", .systemFont(ofSize: 12.5, weight: .regular),
+    text("Claude, Codex ve Cursor limitleri menü çubuğunda", .systemFont(ofSize: 12.5, weight: .regular),
          NSColor(white: 0.45, alpha: 1), x: 37, top: 62)
 
     // Uygulamadan Applications'a el çizimi ok (simge merkezleri üstten y=205)

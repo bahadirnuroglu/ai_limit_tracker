@@ -230,7 +230,7 @@ private struct WelcomePage: View {
     var body: some View {
         VStack(spacing: 28) {
             PageHeader(title: "AI Limit Tracker'a Hoş Geldin",
-                       subtitle: "Claude, Codex, Cursor ve Antigravity limitlerini menü çubuğunda tek bakışta gör.") {
+                       subtitle: "Claude, Codex ve Cursor limitlerini menü çubuğunda tek bakışta gör.") {
                 Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 96, height: 96)
                     .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
             }
@@ -592,8 +592,6 @@ private struct ConnectRow: View {
             return codexInstalled == false ? "Codex CLI kurulu değil." : "Tarayıcıda Codex girişi açılır."
         case .cursor:
             return CursorProvider.isInstalled ? "Cursor'daki oturum kullanılır, giriş gerekmez." : "Cursor bu Mac'te yok."
-        case .antigravity:
-            return AntigravityProvider.isInstalled ? "Antigravity açıkken okunur; kapalıyken son veri görünür." : "Antigravity bu Mac'te yok."
         }
     }
 
@@ -627,9 +625,6 @@ private struct ConnectRow: View {
         case .cursor:
             if CursorProvider.isInstalled { return ("Tekrar Dene", { run { store.reload(.cursor) } }) }
             return ("İndir", { NSWorkspace.shared.open(URL(string: "https://cursor.com/download")!) })
-        case .antigravity:
-            if AntigravityProvider.isInstalled { return ("Aç", { run { store.perform(.openApp("Antigravity"), for: id) } }) }
-            return ("İndir", { NSWorkspace.shared.open(URL(string: "https://antigravity.google/download")!) })
         }
     }
 
@@ -711,7 +706,6 @@ extension ProviderID {
         case .claude: return ClaudeCodeAuth.isAvailable ? "Claude Code bulundu" : "claude.ai hesabınla bağlanır"
         case .codex: return CodexCLI.isLoggedIn ? "Codex CLI girişi bulundu" : "Codex CLI ile bağlanır"
         case .cursor: return CursorProvider.isInstalled ? "Cursor bulundu" : "Bu Mac'te kurulu değil"
-        case .antigravity: return AntigravityProvider.isInstalled ? "Antigravity bulundu" : "Bu Mac'te kurulu değil"
         }
     }
 }

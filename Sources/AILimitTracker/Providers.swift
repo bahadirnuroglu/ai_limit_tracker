@@ -2,7 +2,7 @@ import Foundation
 
 /// Desteklenen sağlayıcılar. Yeni sağlayıcı: buraya bir durum + UsageStore'da bir getirici.
 enum ProviderID: String, CaseIterable, Identifiable {
-    case claude, codex, cursor, antigravity
+    case claude, codex, cursor
 
     var id: String { rawValue }
 
@@ -11,7 +11,6 @@ enum ProviderID: String, CaseIterable, Identifiable {
         case .claude: return "Claude"
         case .codex: return "Codex"
         case .cursor: return "Cursor"
-        case .antigravity: return "Antigravity"
         }
     }
 
@@ -20,7 +19,6 @@ enum ProviderID: String, CaseIterable, Identifiable {
         case .claude: return .claude
         case .codex: return .openai
         case .cursor: return .cursor
-        case .antigravity: return .antigravity
         }
     }
 
@@ -30,7 +28,6 @@ enum ProviderID: String, CaseIterable, Identifiable {
         case .claude: return URL(string: "https://claude.ai/settings/usage")
         case .codex: return URL(string: "https://chatgpt.com/codex/settings/usage")
         case .cursor: return URL(string: "https://cursor.com/dashboard?tab=usage")
-        case .antigravity: return nil
         }
     }
 
@@ -39,7 +36,7 @@ enum ProviderID: String, CaseIterable, Identifiable {
         switch self {
         case .claude: return .claudeCode
         case .codex: return .codex
-        case .cursor, .antigravity: return nil
+        case .cursor: return nil
         }
     }
 
@@ -48,7 +45,6 @@ enum ProviderID: String, CaseIterable, Identifiable {
         switch self {
         case .claude, .codex: return true
         case .cursor: return CursorProvider.isInstalled
-        case .antigravity: return AntigravityProvider.isInstalled
         }
     }
 
@@ -56,7 +52,6 @@ enum ProviderID: String, CaseIterable, Identifiable {
     var appName: String? {
         switch self {
         case .cursor: return "Cursor"
-        case .antigravity: return "Antigravity"
         default: return nil
         }
     }
@@ -65,7 +60,6 @@ enum ProviderID: String, CaseIterable, Identifiable {
 /// Sağlayıcı getiricilerinin ortak hataları (ipucuna çevrilir)
 enum ProviderError: Error {
     case notInstalled      // araç bu Mac'te yok
-    case appClosed         // uygulama kapalı (Antigravity)
     case needsPermission   // Anahtar Zinciri izni gerekli (Claude Code)
     case expired           // oturum süresi dolmuş
 }
@@ -82,7 +76,7 @@ struct Issue: Equatable {
         case .login: return "Giriş yap"
         case .retry: return "Tekrar dene"
         case .allowKeychain: return "İzin ver"
-        case .openApp(let name): return "\(name)'u aç".replacingOccurrences(of: "Antigravity'u", with: "Antigravity'yi")
+        case .openApp(let name): return "\(name)'u aç"
         case nil: return nil
         }
     }
@@ -97,8 +91,6 @@ struct Issue: Equatable {
         }
         if let error = error as? ProviderError {
             switch (error, provider) {
-            case (.appClosed, _):
-                return Issue(text: "\(provider.name) kapalı. Güncel veri için uygulamayı aç.", action: .openApp(provider.name))
             case (.notInstalled, _):
                 return Issue(text: "\(provider.name) bu Mac'te bulunamadı.", action: nil)
             case (.needsPermission, _):
@@ -116,7 +108,6 @@ struct Issue: Equatable {
             case .claude: return Issue(text: "claude.ai oturumu kapalı.", action: .login)
             case .codex: return Issue(text: "Codex girişi yok ya da süresi dolmuş. Terminalde bir kez codex login çalıştır.", action: .retry)
             case .cursor: return Issue(text: "Cursor'da oturum açık değil. Cursor'u açıp giriş yap.", action: .openApp("Cursor"))
-            case .antigravity: return Issue(text: "Antigravity'de oturum açık değil.", action: .openApp("Antigravity"))
             }
         }
         if case SessionError.http(let code) = error {
@@ -152,20 +143,6 @@ extension ProviderUsage {
     /// 1) en kısa pencere (5 saat), 2) genel limit ile son kullanılan modelin limitinden hangisi daha doluysa.
     /// %90'ı geçen limit, seçilmemişse ikinci sıraya zorla girer.
     var frontLimits: [Limit] {
-        // Gruplu sağlayıcı (Antigravity): son kullanılan grubun 5 saatlik + haftalık kovası
-        if limits.count > 2, limits.allSatisfy({ $0.model != nil }), Set(limits.compactMap(\.model)).count > 1 {
-            let groups = Dictionary(grouping: limits) { $0.model! }
-            let recent = groups.max { a, b in
-                let ta = a.value.map { UsageHistory.lastIncrease($0.id) }.max() ?? 0
-                let tb = b.value.map { UsageHistory.lastIncrease($0.id) }.max() ?? 0
-                return ta != tb ? ta < tb : (a.value.map(\.percent).max() ?? 0) < (b.value.map(\.percent).max() ?? 0)
-            }
-            var picked = Array((recent?.value ?? []).sorted { ($0.window ?? 0) < ($1.window ?? 0) }.prefix(2))
-            if let critical = limits.filter({ $0.percent >= 90 && !picked.map(\.id).contains($0.id) }).max(by: { $0.percent < $1.percent }) {
-                picked = [picked.first ?? critical, critical]
-            }
-            return picked
-        }
         let general = limits.filter { $0.model == nil }
         guard let first = (general.isEmpty ? limits : general)
             .min(by: { ($0.window ?? .infinity) < ($1.window ?? .infinity) }) else { return [] }

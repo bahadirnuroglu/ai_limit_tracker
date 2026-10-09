@@ -12,18 +12,31 @@ struct PopoverView: View {
     @Environment(\.colorScheme) private var systemScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var palette: CardPalette { systemScheme == .dark ? .graphite : .silver }
+    @State private var cardsHeight: CGFloat = 0
+    /// Kart alanının tavanı: ekranın %80'i, alt şerit ve kenar payı hariç
+    private var maxCardsHeight: CGFloat { (NSScreen.main?.visibleFrame.height ?? 800) * 0.8 - 60 }
 
     var body: some View {
         VStack(spacing: 6) {
-            // Limite en yakın sağlayıcı en üstte; her kart kendi başına döner
-            ForEach(Array(store.ordered.enumerated()), id: \.element) { index, id in
-                ProviderCard(
-                    id: id, usage: store[id], shown: shown, order: index, flipped: flipped.contains(id),
-                    onTap: { if flipped.contains(id) { flipped.remove(id) } else { flipped.insert(id) } },
-                    onAction: { store.perform($0, for: id) }
-                )
+            // Kartlar içerik boyunda; toplam ekranın %80'ini aşarsa (ör. birkaç kart dönükken) kendi içinde kayar,
+            // alt şerit sabit kalır
+            ScrollView(.vertical) {
+                VStack(spacing: 6) {
+                    // Limite en yakın sağlayıcı en üstte; her kart kendi başına döner
+                    ForEach(Array(store.ordered.enumerated()), id: \.element) { index, id in
+                        ProviderCard(
+                            id: id, usage: store[id], shown: shown, order: index, flipped: flipped.contains(id),
+                            onTap: { if flipped.contains(id) { flipped.remove(id) } else { flipped.insert(id) } },
+                            onAction: { store.perform($0, for: id) }
+                        )
+                    }
+                    .animation(.spring(response: 0.45, dampingFraction: 0.8), value: store.ordered)
+                }
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { cardsHeight = $0 }
             }
-            .animation(.spring(response: 0.45, dampingFraction: 0.8), value: store.ordered)
+            .scrollDisabled(cardsHeight <= maxCardsHeight)
+            .scrollIndicators(cardsHeight > maxCardsHeight ? .automatic : .never)
+            .frame(height: min(cardsHeight, maxCardsHeight))
             if let release = updater.available { updateBanner(release) }
             footer
         }
