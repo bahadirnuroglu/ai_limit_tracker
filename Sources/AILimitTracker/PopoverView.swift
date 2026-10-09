@@ -629,6 +629,7 @@ private struct MiniLimitRow: View {
 /// GitHub tarzı ısı haritası: sütunlar hafta (Pzt başlar), satırlar gün. Etkileşimli kopyada
 /// hücreler saydamdır, sadece üstüne gelince tarih ve token miktarını gösterir.
 private struct Heatmap: View {
+    @State private var hovered: Int?   // fare üstündeki gün (hafta*7 + gün)
     let values: [Date: Int]
     let source: ActivitySource
     let interactive: Bool
@@ -685,10 +686,24 @@ private struct Heatmap: View {
                         if date > today {
                             Color.clear.frame(width: cell, height: cell)
                         } else if interactive {
+                            let isHovered = hovered == week * 7 + day
                             Color.clear.frame(width: cell, height: cell)
                                 .contentShape(Rectangle())
-                                .help("\(date.formatted(.dateTime.day().month(.abbreviated).weekday(.abbreviated))): "
-                                      + (tokens > 0 ? "\(TokenFormat.short(tokens)) token" : "etkinlik yok"))
+                                .onHover { inside in
+                                    if inside { hovered = week * 7 + day } else if isHovered { hovered = nil }
+                                }
+                                // Anında çıkan ipucu (sistem ipucu menü çubuğu penceresinde gecikiyor/çıkmıyor);
+                                // kenar sütunlarda içeri doğru açılır
+                                .overlay(alignment: week < 3 ? .bottomLeading : week > Self.weeks - 4 ? .bottomTrailing : .bottom) {
+                                    if isHovered {
+                                        CellTip(text: date.formatted(.dateTime.day().month(.abbreviated).weekday(.abbreviated))
+                                                + " · " + (tokens > 0 ? "\(TokenFormat.short(tokens)) token" : "etkinlik yok"))
+                                            .offset(y: -(cell + 5))
+                                            .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .bottom)))
+                                    }
+                                }
+                                .zIndex(isHovered ? 1 : 0)
+                                .animation(.easeOut(duration: 0.12), value: isHovered)
                         } else {
                             RoundedRectangle(cornerRadius: 3, style: .continuous)
                                 .fill(Self.fill(level: level(tokens, peak: peak), source: source))
@@ -696,6 +711,7 @@ private struct Heatmap: View {
                         }
                     }
                 }
+                .zIndex((hovered ?? -1) / 7 == week ? 1 : 0)
             }
         }
     }
@@ -713,6 +729,24 @@ private struct Heatmap: View {
         let date = cal.date(byAdding: .day, value: week * 7, to: start)!
         let changed = week == 0 ? (Self.weeks > 1 && month(1) == month(0)) : month(week) != month(week - 1)
         return changed ? date.formatted(.dateTime.month(.abbreviated)) : ""
+    }
+}
+
+/// Isı haritası hücresinin üstünde anında beliren küçük metal balon
+private struct CellTip: View {
+    let text: String
+    @Environment(\.cardPalette) private var palette
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(palette.ink)
+            .fixedSize()
+            .padding(.horizontal, 8).padding(.vertical, 4)
+            .background(palette.metal, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(palette.frame, lineWidth: 1))
+            .shadow(color: .black.opacity(0.18), radius: 4, y: 2)
+            .allowsHitTesting(false)
     }
 }
 

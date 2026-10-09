@@ -75,7 +75,7 @@ final class Notifier: NSObject, ObservableObject, UNUserNotificationCenterDelega
         }
         UserDefaults.standard.set(reminders.mapValues { $0.timeIntervalSince1970 }, forKey: "reminders")
     }
-    private let center = UNUserNotificationCenter.current()
+    private lazy var center = UNUserNotificationCenter.current()  // ilk kullanımda (paket dışı ortamlarda çökmesin)
     private let defaults = UserDefaults.standard
 
     /// Kurulumu bitmiş kullanıcıda izni burada ister; ilk açılışta izin kurulumun "Son ayarlar" adımında sorulur
