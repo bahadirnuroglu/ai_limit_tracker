@@ -658,72 +658,43 @@ private struct Heatmap: View {
     }
 }
 
-/// Rozetteki hologram: on bulanık, gökkuşağı renkli papyon (rozet oranında, 260×54), overlay.
-/// Boştayken yavaşça salınır (±10°, 5 sn); fare üstündeyken merkeze uzaklık kadar döner.
+/// Rozetteki hologram ışığı: kartın üstünden eğik geçen dar, yumuşak kenarlı bir tayf şeridi
+/// (kırmızı → sarı → yeşil → mavi → mor). Zemin ve yazılar gri kalır; şerit sadece geçtiği yeri renklendirir.
+/// Boştayken yavaşça salınır, fare kartın üstündeyken fareyi izler.
 private struct Hologram: View {
     @Environment(\.cardPalette) private var palette
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let hover: CGPoint?
     let size: CGSize
 
-    private static let hues: [Color?] = [
-        Color(hue: 358 / 360, saturation: 1, brightness: 1),
+    private static let spectrum: [Color] = [
+        .clear,
+        Color(hue: 358 / 360, saturation: 0.9, brightness: 1),
         Color(hue: 30 / 360, saturation: 1, brightness: 1),
         Color(hue: 60 / 360, saturation: 1, brightness: 1),
-        Color(hue: 96 / 360, saturation: 1, brightness: 1),
-        Color(hue: 233 / 360, saturation: 0.92, brightness: 0.87),
-        Color(hue: 271 / 360, saturation: 0.92, brightness: 0.87),
-        Color(hue: 300 / 360, saturation: 0.33, brightness: 0.42),
-        nil, nil, nil,  // rozetteki saydam katmanlar
+        Color(hue: 120 / 360, saturation: 0.8, brightness: 0.95),
+        Color(hue: 210 / 360, saturation: 0.9, brightness: 1),
+        Color(hue: 271 / 360, saturation: 0.85, brightness: 0.95),
+        .clear,
     ]
 
-    @State private var spin: Double = 0
-
     var body: some View {
-        let scale = max(size.width, 1) / 260
         TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: hover != nil || reduceMotion)) { timeline in
             let t = timeline.date.timeIntervalSinceReferenceDate
-            let idle = 10 * (0.5 - 0.5 * cos(t * 2 * .pi / 5))
-            ZStack {
-                ForEach(0..<Self.hues.count, id: \.self) { i in
-                    if let color = Self.hues[i] {
-                        Bowtie()
-                            .fill(color)
-                            .frame(width: 260 * scale, height: 54 * scale)
-                            .blur(radius: 10 * scale)
-                            .opacity(0.2)  // rozet 54 px yüksek, şekillerin ancak bir dilimi görünür; büyük kartta seyreltildi
-                            .rotationEffect(.degrees(Double(i) * 10 + (hover == nil ? idle : spin)))
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .blendMode(palette.hologramBlend)
-            .opacity(palette.hologramStrength)
+            let idle = reduceMotion ? 0.6 : 0.6 + 0.07 * sin(t * 2 * .pi / 6)
+            let center = hover.map { min(max($0.x / max(size.width, 1), 0.1), 0.9) } ?? idle
+            let band = max(size.width * 0.2, 56)
+            LinearGradient(colors: Self.spectrum, startPoint: .leading, endPoint: .trailing)
+                .frame(width: band, height: size.height * 1.8)
+                .blur(radius: band * 0.2)
+                .rotationEffect(.degrees(16))
+                .position(x: center * size.width, y: size.height / 2)
+                .animation(.easeOut(duration: 0.25), value: hover)
         }
+        .frame(width: size.width, height: size.height)
+        .blendMode(palette.hologramBlend)
+        .opacity(palette.hologramStrength)
         .allowsHitTesting(false)
-        .onChange(of: hover) { _, point in
-            if let point {
-                let d = (abs(point.x - size.width / 2) + abs(point.y - size.height / 2)) / 1.5
-                withAnimation(.easeOut(duration: 0.2)) { spin = Double(d) }
-            } else {
-                // çıkışta hafif geri tepme, sonra yerine
-                withAnimation(.easeOut(duration: 0.15)) { spin = -spin / 4 }
-                withAnimation(.easeOut(duration: 0.2).delay(0.15)) { spin = 0 }
-            }
-        }
-    }
-}
-
-/// Köşeden köşeye kesişen iki üçgen (rozetteki "0,0 w,h w,0 0,h" çokgeni)
-private struct Bowtie: Shape {
-    func path(in rect: CGRect) -> Path {
-        var p = Path()
-        p.move(to: CGPoint(x: rect.minX, y: rect.minY))
-        p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-        p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-        p.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-        p.closeSubpath()
-        return p
     }
 }
 
@@ -821,14 +792,14 @@ struct CardPalette {
         scheme: .light, metal: Color(white: 0.867), frame: Color(white: 0.733), ink: Color(white: 0.4),
         track: Color.black.opacity(0.09), subtle: Color.black.opacity(0.08), segmentOn: .white,
         hintBackground: Color.white.opacity(0.55), hintText: Color(white: 0.33),
-        hologramBlend: .overlay, hologramStrength: 0.45,
+        hologramBlend: .overlay, hologramStrength: 0.55,
         notice: Color(red: 0.35, green: 0.25, blue: 0.75), alert: Color(red: 0.76, green: 0.19, blue: 0.31))
 
     static let graphite = CardPalette(
         scheme: .dark, metal: Color(white: 0.19), frame: Color(white: 0.31), ink: Color(white: 0.8),
         track: Color.white.opacity(0.1), subtle: Color.white.opacity(0.09), segmentOn: Color(white: 0.32),
         hintBackground: Color.black.opacity(0.28), hintText: Color(white: 0.82),
-        hologramBlend: .screen, hologramStrength: 0.45,
+        hologramBlend: .screen, hologramStrength: 0.3,
         notice: Color(red: 0.74, green: 0.66, blue: 1.0), alert: Color(red: 1.0, green: 0.52, blue: 0.56))
 }
 
