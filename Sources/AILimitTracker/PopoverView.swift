@@ -8,18 +8,18 @@ struct PopoverView: View {
     @ObservedObject var updater: UpdateChecker
     @State private var shown = false
     @State private var opens = 0
-    @State private var flipped: ProviderID?
+    @State private var flipped: Set<ProviderID> = []   // birden çok kart aynı anda dönük olabilir
     @Environment(\.colorScheme) private var systemScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var palette: CardPalette { systemScheme == .dark ? .graphite : .silver }
 
     var body: some View {
         VStack(spacing: 6) {
-            // Limite en yakın sağlayıcı en üstte; aynı anda tek kart döner
+            // Limite en yakın sağlayıcı en üstte; her kart kendi başına döner
             ForEach(Array(store.ordered.enumerated()), id: \.element) { index, id in
                 ProviderCard(
-                    id: id, usage: store[id], shown: shown, order: index, flipped: flipped == id,
-                    onTap: { flipped = flipped == id ? nil : id },
+                    id: id, usage: store[id], shown: shown, order: index, flipped: flipped.contains(id),
+                    onTap: { if flipped.contains(id) { flipped.remove(id) } else { flipped.insert(id) } },
                     onAction: { store.perform($0, for: id) }
                 )
             }
@@ -45,7 +45,7 @@ struct PopoverView: View {
             store.refreshIfStale()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { shown = true }
         }
-        .onDisappear { shown = false; flipped = nil }
+        .onDisappear { shown = false; flipped = [] }
     }
 
     /// Yeni sürüm varsa kartlarla aynı rozet dilinde ince bir şerit
@@ -97,7 +97,13 @@ struct PopoverView: View {
 private struct WindowFader: NSViewRepresentable {
     let token: Int  // her açılışta artar
 
-    func makeNSView(context: Context) -> NSView { NSView() }
+    func makeNSView(context: Context) -> NSView { PassthroughView() }
+
+    /// Sadece pencereye ulaşmak için var; tıklama almaz (yoksa pencere büyüyünce yeni alandaki
+    /// kartlara giden tıklamaları bu görünüm yutuyordu)
+    final class PassthroughView: NSView {
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+    }
 
     func updateNSView(_ nsView: NSView, context: Context) {
         guard context.coordinator.lastToken != token else { return }
@@ -815,7 +821,7 @@ struct CardPalette {
         scheme: .light, metal: Color(white: 0.867), frame: Color(white: 0.733), ink: Color(white: 0.4),
         track: Color.black.opacity(0.09), subtle: Color.black.opacity(0.08), segmentOn: .white,
         hintBackground: Color.white.opacity(0.55), hintText: Color(white: 0.33),
-        hologramBlend: .overlay, hologramStrength: 1,
+        hologramBlend: .overlay, hologramStrength: 0.45,
         notice: Color(red: 0.35, green: 0.25, blue: 0.75), alert: Color(red: 0.76, green: 0.19, blue: 0.31))
 
     static let graphite = CardPalette(

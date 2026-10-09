@@ -58,7 +58,7 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
 - Kartlar 21st.dev award-badge (Product Hunt rozeti) BİREBİR stili: ikisi de gümüş #ddd zemin, 4 pt içeride
   1 px #bbb çerçeve, gölge yok, tüm yazı + logo #666 SF Pro; kart adı bold, etiket/yüzde/düğme medium, geri kalan regular. Hologram yazıların ÜSTÜNDE overlay
   (yazıları da renklendirir, istenen "niş" görünüm): 10 papyon şekli rozet oranında (260×54, genişliğe ölçekli),
-  blur 10*ölçek, opaklık 0.2. Boşta ±10° salınır, hover'da döner; hover'da 3B eğim, çıkınca yay.
+  blur 10*ölçek, opaklık 0.2, açık temada genel güç 0.45 (tam güçte kartı ve yazıları turuncuya boyuyordu). Boşta ±10° salınır, hover'da döner; hover'da 3B eğim, çıkınca yay.
   Statik katman .drawingGroup() ile ayrı çizilir (yoksa overlay pencerenin koyu zeminiyle karışıp kartı karartır);
   sistem kontrolleri (Giriş yap, ProgressView) aynı yerleşimin ikinci kopyasında üstte durur.
 - Tema: kartlar açık temada gümüş, koyu temada grafit metal (CardPalette, popup sistem temasını okur;
