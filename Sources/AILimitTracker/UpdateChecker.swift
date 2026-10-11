@@ -1,7 +1,7 @@
 import AppKit
 import Security
 
-/// GitHub Releases'tan yeni sürüm kontrolü (açılışta ve 6 saatte bir) ve uygulama içi güncelleme.
+/// GitHub Releases'tan yeni sürüm kontrolü (açılışta, 6 saatte bir ve popup açılınca son kontrol 15 dk'dan eskiyse) ve uygulama içi güncelleme.
 /// Sürüm etiketi "v0.3.0" ya da "0.3.0". "Güncelle": dmg'yi uygulama kendisi indirir, açar, kendi yerine koyar
 /// ve yeniden başlar. Uygulamanın indirdiği dosya karantinaya girmediği için Gatekeeper ("Yine de Aç") sormaz.
 /// dmg eki yoksa ya da bir adım başarısız olursa sürüm sayfası açılır.
@@ -18,6 +18,7 @@ final class UpdateChecker: ObservableObject {
     private var progressObservation: NSKeyValueObservation?
 
     private var timer: Timer?
+    private var lastCheck = Date.distantPast
     private let current = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
 
     init() {
@@ -28,7 +29,14 @@ final class UpdateChecker: ObservableObject {
         }
     }
 
+    /// Popup açılınca: yeniden başlatmadan yeni sürüm görünsün (GitHub'ın saatlik 60 istek sınırının çok altında)
+    func checkIfStale() {
+        guard !Self.repo.isEmpty, phase == .idle, Date().timeIntervalSince(lastCheck) > 15 * 60 else { return }
+        Task { await check() }
+    }
+
     func check() async {
+        lastCheck = Date()
         guard let api = URL(string: "https://api.github.com/repos/\(Self.repo)/releases/latest") else { return }
         var request = URLRequest(url: api)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")

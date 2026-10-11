@@ -65,6 +65,7 @@ struct PopoverView: View {
             opens += 1
             shown = false
             store.refreshIfStale()
+            updater.checkIfStale()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { shown = true }
         }
         .onDisappear { shown = false; flipped = [] }
