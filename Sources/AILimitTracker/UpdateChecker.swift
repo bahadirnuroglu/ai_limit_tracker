@@ -1,4 +1,5 @@
 import AppKit
+import Security
 
 /// GitHub Releases'tan yeni sürüm kontrolü (açılışta ve 6 saatte bir) ve uygulama içi güncelleme.
 /// Sürüm etiketi "v0.3.0" ya da "0.3.0". "Güncelle": dmg'yi uygulama kendisi indirir, açar, kendi yerine koyar
@@ -54,7 +55,8 @@ final class UpdateChecker: ObservableObject {
                 let file = try await download(dmg)
                 phase = .installing
                 let target = Bundle.main.bundleURL
-                try await Task.detached { try Self.replaceApp(at: target, fromDMG: file) }.value
+                let version = release.version
+                try await Task.detached { try Self.replaceApp(at: target, fromDMG: file, version: version) }.value
                 relaunch(target)
             } catch {
                 phase = .failed("Güncellenemedi. Sürüm sayfasından indirebilirsin.")
@@ -88,7 +90,7 @@ final class UpdateChecker: ObservableObject {
     }
 
     /// dmg'yi bağla, içindeki .app'i hedefin yanına kopyala, eskisinin yerine koy, dmg'yi çıkar
-    nonisolated private static func replaceApp(at target: URL, fromDMG dmg: URL) throws {
+    nonisolated private static func replaceApp(at target: URL, fromDMG dmg: URL, version: String) throws {
         let mount = FileManager.default.temporaryDirectory.appendingPathComponent("ailt-mount-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: mount, withIntermediateDirectories: true)
         guard run("/usr/bin/hdiutil", ["attach", dmg.path, "-nobrowse", "-noautoopen", "-readonly", "-mountpoint", mount.path]) == 0 else {
@@ -105,6 +107,7 @@ final class UpdateChecker: ObservableObject {
         }
         guard let app = try FileManager.default.contentsOfDirectory(at: mount, includingPropertiesForKeys: nil)
             .first(where: { $0.pathExtension == "app" }) else { throw CocoaError(.fileNoSuchFile) }
+        try verify(app, version: version)
 
         // Aynı diskte hazırla, sonra tek adımda değiştir (yarım kalmış uygulama bırakmaz)
         let staging = target.deletingLastPathComponent().appendingPathComponent(".\(target.lastPathComponent).update")
@@ -112,6 +115,32 @@ final class UpdateChecker: ObservableObject {
         guard run("/usr/bin/ditto", [app.path, staging.path]) == 0 else { throw CocoaError(.fileWriteUnknown) }
         _ = run("/usr/bin/xattr", ["-dr", "com.apple.quarantine", staging.path])
         _ = try FileManager.default.replaceItemAt(target, withItemAt: staging)
+    }
+
+    /// İndirilen uygulamaya güvenmeden önce: aynı paket kimliği, beklenen sürüm, bozulmamış imza ve
+    /// (çalışan uygulama sertifikayla imzalıysa) AYNI sertifika. Depo ele geçirilse bile başka biri
+    /// bu sertifikanın özel anahtarı olmadan geçerli bir güncelleme üretemez.
+    nonisolated private static func verify(_ app: URL, version: String) throws {
+        let untrusted = CocoaError(.fileReadCorruptFile)
+        guard let info = NSDictionary(contentsOf: app.appendingPathComponent("Contents/Info.plist")),
+              info["CFBundleIdentifier"] as? String == Bundle.main.bundleIdentifier,
+              info["CFBundleShortVersionString"] as? String == version else { throw untrusted }
+
+        var code: SecStaticCode?
+        guard SecStaticCodeCreateWithPath(app as CFURL, [], &code) == errSecSuccess, let code else { throw untrusted }
+
+        var requirement: SecRequirement?
+        var selfCode: SecCode?, selfStatic: SecStaticCode?, info2: CFDictionary?
+        if SecCodeCopySelf([], &selfCode) == errSecSuccess, let selfCode,
+           SecCodeCopyStaticCode(selfCode, [], &selfStatic) == errSecSuccess, let selfStatic,
+           SecCodeCopySigningInformation(selfStatic, SecCSFlags(rawValue: kSecCSSigningInformation), &info2) == errSecSuccess,
+           let certs = (info2 as? [String: Any])?[kSecCodeInfoCertificates as String] as? [Any], !certs.isEmpty {
+            // Sertifikalı imza: yeni sürüm çalışanın "designated requirement"ını (kimlik + sertifika) karşılamalı
+            var req: SecRequirement?
+            if SecCodeCopyDesignatedRequirement(selfStatic, [], &req) == errSecSuccess { requirement = req }
+        }
+        let flags = SecCSFlags(rawValue: kSecCSCheckAllArchitectures | kSecCSStrictValidate | kSecCSCheckNestedCode)
+        guard SecStaticCodeCheckValidity(code, flags, requirement) == errSecSuccess else { throw untrusted }
     }
 
     nonisolated private static func run(_ path: String, _ args: [String]) -> Int32 {

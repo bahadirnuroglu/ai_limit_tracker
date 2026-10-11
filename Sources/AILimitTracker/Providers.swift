@@ -103,7 +103,7 @@ struct Issue: Equatable {
             case (.notInstalled, _):
                 return Issue(text: "\(provider.name) bu Mac'te bulunamadı.", action: nil)
             case (.needsPermission, _):
-                return Issue(text: "Claude Code oturumunu okumak için macOS bir kez izin istiyor. Her Zaman İzin Ver'i seç.", action: .allowKeychain)
+                return Issue(text: "Claude Code oturumunu okumak için macOS bir kez Mac parolanı isteyecek. Her Zaman İzin Ver'i seç.", action: .allowKeychain)
             case (.expired, .cursor):
                 return Issue(text: "Cursor oturumunun süresi dolmuş. Cursor'u bir kez açman yeterli.", action: .openApp("Cursor"))
             case (.expired, .claude):
@@ -115,8 +115,11 @@ struct Issue: Equatable {
         if case SessionError.needsLogin = error {
             switch provider {
             case .claude: return Issue(text: "claude.ai oturumu kapalı.", action: .login)
-            case .codex: return Issue(text: "Codex girişi yok ya da süresi dolmuş. Terminalde bir kez codex login çalıştır.", action: .retry)
-            case .cursor: return Issue(text: "Cursor'da oturum açık değil. Cursor'u açıp giriş yap.", action: .openApp("Cursor"))
+            case .codex: return Issue(text: "Codex oturumu yok. chatgpt.com hesabınla giriş yap.", action: .login)
+            case .cursor:
+                return CursorProvider.isInstalled
+                    ? Issue(text: "Cursor'da oturum açık değil. Cursor'u açıp giriş yap.", action: .openApp("Cursor"))
+                    : Issue(text: "Cursor oturumu yok. cursor.com hesabınla giriş yap.", action: .login)
             }
         }
         if case SessionError.http(let code) = error {

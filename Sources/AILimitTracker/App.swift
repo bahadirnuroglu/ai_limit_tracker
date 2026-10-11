@@ -3,7 +3,7 @@ import SwiftUI
 @main
 struct AILimitTrackerApp: App {
     @StateObject private var store = UsageStore()
-    @StateObject private var loginItem = LoginItem()  // ilk çalıştırmada açılışta başlatmayı açar
+    @StateObject private var loginItem = LoginItem()  // açılışta başlatma, kurulumun Genel adımında açılır
     @StateObject private var updater = UpdateChecker()
 
     private static let hotKey = HotKey { HotKey.toggleMenuBarWindow() }

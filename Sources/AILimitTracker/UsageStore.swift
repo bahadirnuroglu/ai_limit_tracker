@@ -286,7 +286,7 @@ final class UsageStore: ObservableObject {
 
     func perform(_ action: Issue.Action, account: Account) {
         switch action {
-        case .login where account.provider == .claude || !account.isLocal: login(account)
+        case .login: login(account)
         case .allowKeychain:
             Task { await load(account, allowPrompt: true); lastUpdated = Date() }
         case .openApp(let name):
@@ -377,11 +377,31 @@ final class UsageStore: ObservableObject {
             }
             return try await web.fetch()
         case .codex:
-            let result = try await CodexProvider.fetch()
-            return WebSession.Result(plan: result.plan, limits: result.limits, email: email)
+            // Codex CLI girişi varsa o; yoksa (ya da geçersizse) chatgpt.com oturumu
+            let web = session(for: account)
+            guard CodexCLI.isLoggedIn else { return try await web.fetch() }
+            do {
+                let result = try await CodexProvider.fetch()
+                return WebSession.Result(plan: result.plan, limits: result.limits, email: email)
+            } catch let error as URLError {
+                throw error
+            } catch {
+                if let result = try? await web.fetch() { return result }
+                throw error
+            }
         case .cursor:
-            let result = try await CursorProvider.fetch()
-            return WebSession.Result(plan: result.plan, note: result.note, limits: result.limits, email: email)
+            // Cursor uygulamasının oturumu; uygulama yoksa ya da oturumu düşmüşse cursor.com oturumu
+            let web = session(for: account)
+            guard CursorProvider.isInstalled else { return try await web.fetch() }
+            do {
+                let result = try await CursorProvider.fetch()
+                return WebSession.Result(plan: result.plan, note: result.note, limits: result.limits, email: email)
+            } catch let error as URLError {
+                throw error
+            } catch {
+                if let result = try? await web.fetch() { return result }
+                throw error
+            }
         }
     }
 

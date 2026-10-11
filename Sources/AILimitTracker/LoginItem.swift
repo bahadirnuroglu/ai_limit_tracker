@@ -2,24 +2,36 @@ import Foundation
 import ServiceManagement
 
 /// Açılışta otomatik başlatma (Sistem Ayarları > Genel > Oturum Açma Öğeleri).
-/// Varsayılan açık; kullanıcı alt şeritten kapatırsa ("loginItemOptOut") bir daha açılmaz.
-/// Her açılışta yeniden kaydedilir: uygulama adı/konumu değişince (AILimit -> AI Limit Tracker) kayıt güncellenir.
+/// Kullanıcıya sormadan kaydolmaz: kurulumun "Genel" adımı ilk görüldüğünde bir kez açılır (anahtar orada,
+/// gözünün önünde; istemezse kapatır). Sonrasında kararı kullanıcı verir: uygulama kendiliğinden yeniden
+/// kaydolmaz, Sistem Ayarları'ndan kapatıldıysa öyle kalır.
 @MainActor
 final class LoginItem: ObservableObject {
     @Published private(set) var enabled = false
 
     private let service = SMAppService.mainApp
-    private let optOutKey = "loginItemOptOut"
+    private let askedKey = "loginItemOffered"
 
     init() {
-        if !UserDefaults.standard.bool(forKey: optOutKey) { try? service.register() }
+        // 0.3.1 öncesi kullanıcılar zaten kaydolmuştu
+        // (ya da kapatmıştı: eski "loginItemOptOut"): bir daha teklif edilmez
+        if service.status == .enabled || UserDefaults.standard.bool(forKey: "loginItemOptOut") {
+            UserDefaults.standard.set(true, forKey: askedKey)
+        }
+        refresh()
+    }
+
+    /// Kurulumun "Genel" adımı: ilk kez görüldüğünde varsayılan olarak açar
+    func offerOnce() {
+        guard !UserDefaults.standard.bool(forKey: askedKey) else { refresh(); return }
+        UserDefaults.standard.set(true, forKey: askedKey)
+        try? service.register()
         refresh()
     }
 
     func toggle() {
         do {
             if enabled { try service.unregister() } else { try service.register() }
-            UserDefaults.standard.set(enabled, forKey: optOutKey)  // kapattıysa true
         } catch {
             // Onay gerekiyorsa kullanıcıyı ilgili ayara götür
             SMAppService.openSystemSettingsLoginItems()
@@ -27,7 +39,7 @@ final class LoginItem: ObservableObject {
         refresh()
     }
 
-    private func refresh() {
+    func refresh() {
         enabled = service.status == .enabled
     }
 }

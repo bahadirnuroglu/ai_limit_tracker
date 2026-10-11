@@ -69,29 +69,6 @@ enum CodexCLI {
     }
 
     static var isLoggedIn: Bool { FileManager.default.fileExists(atPath: authFile.path) }
-
-    /// Kullanıcının oturum kabuğunda (PATH'iyle) `codex` var mı
-    static func isInstalled() async -> Bool {
-        await Task.detached { shell("command -v codex") == 0 }.value
-    }
-
-    /// `codex login` tarayıcıda girişi açar; giriş bitince auth.json oluşur
-    static func login() async -> Bool {
-        await Task.detached { shell("codex login") == 0 }.value
-    }
-
-    static let installCommand = "npm i -g @openai/codex && codex login"
-
-    private static func shell(_ command: String) -> Int32 {
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: "/bin/zsh")
-        p.arguments = ["-lc", command]
-        p.standardOutput = FileHandle.nullDevice
-        p.standardError = FileHandle.nullDevice
-        do { try p.run() } catch { return -1 }
-        p.waitUntilExit()
-        return p.terminationStatus
-    }
 }
 
 // MARK: - Kurulum asistanı
@@ -296,6 +273,9 @@ private struct ConnectPage: View {
             Form {
                 Section {
                     ForEach(store.enabled) { id in ConnectRow(id: id, store: store) }
+                } footer: {
+                    Text("Aynı araçta birden çok hesabın mı var? Kurulumdan sonra Ayarlar → Sağlayıcılar → Hesap Ekle ile ekleyebilir, popup'ta aralarında geçebilirsin.")
+                        .font(.callout).foregroundStyle(.secondary)
                 }
             }
             .formStyle(.grouped)
@@ -399,6 +379,8 @@ private struct GeneralPage: View {
             .formStyle(.grouped)
             .scrollDisabled(true)
         }
+        // Açılışta başlatma burada, kullanıcının gözü önünde açılır (anahtar açık görünür, kapatabilir)
+        .onAppear { loginItem.offerOnce() }
     }
 }
 
@@ -577,24 +559,17 @@ private struct ConnectRow: View {
     var toggle: Binding<Bool>? = nil
 
     @State private var busy = false
-    @State private var codexInstalled: Bool?
-    @State private var showCodexHelp = false
 
     private var usage: ProviderUsage { store.local(id) }
     private var enabled: Bool { toggle?.wrappedValue ?? true }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                ProviderLabel(id: id, detail: detail)
-                Spacer(minLength: 8)
-                if enabled { trailing }
-                if let toggle { Toggle("", isOn: toggle).toggleStyle(.switch).labelsHidden() }
-            }
-            if showCodexHelp && enabled { codexHelp }
+        HStack(spacing: 10) {
+            ProviderLabel(id: id, detail: detail)
+            Spacer(minLength: 8)
+            if enabled { trailing }
+            if let toggle { Toggle("", isOn: toggle).toggleStyle(.switch).labelsHidden() }
         }
-        .animation(.easeInOut(duration: 0.2), value: showCodexHelp)
-        .task { if id == .codex { codexInstalled = await CodexCLI.isInstalled() } }
     }
 
     private var detail: String {
@@ -607,13 +582,12 @@ private struct ConnectRow: View {
         switch id {
         case .claude:
             return ClaudeCodeAuth.isAvailable
-                ? "Claude Code oturumu kullanılır. macOS bir kez izin isteyebilir; Her Zaman İzin Ver'i seç."
-                : "claude.ai hesabınla giriş yap. Google ile giriyorsan e-posta kodunu kullan."
+                ? "Claude Code oturumu kullanılır. macOS bir kez Mac parolanı isteyecek; Her Zaman İzin Ver'i seç."
+                : "claude.ai hesabınla giriş yap."
         case .codex:
-            if CodexCLI.isLoggedIn { return "Codex CLI girişi bulundu." }
-            return codexInstalled == false ? "Codex CLI kurulu değil." : "Tarayıcıda Codex girişi açılır."
+            return CodexCLI.isLoggedIn ? "Codex CLI girişi kullanılır, şifre gerekmez." : "chatgpt.com hesabınla giriş yap."
         case .cursor:
-            return CursorProvider.isInstalled ? "Cursor'daki oturum kullanılır, giriş gerekmez." : "Cursor bu Mac'te yok."
+            return CursorProvider.isInstalled ? "Cursor'daki oturum kullanılır, şifre gerekmez." : "cursor.com hesabınla giriş yap."
         }
     }
 
@@ -631,23 +605,16 @@ private struct ConnectRow: View {
     private var primaryAction: (String, () -> Void)? {
         // Önce ipucunun kendi çözümü
         if let issue = usage.issue, let title = issue.actionTitle, let action = issue.action, action != .retry {
-            return (title, { run { store.perform(action, for: id) } })
+            return (title, { run { store.perform(action, account: .local(id)) } })
         }
-        switch id {
-        case .claude:
-            if ClaudeCodeAuth.isAvailable { return ("İzin Ver", { run { store.reload(.claude, allowPrompt: true) } }) }
-            return ("Giriş Yap", { store.loginClaude() })
-        case .codex:
-            if CodexCLI.isLoggedIn { return ("Tekrar Dene", { run { store.reload(.codex) } }) }
-            if codexInstalled == false { return ("Nasıl Kurulur?", { showCodexHelp.toggle() }) }
-            return ("Bağlan", {
-                busy = true
-                Task { _ = await CodexCLI.login(); busy = false; store.reload(.codex) }
-            })
-        case .cursor:
-            if CursorProvider.isInstalled { return ("Tekrar Dene", { run { store.reload(.cursor) } }) }
-            return ("İndir", { NSWorkspace.shared.open(URL(string: "https://cursor.com/download")!) })
+        let local = (id == .claude && ClaudeCodeAuth.isAvailable) || (id == .codex && CodexCLI.isLoggedIn)
+            || (id == .cursor && CursorProvider.isInstalled)
+        if id == .claude && ClaudeCodeAuth.isAvailable {
+            return ("İzin Ver", { run { store.reload(.claude, allowPrompt: true) } })
         }
+        if local { return ("Tekrar Dene", { run { store.reload(id) } }) }
+        // Yerel oturum yoksa sitenin girişi (Google/Apple dahil); pencere kapanınca veri gelir
+        return ("Giriş Yap", { store.login(.local(id)) })
     }
 
     /// Kısa bekleme göstergesi; sonuç store'dan gelir
@@ -655,29 +622,6 @@ private struct ConnectRow: View {
         busy = true
         action()
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { busy = false }
-    }
-
-    private var codexHelp: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Terminalde şunu çalıştır, sonra Tekrar Dene'ye bas:").font(.callout).foregroundStyle(.secondary)
-            HStack {
-                Text(CodexCLI.installCommand).font(.system(.callout, design: .monospaced)).textSelection(.enabled)
-                Spacer()
-                Button("Kopyala") {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(CodexCLI.installCommand, forType: .string)
-                }
-                Button("Tekrar Dene") {
-                    Task {
-                        codexInstalled = await CodexCLI.isInstalled()
-                        if CodexCLI.isLoggedIn { showCodexHelp = false; store.reload(.codex) }
-                    }
-                }
-            }
-            .controlSize(.small)
-        }
-        .padding(10)
-        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
     }
 }
 
@@ -874,8 +818,8 @@ extension ProviderID {
     var detectionText: String {
         switch self {
         case .claude: return ClaudeCodeAuth.isAvailable ? "Claude Code bulundu" : "claude.ai hesabınla bağlanır"
-        case .codex: return CodexCLI.isLoggedIn ? "Codex CLI girişi bulundu" : "Codex CLI ile bağlanır"
-        case .cursor: return CursorProvider.isInstalled ? "Cursor bulundu" : "Bu Mac'te kurulu değil"
+        case .codex: return CodexCLI.isLoggedIn ? "Codex CLI girişi bulundu" : "chatgpt.com hesabınla bağlanır"
+        case .cursor: return CursorProvider.isInstalled ? "Cursor bulundu" : "cursor.com hesabınla bağlanır"
         }
     }
 }
