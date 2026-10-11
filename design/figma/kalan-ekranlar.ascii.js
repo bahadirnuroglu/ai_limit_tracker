@@ -338,4 +338,4 @@ for (const n of popupPage.findAll(n => n.type === "FRAME" && n.name === "bo\u015
 
 await figma.setCurrentPageAsync(screens);
 figma.viewport.scrollAndZoomIntoView(screens.children);
-if (typeof print === "function") print(`Bitti: Ekranlar sayfas\u0131 (Ayarlar 4, Kurulum 6, Men\u00fc \u00c7ubu\u011fu); popup bo\u015fluk d\u00fczeltmesi: ${fixed}`);
+if (typeof print === "function") print("Bitti: Ekranlar sayfas\u0131 (Ayarlar 4, Kurulum 6, Men\u00fc \u00c7ubu\u011fu); popup bo\u015fluk d\u00fczeltmesi: " + fixed);

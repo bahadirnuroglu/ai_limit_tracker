@@ -338,4 +338,4 @@ for (const n of popupPage.findAll(n => n.type === "FRAME" && n.name === "boşluk
 
 await figma.setCurrentPageAsync(screens);
 figma.viewport.scrollAndZoomIntoView(screens.children);
-if (typeof print === "function") print(`Bitti: Ekranlar sayfası (Ayarlar 4, Kurulum 6, Menü Çubuğu); popup boşluk düzeltmesi: ${fixed}`);
+if (typeof print === "function") print("Bitti: Ekranlar sayfası (Ayarlar 4, Kurulum 6, Menü Çubuğu); popup boşluk düzeltmesi: " + fixed);
