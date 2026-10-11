@@ -37,6 +37,10 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   kalır + issue. Claude JSON ayrıştırma; Limit.timeToFull (≈ dolar). Günlük bütçe denendi, kullanıcı istemedi: KALDIRILDI.
 - WebSession.swift: gizli WKWebView ile claude.ai oturumu; /api/organizations/{id}/usage
   sayfa bağlamından fetch edilir (alanlar: utilization, resets_at). Token'a dokunulmaz.
+  Giriş penceresi: üstte "Bu pencere tarayıcından ayrı" notu (arkadaş Safari sandı, Chrome girişi/şifreleri görünmüyordu),
+  2 sn'de bir betik denenir, veri gelince "Giriş tamam" + pencere kendiliğinden kapanır. Pencere açıkken fetch sayfayı
+  değiştirmez. Gerçek OAuth yok (sağlayıcılar üçüncü taraf kaydı vermiyor; Claude Code'un client id'sini ödünç almak şartlara aykırı),
+  Chrome çerezleri okunmaz. Kurulum önce "araç girişliyse hiçbir şey yapma" der; bağlan sayfası uygulama öne gelince bağlı olmayanları yeniden dener.
 - CodexProvider.swift: ~/.codex/auth.json token'ı ile GET chatgpt.com/backend-api/wham/usage
   (rate_limit.primary_window / secondary_window: used_percent, limit_window_seconds, reset_at)
 - PopoverView.swift: popup. Her sağlayıcı yatay halka satırı (ProviderCard): logo + ad + plan + etiket

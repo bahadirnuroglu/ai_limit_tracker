@@ -267,7 +267,7 @@ private struct ConnectPage: View {
     var body: some View {
         VStack(spacing: 8) {
             PageHeader(title: "Hesaplarını bağla",
-                       subtitle: "Çoğu araç kendi oturumundan okunur, şifre gerekmez. Bağlanmayanları popup'tan sonra da bağlayabilirsin.") {
+                       subtitle: "Claude Code, Codex ya da Cursor bu Mac'te girişliyse hiçbir şey yapma: limitler oradan okunur. Olmayanlara bir kez giriş yeter.") {
                 SymbolTile(symbol: "link", color: .blue)
             }
             Form {
@@ -279,6 +279,10 @@ private struct ConnectPage: View {
                 }
             }
             .formStyle(.grouped)
+        }
+        // Kullanıcı aracın girişini yapıp dönünce (ör. terminalde codex login) satırlar kendiliğinden güncellensin
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            for id in store.enabled where !store.local(id).isConnected { store.reload(id) }
         }
     }
 }
@@ -583,11 +587,13 @@ private struct ConnectRow: View {
         case .claude:
             return ClaudeCodeAuth.isAvailable
                 ? "Claude Code oturumu kullanılır. macOS bir kez Mac parolanı isteyecek; Her Zaman İzin Ver'i seç."
-                : "claude.ai hesabınla giriş yap."
+                : "Claude Code girişliyse kendiliğinden okunur; yoksa claude.ai ile bir kez giriş yap."
         case .codex:
-            return CodexCLI.isLoggedIn ? "Codex CLI girişi kullanılır, şifre gerekmez." : "chatgpt.com hesabınla giriş yap."
+            return CodexCLI.isLoggedIn ? "Codex CLI girişi kullanılır, şifre gerekmez."
+                : "Codex CLI girişliyse kendiliğinden okunur; yoksa chatgpt.com ile bir kez giriş yap."
         case .cursor:
-            return CursorProvider.isInstalled ? "Cursor'daki oturum kullanılır, şifre gerekmez." : "cursor.com hesabınla giriş yap."
+            return CursorProvider.isInstalled ? "Cursor'daki oturum kullanılır, şifre gerekmez."
+                : "Cursor uygulaması girişliyse kendiliğinden okunur; yoksa cursor.com ile bir kez giriş yap."
         }
     }
 

@@ -175,7 +175,7 @@ final class UsageStore: ObservableObject {
         let account = Account(id: UUID().uuidString, provider: id)
         let session = session(for: account)
         session.onLoginWindowClosed = { [weak self] in Task { await self?.finishAdding(account) } }
-        session.showLogin(title: "Yeni \(id.name) hesabına giriş yap, sonra pencereyi kapat")
+        session.showLogin(title: "Yeni \(id.name) hesabı · \(id.webHost) girişi")
     }
 
     private func finishAdding(_ account: Account) async {

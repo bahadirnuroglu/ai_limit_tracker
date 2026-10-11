@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 import WebKit
 
 enum SessionError: Error {
@@ -22,6 +23,9 @@ final class WebSession: NSObject, NSWindowDelegate, WKUIDelegate {
     let provider: ProviderID
     private let webView: WKWebView
     private var loginWindow: NSWindow?
+    private var loginOpen = false
+    private var loginWatch: Task<Void, Never>?
+    private let banner = LoginBannerState()
     private var popups: [(view: WKWebView, window: NSWindow)] = []   // "Google/Apple ile devam et" pencereleri
     private static let userAgent =
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15"
@@ -142,7 +146,17 @@ final class WebSession: NSObject, NSWindowDelegate, WKUIDelegate {
     }
 
     func fetch() async throws -> Result {
-        try await ensureLoaded()
+        if loginOpen {
+            // Kullanıcı giriş yaparken sayfayı değiştirme; sadece giriş bittiyse oku
+            guard !webView.isLoading, webView.url?.host == home.host else { throw SessionError.needsLogin }
+        } else {
+            try await ensureLoaded()
+        }
+        return try await evaluate()
+    }
+
+    /// Betiği o anki sayfada çalıştırır (sayfa yüklemez)
+    private func evaluate() async throws -> Result {
         let raw = try await webView.callAsyncJavaScript(script, contentWorld: .page)
         guard let text = raw as? String, let data = text.data(using: .utf8),
               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
@@ -166,26 +180,110 @@ final class WebSession: NSObject, NSWindowDelegate, WKUIDelegate {
         }
     }
 
+    /// Giriş penceresi: üstte "tarayıcından ayrı" notu, altında sitenin girişi. Giriş bitince (betik veri döndürünce)
+    /// pencere kendiliğinden kapanır; kullanıcının ne zaman kapatacağını bilmesi gerekmez.
     func showLogin(title: String? = nil) {
         if loginWindow == nil {
             let w = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 960, height: 720),
+                contentRect: NSRect(x: 0, y: 0, width: 960, height: 760),
                 styleMask: [.titled, .closable, .resizable],
                 backing: .buffered, defer: false
             )
-            w.title = title ?? "\(provider.name)'a giriş yap, sonra pencereyi kapat"
+            let note = NSHostingView(rootView: LoginBanner(host: provider.webHost, state: banner) { [weak w] in w?.close() })
+            let container = NSView()
+            for view in [note, webView] as [NSView] {
+                view.translatesAutoresizingMaskIntoConstraints = false
+                container.addSubview(view)
+            }
+            NSLayoutConstraint.activate([
+                note.topAnchor.constraint(equalTo: container.topAnchor),
+                note.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                note.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+                webView.topAnchor.constraint(equalTo: note.bottomAnchor),
+                webView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                webView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+                webView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            ])
             w.isReleasedWhenClosed = false
             w.delegate = self
-            w.contentView = webView
+            w.contentView = container
             w.center()
             loginWindow = w
         }
+        loginWindow?.title = title ?? "\(provider.webHost) girişi · AI Limit Tracker"
+        banner.done = false
+        loginOpen = true
         webView.load(URLRequest(url: loginURL))
         NSApp.activate(ignoringOtherApps: true)
         loginWindow?.makeKeyAndOrderFront(nil)
+        watchLogin()
+    }
+
+    /// 2 sn'de bir, sayfa sağlayıcının kendi alan adındayken betiği dener; veri gelirse giriş tamam
+    private func watchLogin() {
+        loginWatch?.cancel()
+        loginWatch = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(2))
+                guard let self, self.loginOpen else { return }
+                guard !self.webView.isLoading, self.webView.url?.host == self.home.host,
+                      (try? await self.evaluate()) != nil, self.loginOpen else { continue }
+                self.banner.done = true
+                try? await Task.sleep(for: .seconds(1.2))
+                if self.loginOpen { self.loginWindow?.close() }
+                return
+            }
+        }
     }
 
     func windowWillClose(_ notification: Notification) {
+        loginOpen = false
+        loginWatch?.cancel()
+        loginWatch = nil
         onLoginWindowClosed?()
+    }
+}
+
+@MainActor
+final class LoginBannerState: ObservableObject {
+    @Published var done = false
+}
+
+/// Giriş penceresinin üst notu: bu pencerenin tarayıcıdan ayrı olduğunu (Chrome/Safari girişleri ve kayıtlı
+/// şifreler görünmez) ve bir kez giriş yetmesini anlatır
+private struct LoginBanner: View {
+    let host: String
+    @ObservedObject var state: LoginBannerState
+    let close: () -> Void
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: state.done ? "checkmark.circle.fill" : "lock.shield")
+                .font(.system(size: 22))
+                .foregroundStyle(state.done ? Color.green : Color.accentColor)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                if state.done {
+                    Text("Giriş tamam").font(.headline)
+                    Text("Limitlerin geliyor, pencere kapanıyor…").foregroundStyle(.secondary)
+                } else {
+                    Text("Bu pencere tarayıcından ayrı").font(.headline)
+                    Text("Chrome ya da Safari'deki girişin ve kayıtlı şifrelerin burada görünmez. \(host) hesabına bir kez giriş yapman yeter: oturum hatırlanır, giriş bitince pencere kendiliğinden kapanır.")
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .font(.callout)
+            Spacer(minLength: 8)
+            if !state.done {
+                Button("Kapat", action: close).controlSize(.regular)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.bar)
+        .overlay(alignment: .bottom) { Divider() }
+        .animation(.easeOut(duration: 0.2), value: state.done)
     }
 }
