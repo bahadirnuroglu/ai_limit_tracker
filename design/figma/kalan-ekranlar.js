@@ -1,6 +1,7 @@
 // AI Limit Tracker — Figma'daki kalan ekranlar (Scripter eklentisinde çalıştırılır)
 // Figma: Eklentiler > Scripter > yeni script > bu dosyanın tamamını yapıştır > Çalıştır (▶).
-// Tekrar çalıştırılabilir: oluşturduğu sayfaları ("Ayarlar", "Kurulum", "Menü Çubuğu") silip baştan kurar.
+// Starter plan en fazla 3 sayfa: hepsi tek "Ekranlar" sayfasında üç bölüm (Ayarlar, Kurulum, Menü Çubuğu).
+// Tekrar çalıştırılabilir: "Ekranlar" sayfasının içini temizleyip baştan kurar.
 // Var olan değişkenleri (Tema · Açık / Tema · Koyu) ve yazı stillerini kullanır; eksik "sistem/*" renklerini ekler.
 
 const FONTS = [["SF Pro", "Regular"], ["SF Pro", "Medium"], ["SF Pro", "Semibold"], ["SF Pro", "Bold"], ["SF Pro Rounded", "Semibold"]];
@@ -128,13 +129,19 @@ function window(name, w, h, title, { transparentTitle = false } = {}) {
 }
 
 // ---------- Sayfalar ----------
-for (const name of ["Ayarlar", "Kurulum", "Menü Çubuğu"]) { const old = figma.root.children.find(p => p.name === name); if (old) old.remove(); }
-const pSettings = figma.createPage(); pSettings.name = "Ayarlar";
-const pSetup = figma.createPage(); pSetup.name = "Kurulum";
-const pMenu = figma.createPage(); pMenu.name = "Menü Çubuğu";
+let screens = figma.root.children.find(p => p.name === "Ekranlar" || p.name === "Ayarlar" || p.name === "Kurulum" || p.name === "Menü Çubuğu");
+if (!screens) screens = figma.createPage();
+screens.name = "Ekranlar";
+await figma.setCurrentPageAsync(screens);
+for (const n of [...screens.children]) n.remove();
+// her bölüm bir Section; içerik bölümün içine kurulur
+function makeSection(name, y, w, h) { const s = figma.createSection(); s.name = name; screens.appendChild(s); s.x = -40; s.y = y; s.resizeWithoutConstraints(w, h); return s; }
+const secSettings = makeSection("Ayarlar", -40, 2500, 600);
+const secSetup = makeSection("Kurulum", 640, 3640, 720);
+const secMenu = makeSection("Menü Çubuğu", 1440, 560, 260);
+const into = (sec, node, x, y) => { sec.appendChild(node); node.x = x; node.y = y; };
 
 // ============ AYARLAR (560×500, sekmeler) ============
-await figma.setCurrentPageAsync(pSettings);
 const TABS = [["Sağlayıcılar", "square.stack.3d.up"], ["Menü Çubuğu", "menubar.rectangle"], ["Bildirimler", "bell.badge"], ["Genel", "gearshape"]];
 function settingsWindow(selected) {
   const win = window("Ayarlar · " + TABS[selected][0], 560, 500, "AI Limit Tracker Ayarları");
@@ -165,7 +172,7 @@ function settingsWindow(selected) {
   section(body, [provRow("Codex", "Team · 5 saat %0"), addRow("Başka bir Codex hesabı ekle…")]);
   section(body, [provRow("Cursor", "Free · Aylık %0"), addRow("Başka bir Cursor hesabı ekle…")],
     { footer: "Birden çok hesapta popup'taki kartın sol altında hesap çipleri çıkar. Kapalı sağlayıcılar popup'ta ve menü çubuğunda gösterilmez." });
-  win.x = 0; win.y = 0;
+  into(secSettings, win, 40, 50);
 }
 // 2) Menü Çubuğu
 {
@@ -189,7 +196,7 @@ function settingsWindow(selected) {
   }
   const s = section(body, [], { header: "Simge", footer: "Önizlemeler şu anki limitlerinle çizilir. Hangi sağlayıcıların gösterileceğini Sağlayıcılar sekmesinden seçebilirsin." });
   const box = s.children.find(n => n.name === "satırlar"); box.fills = []; box.strokes = []; add(box, grid, "x");
-  win.x = 620; win.y = 0;
+  into(secSettings, win, 660, 50);
 }
 // 3) Bildirimler
 {
@@ -199,7 +206,7 @@ function settingsWindow(selected) {
     ["arrow.counterclockwise.circle.fill", { r: .2, g: .75, b: .4 }, "Limit yenilenince", "Yüksek kullandığın limit sıfırlanınca, devam edebileceğini bildirir"],
     ["alarm", { r: .6, g: .4, b: .95 }, "İstediğin limit açılınca", "Bir karta sağ tıklayıp \"açılınca haber ver\" seçerek tek seferlik hatırlatma kurarsın"]];
   section(body, kinds.map(([s, c, t, d]) => row([tile(s, c, 26), titled(t, d, 330), "spacer", toggle(true)])), { header: "Haber ver" });
-  win.x = 1240; win.y = 0;
+  into(secSettings, win, 1280, 50);
 }
 // 4) Genel
 {
@@ -208,11 +215,10 @@ function settingsWindow(selected) {
   section(body, [row([titled("Sürüm 0.3.4", "En son sürümü kullanıyorsun · son kontrol 14:20", 300), "spacer", button("Güncellemeleri Denetle")]),
     row([button("Tanılama Bilgisini Kopyala"), "spacer", button("Kurulumu Yeniden Başlat")])],
     { footer: "Tanılama bilgisi sürüm, macOS ve her sağlayıcının durumunu içerir; token ya da hesap bilgisi içermez." });
-  win.x = 1860; win.y = 0;
+  into(secSettings, win, 1900, 50);
 }
 
 // ============ KURULUM (540×620, 6 adım) ============
-await figma.setCurrentPageAsync(pSetup);
 function setupWindow(name, { title, subtitle, tile: t, back = true, primary = "Devam", note }) {
   const win = window("Kurulum · " + name, 540, 620, "", { transparentTitle: true });
   const content = add(win, frame("VERTICAL", { name: "sayfa", itemSpacing: 18, counterAxisAlignItems: "CENTER", paddingLeft: 32, paddingRight: 32, paddingTop: 16 }), "xy");
@@ -286,10 +292,9 @@ const steps = [];
   hk.appendChild(text("Ya da her yerden", { size: 13, color: "sistem/ikincil yazı" })); hk.appendChild(keycaps(["⌃", "⌥", "L"]));
   steps.push(win);
 }
-steps.forEach((w, i) => { w.x = i * 600; w.y = 0; });
+steps.forEach((w, i) => into(secSetup, w, 40 + i * 600, 50));
 
 // ============ MENÜ ÇUBUĞU İKONLARI (22 pt) ============
-await figma.setCurrentPageAsync(pMenu);
 const ARC0 = 3 * Math.PI / 4, ARCS = 1.5 * Math.PI;
 function arc(size, p, rgb, inner = .72, alpha = 1) { const e = figma.createEllipse(); e.resize(size, size); e.arcData = { startingAngle: ARC0, endingAngle: ARC0 + ARCS * Math.max(p, .02), innerRadius: inner }; e.fills = [raw(rgb.r, rgb.g, rgb.b, alpha)]; return e; }
 const ORANGE = { r: .85, g: .47, b: .34 }, BLUE = { r: .42, g: .55, b: .98 };
@@ -319,11 +324,11 @@ const names = ["Son kullanılan iki", "En dolu", "Yan yana", "Barlar"];
   const bar = frame("HORIZONTAL", { name: dark ? "Menü çubuğu · Koyu" : "Menü çubuğu · Açık", itemSpacing: 28, counterAxisAlignItems: "CENTER", paddingLeft: 16, paddingRight: 16 });
   bar.counterAxisSizingMode = "FIXED"; bar.resize(400, 30); bar.fills = [dark ? raw(.12, .12, .13) : raw(.95, .95, .96)];
   for (const n of names) { const col = frame("VERTICAL", { name: n, itemSpacing: 4, counterAxisAlignItems: "CENTER" }); col.appendChild(icon(n, dark)); bar.appendChild(col); }
-  bar.x = 0; bar.y = k * 60;
-  const lbl = text(dark ? "Koyu" : "Açık", { size: 11, color: "sistem/ikincil yazı" }); lbl.x = -50; lbl.y = k * 60 + 8;
+  into(secMenu, bar, 90, 50 + k * 60);
+  const lbl = text(dark ? "Koyu" : "Açık", { size: 11, color: "sistem/ikincil yazı" }); into(secMenu, lbl, 40, 58 + k * 60);
 });
 const legend = text("Soldan sağa: Son kullanılan iki (iç içe halkalar) · En dolu (halka + logo) · Yan yana · Barlar. Hepsi 22 pt; Claude turuncu, Codex sistem rengi, Cursor mavi.", { size: 11, color: "sistem/ikincil yazı", width: 400 });
-legend.x = 0; legend.y = 130;
+into(secMenu, legend, 90, 180);
 
 // ============ Popup alt şeridindeki boşluk düzeltmesi ============
 const popupPage = figma.root.children.find(p => p.name === "Popup");
@@ -331,6 +336,6 @@ await figma.setCurrentPageAsync(popupPage);
 let fixed = 0;
 for (const n of popupPage.findAll(n => n.type === "FRAME" && n.name === "boşluk")) { n.layoutSizingVertical = "FIXED"; n.resize(n.width, 1); fixed++; }
 
-await figma.setCurrentPageAsync(pSettings);
-figma.viewport.scrollAndZoomIntoView(pSettings.children);
-if (typeof print === "function") print(`Bitti: Ayarlar (4), Kurulum (6), Menü Çubuğu ikonları; popup boşluk düzeltmesi: ${fixed}`);
+await figma.setCurrentPageAsync(screens);
+figma.viewport.scrollAndZoomIntoView(screens.children);
+if (typeof print === "function") print(`Bitti: Ekranlar sayfası (Ayarlar 4, Kurulum 6, Menü Çubuğu); popup boşluk düzeltmesi: ${fixed}`);
