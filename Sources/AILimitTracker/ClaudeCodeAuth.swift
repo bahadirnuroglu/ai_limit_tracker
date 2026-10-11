@@ -36,7 +36,7 @@ enum ClaudeCodeAuth {
     /// Kullanım JSON'u ve plan adı. `allowPrompt`: kullanıcı "İzin ver"e bastıysa macOS sorusu çıkabilir.
     @MainActor
     static func fetchUsage(allowPrompt: Bool) async throws -> (plan: String?, data: Data) {
-        let creds = try credentials(allowPrompt: allowPrompt)
+        let creds = try await credentials(allowPrompt: allowPrompt)
         var request = URLRequest(url: URL(string: "https://api.anthropic.com/api/oauth/usage")!)
         request.setValue("Bearer \(creds.token)", forHTTPHeaderField: "Authorization")
         request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
@@ -52,23 +52,17 @@ enum ClaudeCodeAuth {
     }
 
     @MainActor
-    private static func credentials(allowPrompt: Bool) throws -> (token: String, expires: Date?, plan: String?) {
+    private static func credentials(allowPrompt: Bool) async throws -> (token: String, expires: Date?, plan: String?) {
         if let cached, (cached.expires ?? .distantFuture) > Date().addingTimeInterval(60) { return cached }
 
         let raw: Data
         if let file = try? Data(contentsOf: credentialsFile) {
             raw = file
         } else {
-            var query: [String: Any] = [
-                kSecClass as String: kSecClassGenericPassword,
-                kSecAttrService as String: service,
-                kSecReturnData as String: true,
-            ]
-            if !allowPrompt { query[kSecUseAuthenticationUI as String] = kSecUseAuthenticationUIFail }
-            var item: CFTypeRef?
-            let status = SecItemCopyMatching(query as CFDictionary, &item)
+            // Ana iş parçacığı dışında: izin penceresi açıkken popup donmasın
+            let (status, data) = await Task.detached { readKeychain(allowPrompt: allowPrompt) }.value
             switch status {
-            case errSecSuccess: raw = item as? Data ?? Data()
+            case errSecSuccess: raw = data ?? Data()
             case errSecInteractionNotAllowed, errSecAuthFailed, errSecUserCanceled: throw ProviderError.needsPermission
             default: throw ProviderError.notInstalled
             }
@@ -83,5 +77,24 @@ enum ClaudeCodeAuth {
         let result = (token, expires, plan)
         cached = result
         return result
+    }
+
+    /// Eski tip (dosya tabanlı) giriş Anahtar Zinciri kSecUseAuthenticationUIFail'i yok sayıp izin penceresi açar
+    /// ve çağrıyı kullanıcı cevap verene kadar bekletir (her yeni imzada, yani her güncellemede). Sormadan okumada
+    /// etkileşim süreç genelinde kapatılır; izin yoksa hemen errSecInteractionNotAllowed döner, kartta "İzin ver" çıkar.
+    nonisolated private static func readKeychain(allowPrompt: Bool) -> (OSStatus, Data?) {
+        var query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecReturnData as String: true,
+        ]
+        if !allowPrompt {
+            query[kSecUseAuthenticationUI as String] = kSecUseAuthenticationUIFail
+            SecKeychainSetUserInteractionAllowed(false)
+        }
+        defer { if !allowPrompt { SecKeychainSetUserInteractionAllowed(true) } }
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        return (status, item as? Data)
     }
 }
