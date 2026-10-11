@@ -117,6 +117,8 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
 - ChatGPT sohbet limiti için okunabilir kaynak yok, sadece Codex pencereleri ve plan adı gösteriliyor.
 - Açılışta başlatma: LoginItem.swift (SMAppService.mainApp). Sormadan kaydolmaz: kurulumun Genel adımı ilk
   görüldüğünde bir kez açılır ("loginItemOffered"), sonra kendiliğinden yeniden kaydolmaz (Sistem Ayarları kararı korunur).
+- Güncelleme denetimi: açılışta, 6 saatte bir, popup açılınca (son kontrol 15 dk'dan eskiyse) ve Ayarlar → Genel
+  "Güncellemeleri Denetle" (UpdateRow; UpdateChecker.shared). "Yenile" sadece limitleri yeniler (kullanıcıyla kararlaştırıldı).
 - Güncelleme doğrulaması (UpdateChecker.verify): paket kimliği + beklenen sürüm + imza bütünlüğü; çalışan uygulama
   sertifikayla imzalıysa yeni sürüm aynı designated requirement'ı karşılamalı. Ad-hoc'ta sadece bütünlük.
 - Claude Code Anahtar Zinciri: okuma ana iş parçacığı DIŞINDA; sormadan okumada SecKeychainSetUserInteractionAllowed(false)
