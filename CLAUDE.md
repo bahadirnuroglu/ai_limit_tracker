@@ -60,8 +60,9 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   çerçevesi (logo, ad ve plana göre dikey ortalı; "+N gizli limit" rozeti hesap sayısıyla karıştığı için KALDIRILDI), altında etiketler ve diğer hesabın durumu ("Hesap 1 doldu ·
   açılış 14:36" / "Hesap 2 kullanılabilir"), sol altta hesap çipleri (segment seçici dili, içerik boyunda, dolanda
   kırmızı nokta). Çipte e-posta GÖSTERİLMEZ: varsayılan "1", "2" (cümlede "Hesap 2"), kullanıcı Ayarlar'dan ad verir
-  (karta sağ tık → "Hesapları Adlandır…"). Google/Apple girişi için WebSession açılır pencereye (WKUIDelegate) izin verir. Kart her açılışta en boş hesapla gelir (store.selection popup kapanınca sıfırlanır);
-  sıralama ve menü çubuğu ikonu en boş hesabı (best) kullanır. Ek hesap varken bağlı olmayan yerel hesap çipte gizlenir.
+  (karta sağ tık → "Hesapları Adlandır…"). Google/Apple girişi için WebSession açılır pencereye (WKUIDelegate) izin verir. Seçilen hesap KALICI (UserDefaults "selectedAccounts"; kullanıcı popup kapanınca sıfırlanmasını
+  hata saydı) ve menü çubuğu ikonu seçili hesabı gösterir; seçim yoksa en boş hesap (best). Kart sırası best'e göre
+  (çipe basınca kartlar yer değiştirmesin). Ek hesap varken bağlı olmayan yerel hesap çipte gizlenir.
   Ek hesap web girişleri gerçek hesapla test EDİLMEDİ (claude.ai /api/account e-posta alanı tahmini).
 - Kestirmeler/Siri (URL şeması + hazır kestirme) denendi, kullanıcı isteğiyle KALDIRILDI.
 - Onboarding.swift: Apple kurulum asistanı tarzı pencere (şeffaf başlık çubuğu, sistem Form/Toggle/borderedProminent,

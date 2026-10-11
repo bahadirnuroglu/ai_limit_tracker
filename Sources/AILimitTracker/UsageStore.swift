@@ -71,8 +71,17 @@ struct ProviderUsage {
 final class UsageStore: ObservableObject {
     @Published private(set) var usage: [String: ProviderUsage] = [:]   // hesap id → durum
     @Published private(set) var accounts: [Account] = AccountList.load()
-    /// Popup'ta çiple seçilen hesap; popup her açılışta sıfırlanır (kart en uygun hesapla açılır)
-    @Published var selection: [ProviderID: String] = [:]
+    /// Popup'ta çiple seçilen hesap (kalıcı, UserDefaults "selectedAccounts"); menü çubuğu da bu hesabı gösterir.
+    /// Seçim yoksa (ya da seçilen hesap kaldırıldıysa) en boş hesap.
+    @Published var selection: [ProviderID: String] = {
+        let raw = UserDefaults.standard.dictionary(forKey: "selectedAccounts") as? [String: String] ?? [:]
+        return Dictionary(uniqueKeysWithValues: raw.compactMap { k, v in ProviderID(rawValue: k).map { ($0, v) } })
+    }() {
+        didSet {
+            UserDefaults.standard.set(Dictionary(uniqueKeysWithValues: selection.map { ($0.key.rawValue, $0.value) }),
+                                      forKey: "selectedAccounts")
+        }
+    }
     @Published var lastUpdated: Date?
     @Published private var pending = 0
     var isRefreshing: Bool { pending > 0 }
@@ -249,10 +258,10 @@ final class UsageStore: ObservableObject {
     var menuIcon: NSImage { menuIcon(style: menuBarStyle) }
 
     /// Ayarlar'daki önizlemeler de bunu kullanır: halkalarda kısa pencere, "En dolu"da en dolu limit.
-    /// Birden çok hesapta şu an kullanılabilecek (en boş) hesap gösterilir; hepsi dolunca kırmızıya döner.
+    /// Birden çok hesapta popup'ta seçili hesap gösterilir.
     func menuIcon(style: MenuBarStyle) -> NSImage {
         let entries = enabled.map { id -> MenuIcon.Entry in
-            let u = usage(of: best(id))
+            let u = usage(of: displayed(id))
             let limit = style == .mostFull ? u.limits.max { $0.percent < $1.percent } : u.frontLimits.first
             let lastUsed = accounts(for: id).flatMap { usage(of: $0).limits }.map { UsageHistory.lastIncrease($0.id) }.max() ?? 0
             return MenuIcon.Entry(logo: id.logo, percent: limit?.percent, resetsAt: limit?.resetsAt,

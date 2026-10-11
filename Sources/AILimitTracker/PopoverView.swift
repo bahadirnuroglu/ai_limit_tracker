@@ -67,7 +67,7 @@ struct PopoverView: View {
             store.refreshIfStale()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { shown = true }
         }
-        .onDisappear { shown = false; flipped = []; store.selection = [:] }
+        .onDisappear { shown = false; flipped = [] }
     }
 
     /// Birden çok hesap varsa kartın çipleri (tek hesapta boş: kart bugünküyle aynı)
