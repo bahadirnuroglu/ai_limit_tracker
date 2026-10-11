@@ -11,7 +11,7 @@ enum SessionError: Error {
 /// İstekler sayfanın kendi bağlamından atılır; çerez/token'a hiç dokunmuyoruz.
 /// Her ek hesap kendi WKWebsiteDataStore'unda durur (macOS 14+), oturumlar birbirine karışmaz.
 @MainActor
-final class WebSession: NSObject, NSWindowDelegate {
+final class WebSession: NSObject, NSWindowDelegate, WKUIDelegate {
     struct Result {
         var plan: String?
         var note: String?
@@ -22,6 +22,9 @@ final class WebSession: NSObject, NSWindowDelegate {
     let provider: ProviderID
     private let webView: WKWebView
     private var loginWindow: NSWindow?
+    private var popups: [(view: WKWebView, window: NSWindow)] = []   // "Google/Apple ile devam et" pencereleri
+    private static let userAgent =
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15"
     var onLoginWindowClosed: (() -> Void)?
 
     init(provider: ProviderID, dataStore: WKWebsiteDataStore = .default()) {
@@ -29,9 +32,38 @@ final class WebSession: NSObject, NSWindowDelegate {
         let config = WKWebViewConfiguration()
         config.websiteDataStore = dataStore // çerezler kalıcı
         webView = WKWebView(frame: NSRect(x: 0, y: 0, width: 960, height: 720), configuration: config)
-        webView.customUserAgent =
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15"
+        webView.customUserAgent = Self.userAgent
         super.init()
+        webView.uiDelegate = self
+    }
+
+    /// Google/Apple girişi window.open ile açılır pencerede yapılır; WKWebView varsayılan olarak engeller
+    /// ("Oturumunuz açılırken bir hata oluştu"). Aynı yapılandırmayla (aynı çerez kutusu) gerçek pencere açılır,
+    /// giriş bitince sayfa window.close() ile kapatır, çerez ana görünüme kalır.
+    func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
+                 for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+        let size = NSSize(width: CGFloat(windowFeatures.width?.doubleValue ?? 520),
+                          height: CGFloat(windowFeatures.height?.doubleValue ?? 640))
+        let popup = WKWebView(frame: NSRect(origin: .zero, size: size), configuration: configuration)
+        popup.customUserAgent = Self.userAgent
+        popup.uiDelegate = self
+        let window = NSWindow(contentRect: popup.frame, styleMask: [.titled, .closable, .resizable],
+                              backing: .buffered, defer: false)
+        window.title = "Giriş"
+        window.isReleasedWhenClosed = false
+        window.contentView = popup
+        if let parent = loginWindow { window.setFrameTopLeftPoint(NSPoint(x: parent.frame.midX - size.width / 2, y: parent.frame.maxY - 40)) }
+        else { window.center() }
+        window.makeKeyAndOrderFront(nil)
+        popups.append((popup, window))
+        return popup
+    }
+
+    func webViewDidClose(_ webView: WKWebView) {
+        guard let i = popups.firstIndex(where: { $0.view === webView }) else { return }
+        popups[i].window.orderOut(nil)
+        popups.remove(at: i)
+        loginWindow?.makeKeyAndOrderFront(nil)
     }
 
     /// İsteklerin atılacağı sayfa ve giriş sayfası
