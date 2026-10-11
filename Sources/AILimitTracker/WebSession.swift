@@ -111,7 +111,7 @@ final class WebSession: NSObject, NSWindowDelegate, WKUIDelegate {
             const org = list.find(o => o.uuid === id) || list[0] || {};
             const caps = org.capabilities || [];
             const plan = caps.includes('claude_max') ? 'Max' : caps.includes('claude_pro') ? 'Pro'
-                       : caps.includes('raven') ? 'Team' : null;
+                       : caps.includes('raven') ? 'Team' : (caps.length ? 'Free' : null);
             const r = await fetch('/api/organizations/' + id + '/usage', { credentials: 'include' });
             if (!r.ok) return JSON.stringify({ __status: r.status });
             let email = null;

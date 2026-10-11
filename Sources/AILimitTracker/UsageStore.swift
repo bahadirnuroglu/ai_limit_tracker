@@ -394,8 +394,10 @@ final class UsageStore: ObservableObject {
 
         let order = ["five_hour", "seven_day"]
         return root.compactMap { key, value -> Limit? in
-            guard let dict = value as? [String: Any],
-                  let util = (dict["utilization"] as? NSNumber)?.doubleValue else { return nil }
+            // Hiç kullanılmamış hesapta ana pencereler null gelir: pencere henüz başlamamış, %0 demek
+            let unused = order.contains(key) && (value is NSNull || (value as? [String: Any])?["utilization"] is NSNull)
+            guard let util = unused ? 0 : ((value as? [String: Any])?["utilization"] as? NSNumber)?.doubleValue else { return nil }
+            let dict = value as? [String: Any] ?? [:]
             let raw = dict["resets_at"] as? String
             let date = raw.flatMap { frac.date(from: $0) ?? plain.date(from: $0) }
 

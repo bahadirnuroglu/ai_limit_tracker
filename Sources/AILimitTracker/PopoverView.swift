@@ -380,6 +380,16 @@ private struct ProviderCard: View {
                     .opacity(staticPart * (usage.isStale ? 0.45 : 1))
                 } else if usage.state == .loading && usage.issue == nil {
                     SkeletonRings(pulsing: !reduceMotion).opacity(staticPart)
+                } else if usage.state == .ok && usage.issue == nil {
+                    // Boş durum: hesap bağlı ama henüz limit penceresi yok (hiç kullanılmamış)
+                    VStack(alignment: .trailing, spacing: 3) {
+                        Image(systemName: "checkmark.circle").font(.system(size: 18, weight: .regular))
+                        Text("Henüz kullanılmadı").font(.system(size: 12, weight: .semibold))
+                        Text("Tüm limitler boş").font(.system(size: 10.5, weight: .regular))
+                    }
+                    .multilineTextAlignment(.trailing)
+                    .padding(.trailing, 4)
+                    .opacity(staticPart)
                 }
             }
             .fixedSize(horizontal: false, vertical: true)  // sol sütun halkalar kadar uzar, seçici alta oturur
