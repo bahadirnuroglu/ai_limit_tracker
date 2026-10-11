@@ -9,6 +9,8 @@ import Security
 final class UpdateChecker: ObservableObject {
     /// "kullanıcı/depo" — boşsa kontrol yapılmaz
     static let repo = "bahadirnuroglu/ai_limit_tracker"
+    /// Popup ve Ayarlar → Genel ("Güncellemeleri Denetle") aynı örneği kullanır
+    static let shared = UpdateChecker()
 
     struct Release: Equatable { let version: String; let page: URL; let dmg: URL? }
     @Published private(set) var available: Release?
@@ -19,9 +21,13 @@ final class UpdateChecker: ObservableObject {
 
     private var timer: Timer?
     private var lastCheck = Date.distantPast
+    /// Ayarlar'daki elle denetleme için: sürüyor mu, en son ne zaman başarıyla bakıldı, başarısız mı oldu
+    @Published private(set) var isChecking = false
+    @Published private(set) var lastSuccess: Date?
+    @Published private(set) var checkFailed = false
     private let current = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
 
-    init() {
+    private init() {
         guard !Self.repo.isEmpty else { return }
         Task { await check() }
         timer = Timer.scheduledTimer(withTimeInterval: 6 * 3600, repeats: true) { [weak self] _ in
@@ -40,10 +46,15 @@ final class UpdateChecker: ObservableObject {
         guard let api = URL(string: "https://api.github.com/repos/\(Self.repo)/releases/latest") else { return }
         var request = URLRequest(url: api)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        isChecking = true
+        checkFailed = false
+        defer { isChecking = false }
         guard let (data, _) = try? await URLSession.shared.data(for: request),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let tag = json["tag_name"] as? String,
-              let page = (json["html_url"] as? String).flatMap(URL.init(string:)) else { return }
+              let page = (json["html_url"] as? String).flatMap(URL.init(string:)) else { checkFailed = true; return }
+        lastSuccess = Date()
 
         let version = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
         guard Self.isNewer(version, than: current) else { available = nil; return }

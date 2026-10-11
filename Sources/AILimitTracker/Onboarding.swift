@@ -485,7 +485,7 @@ private struct SettingsView: View {
                 LabeledContent("Kısayol") { KeyCaps(keys: ["⌃", "⌥", "L"]) }
             }
             Section {
-                LabeledContent("Sürüm", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?")
+                UpdateRow(updater: .shared)
                 HStack {
                     Button("Tanılama Bilgisini Kopyala") { copyDiagnostics() }
                     Spacer()
@@ -702,6 +702,48 @@ private struct StyleCard: View {
         .onHover { hovering = $0 }
         .accessibilityLabel("\(style.title): \(style.detail)")
         .accessibilityAddTraits(selected ? [.isSelected] : [])
+    }
+}
+
+/// Ayarlar → Genel: sürüm + "Güncellemeleri Denetle" (sonuç satırın altında; yeni sürüm varsa Güncelle)
+private struct UpdateRow: View {
+    @ObservedObject var updater: UpdateChecker
+    private let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Sürüm \(version)")
+                Text(status).font(.callout).foregroundStyle(updater.checkFailed ? .orange : .secondary)
+            }
+            Spacer()
+            switch updater.phase {
+            case .downloading, .installing:
+                ProgressView().controlSize(.small)
+            default:
+                if updater.isChecking {
+                    ProgressView().controlSize(.small)
+                } else if let release = updater.available {
+                    Button("\(release.version) Sürümüne Güncelle") { updater.install() }.buttonStyle(.borderedProminent)
+                } else {
+                    Button("Güncellemeleri Denetle") { Task { await updater.check() } }
+                }
+            }
+        }
+    }
+
+    private var status: String {
+        switch updater.phase {
+        case .downloading(let f): return "İndiriliyor %\(Int(f * 100))"
+        case .installing: return "Kuruluyor, birazdan yeniden açılacak…"
+        case .failed(let message): return message
+        case .idle: break
+        }
+        if updater.isChecking { return "Denetleniyor…" }
+        if updater.checkFailed { return "Denetlenemedi. İnternet bağlantını kontrol edip tekrar dene." }
+        if let release = updater.available { return "Yeni sürüm hazır: \(release.version). İndirip kurar ve yeniden açılır." }
+        if let at = updater.lastSuccess { return "En son sürümü kullanıyorsun · son kontrol \(at.formatted(date: .omitted, time: .shortened))" }
+        return "Yeni sürümler kendiliğinden denetlenir."
     }
 }
 

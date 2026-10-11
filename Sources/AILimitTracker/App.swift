@@ -4,7 +4,7 @@ import SwiftUI
 struct AILimitTrackerApp: App {
     @StateObject private var store = UsageStore()
     @StateObject private var loginItem = LoginItem()  // açılışta başlatma, kurulumun Genel adımında açılır
-    @StateObject private var updater = UpdateChecker()
+    @StateObject private var updater = UpdateChecker.shared
 
     private static let hotKey = HotKey { HotKey.toggleMenuBarWindow() }
 
