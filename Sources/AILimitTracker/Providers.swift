@@ -107,7 +107,8 @@ struct Issue: Equatable {
             case (.expired, .cursor):
                 return Issue(text: "Cursor oturumunun süresi dolmuş. Cursor'u bir kez açman yeterli.", action: .openApp("Cursor"))
             case (.expired, .claude):
-                return Issue(text: "Claude Code oturumunun süresi dolmuş. Claude Code'u bir kez çalıştırman yeterli.", action: .retry)
+                // Claude Code token'ı uygulama yenilemez (Claude Code'un oturumunu bozabilir); claude.ai girişi kalıcı yedek olur
+                return Issue(text: "Claude Code oturumunun süresi dolmuş. Terminalde bir kez claude çalıştır ya da claude.ai ile giriş yap; giriş yaparsan bir daha kesilmez.", action: .login)
             case (.expired, _):
                 return Issue(text: "\(provider.name) oturumunun süresi dolmuş.", action: .retry)
             }

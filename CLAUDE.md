@@ -125,6 +125,9 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   "Güncellemeleri Denetle" (UpdateRow; UpdateChecker.shared). "Yenile" sadece limitleri yeniler (kullanıcıyla kararlaştırıldı).
 - Güncelleme doğrulaması (UpdateChecker.verify): paket kimliği + beklenen sürüm + imza bütünlüğü; çalışan uygulama
   sertifikayla imzalıysa yeni sürüm aynı designated requirement'ı karşılamalı. Ad-hoc'ta sadece bütünlük.
+- Claude Code token'ı süresi dolunca (Claude masaüstü uygulamasının Code sekmesi CLI'nin "Claude Code-credentials" kaydını
+  yenilemiyor; kayıt ~8 sa sonra eskir) ipucu eylemi .login: yerel hesap için claude.ai girişi açılır, sonra fetch claude.ai
+  web oturumuna düşer. Token'ı uygulama YENİLEMEZ (refresh token dönerse Claude Code'un oturumu bozulur).
 - Claude Code Anahtar Zinciri: okuma ana iş parçacığı DIŞINDA; sormadan okumada SecKeychainSetUserInteractionAllowed(false)
   (eski tip giriş anahtar zinciri kSecUseAuthenticationUIFail'i yok sayıp izin penceresi açıyor ve popup'ı donduruyordu).
 - Yerel Codex/Cursor: CLI girişi / Cursor uygulaması yoksa ya da oturumu düşmüşse varsayılan çerez kutusunda
