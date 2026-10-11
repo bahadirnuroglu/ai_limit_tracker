@@ -32,7 +32,7 @@ L = await varsOf(LIGHT); D = await varsOf(DARK);
 
 // ---------- Yard\u0131mc\u0131lar ----------
 let T = L; // aktif tema (ekran kurarken L ya da D)
-const paint = name => { const v = T[name]; const c = Object.values(v.valuesByMode)[0]; return figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: c.r, g: c.g, b: c.b }, opacity: c.a ?? 1 }, "color", v); };
+const paint = name => { const v = T[name]; const c = Object.values(v.valuesByMode)[0]; return figma.variables.setBoundVariableForPaint({ type: "SOLID", color: { r: c.r, g: c.g, b: c.b }, opacity: (c.a === undefined ? 1 : c.a) }, "color", v); };
 const raw = (r, g, b, a = 1) => ({ type: "SOLID", color: { r, g, b }, opacity: a });
 const sym = name => { try { return figma.util.getSfSymbolCharacter(name); } catch (e) { return "\u25cf"; } };
 function frame(dir, props = {}) {
