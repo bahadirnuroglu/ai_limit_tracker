@@ -464,7 +464,7 @@ private struct SettingsView: View {
                     }
                 } footer: {
                     if id == ProviderID.allCases.last {
-                        Text("Birden çok hesapta popup'taki kartın üstünde hesap çipleri çıkar; kart her açılışta şu an kullanabileceğin hesapla gelir. Kapalı sağlayıcılar popup'ta ve menü çubuğunda gösterilmez.")
+                        Text("Birden çok hesapta popup'taki kartın sol altında hesap çipleri çıkar; kart her açılışta şu an kullanabileceğin hesapla gelir. Kapalı sağlayıcılar popup'ta ve menü çubuğunda gösterilmez.")
                             .font(.callout).foregroundStyle(.secondary)
                     }
                 }

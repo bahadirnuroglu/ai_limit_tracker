@@ -112,6 +112,12 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   ai_limit_tracker, Contents: Read and write + Metadata); kullanıcı terminale yapıştırarak kaydeder, sohbete değil.
 - Endpoint'ler dahili ve belgesiz; değişebilir.
 - ChatGPT sohbet limiti için okunabilir kaynak yok, sadece Codex pencereleri ve plan adı gösteriliyor.
-- Açılışta başlatma: LoginItem.swift (SMAppService.mainApp); varsayılan açık, her açılışta yeniden kaydolur,
-  Ayarlar → Genel'den kapatılırsa UserDefaults loginItemOptOut=true.
+- Açılışta başlatma: LoginItem.swift (SMAppService.mainApp). Sormadan kaydolmaz: kurulumun Genel adımı ilk
+  görüldüğünde bir kez açılır ("loginItemOffered"), sonra kendiliğinden yeniden kaydolmaz (Sistem Ayarları kararı korunur).
+- Güncelleme doğrulaması (UpdateChecker.verify): paket kimliği + beklenen sürüm + imza bütünlüğü; çalışan uygulama
+  sertifikayla imzalıysa yeni sürüm aynı designated requirement'ı karşılamalı. Ad-hoc'ta sadece bütünlük.
+- Claude Code Anahtar Zinciri: okuma ana iş parçacığı DIŞINDA; sormadan okumada SecKeychainSetUserInteractionAllowed(false)
+  (eski tip giriş anahtar zinciri kSecUseAuthenticationUIFail'i yok sayıp izin penceresi açıyor ve popup'ı donduruyordu).
+- Yerel Codex/Cursor: CLI girişi / Cursor uygulaması yoksa ya da oturumu düşmüşse varsayılan çerez kutusunda
+  chatgpt.com / cursor.com web oturumu (ConnectRow "Giriş Yap"). Codex CLI kurulum yardımı kaldırıldı.
 - Gerçek hesapla test EDİLMEDİ: Cursor, Claude Code oturumu (bu Mac'te yok), claude.ai'ye Google ile giriş.
