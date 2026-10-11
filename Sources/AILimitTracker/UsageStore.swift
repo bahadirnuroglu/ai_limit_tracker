@@ -139,9 +139,18 @@ final class UsageStore: ObservableObject {
 
     func anyConnected(_ id: ProviderID) -> Bool { accounts(for: id).contains { usage(of: $0).isConnected } }
 
-    /// Bildirim başlığı: tek hesapta "Claude", birden çoğunda "Claude · İş"
+    /// Sağlayıcıdaki sırası (1'den): yerel hesap 1, eklenenler 2, 3…
+    func number(_ account: Account) -> Int { (accounts(for: account.provider).firstIndex { $0.id == account.id } ?? 0) + 1 }
+
+    /// Çipteki ad: verilen ad ya da sıra numarası ("1", "2"); e-posta gösterilmez
+    func label(_ account: Account) -> String { account.customName ?? "\(number(account))" }
+
+    /// Cümle içindeki ad: verilen ad ya da "Hesap 2"
+    func longLabel(_ account: Account) -> String { account.customName ?? "Hesap \(number(account))" }
+
+    /// Bildirim başlığı: tek hesapta "Claude", birden çoğunda "Claude · İş" / "Claude · Hesap 2"
     func title(_ account: Account) -> String {
-        accounts(for: account.provider).count > 1 ? "\(account.provider.name) · \(account.displayName)" : account.provider.name
+        accounts(for: account.provider).count > 1 ? "\(account.provider.name) · \(longLabel(account))" : account.provider.name
     }
 
     func rename(_ account: Account, to name: String) {
@@ -318,7 +327,7 @@ final class UsageStore: ObservableObject {
             if account.isLocal {
                 current.issue = Issue.from(error, provider: account.provider)
             } else if case SessionError.needsLogin = error {
-                current.issue = Issue(text: "\(account.displayName) hesabının oturumu kapanmış.", action: .login)
+                current.issue = Issue(text: "\(longLabel(account)) oturumu kapanmış.", action: .login)
             } else {
                 current.issue = Issue.from(error, provider: account.provider)
             }
@@ -400,7 +409,8 @@ final class UsageStore: ObservableObject {
             default:
                 // seven_day_opus, seven_day_sonnet …: modele özel haftalık
                 model = key.hasPrefix("seven_day_") ? String(key.dropFirst("seven_day_".count)) : key
-                let names = ["opus": "Opus", "sonnet": "Sonnet", "oauth_apps": "Uygulamalar", "routines": "Rutinler"]
+                let names = ["opus": "Opus", "sonnet": "Sonnet", "oauth_apps": "Uygulamalar", "routines": "Rutinler",
+                             "extra_usage": "Ekstra"]
                 let name = names[model ?? key] ?? (model ?? key).replacingOccurrences(of: "_", with: " ").capitalized
                 label = key.hasPrefix("seven_day") ? "Haftalık · \(name)" : name
                 short = name

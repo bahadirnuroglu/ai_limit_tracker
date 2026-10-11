@@ -773,13 +773,13 @@ private struct AccountRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Text(String(account.displayName.prefix(1)).uppercased())
+            Text(String(store.label(account).prefix(1)).uppercased())
                 .font(.system(size: 11, weight: .bold, design: .rounded))
                 .foregroundStyle(.secondary)
                 .frame(width: 24, height: 24)
                 .background(.quaternary.opacity(0.7), in: Circle())
             VStack(alignment: .leading, spacing: 1) {
-                TextField("", text: $name, prompt: Text(account.displayName))
+                TextField("", text: $name, prompt: Text("Hesap \(store.number(account))"))
                     .labelsHidden()
                     .multilineTextAlignment(.leading)
                     .textFieldStyle(.plain)
@@ -808,7 +808,7 @@ private struct AccountRow: View {
         .padding(.leading, 40)
         .onAppear { name = account.name ?? "" }
         .onChange(of: editing) { _, now in if !now { store.rename(account, to: name) } }
-        .confirmationDialog("\(account.displayName) hesabı kaldırılsın mı?", isPresented: $confirmRemove) {
+        .confirmationDialog("\(store.longLabel(account)) kaldırılsın mı?", isPresented: $confirmRemove) {
             Button("Kaldır", role: .destructive) { store.remove(account) }
         } message: {
             Text("Bu hesabın oturumu uygulamadan silinir. Tekrar eklemek için yeniden giriş yapman gerekir.")

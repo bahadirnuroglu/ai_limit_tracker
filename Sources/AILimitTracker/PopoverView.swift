@@ -32,7 +32,11 @@ struct PopoverView: View {
                             onSelect: { key in
                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { store.selection[id] = key }
                             },
-                            onAction: { store.perform($0, for: id) }
+                            onAction: { store.perform($0, for: id) },
+                            onManageAccounts: {
+                                UserDefaults.standard.set(0, forKey: "settingsTab")
+                                Onboarding.show(store: store, loginItem: loginItem, settings: true)
+                            }
                         )
                     }
                     .animation(.spring(response: 0.45, dampingFraction: 0.8), value: store.ordered)
@@ -72,7 +76,7 @@ struct PopoverView: View {
         guard visible.count > 1 else { return [] }
         return visible.map { account in
             let full = store.usage(of: account).limits.filter { $0.percent >= 100 }
-            return AccountChip(id: account.id, name: account.displayName, full: !full.isEmpty,
+            return AccountChip(id: account.id, name: store.label(account), longName: store.longLabel(account), full: !full.isEmpty,
                                opensAt: full.compactMap(\.resetsAt).min())
         }
     }
@@ -220,6 +224,7 @@ private struct ProviderCard: View {
     let onTap: () -> Void
     let onSelect: (String) -> Void
     let onAction: (Issue.Action) -> Void
+    let onManageAccounts: () -> Void
 
     @State private var hover: CGPoint?
     @State private var size: CGSize = .zero
@@ -330,33 +335,40 @@ private struct ProviderCard: View {
         let staticPart: Double = interactive ? 0 : 1
         VStack(alignment: .leading, spacing: 9) {
             HStack(alignment: .center, spacing: 10) {
-                BrandLogoShape(logo: id.logo).fill(palette.ink).frame(width: 24, height: 24)
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 5) {
-                        Text(id.name).font(.system(size: 15, weight: .bold)).opacity(staticPart)
-                        if hiddenCount > 0 {
-                            Text("+\(hiddenCount)")
-                                .font(.system(size: 10, weight: .semibold))
-                                .padding(.horizontal, 5).padding(.vertical, 2)
-                                .background(palette.subtle, in: RoundedRectangle(cornerRadius: 5))
-                                .help("Arka yüzde \(hiddenCount) limit daha")
-                                .opacity(staticPart)
+                // Sol sütun: üstte başlık çerçevesi (logo, metinlere göre dikey ortalı), altta etiketler,
+                // en altta hesap seçici. Halkalar sağda tüm yüksekliği kaplar.
+                VStack(alignment: .leading, spacing: 7) {
+                    HStack(alignment: .center, spacing: 9) {
+                        BrandLogoShape(logo: id.logo).fill(palette.ink).frame(width: 24, height: 24)
+                        VStack(alignment: .leading, spacing: 1) {
+                            HStack(spacing: 5) {
+                                Text(id.name).font(.system(size: 15, weight: .bold))
+                                if hiddenCount > 0 {
+                                    Text("+\(hiddenCount)")
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .padding(.horizontal, 5).padding(.vertical, 2)
+                                        .background(palette.subtle, in: RoundedRectangle(cornerRadius: 5))
+                                        .help("Arka yüzde \(hiddenCount) limit daha")
+                                }
+                            }
+                            if !subtitle.isEmpty {
+                                Text(subtitle).font(.system(size: 10, weight: .medium))
+                            }
                         }
-                    }
-                    if !accounts.isEmpty {
-                        // Çipler düğme: etkileşimli kopyada görünür (segment seçici gibi), statikte yer tutar
-                        accountPicker.opacity(interactive ? 1 : 0).padding(.vertical, 2)
+                        .opacity(staticPart)
                     }
                     Group {
-                        if !subtitle.isEmpty {
-                            Text(subtitle).font(.system(size: 10, weight: .medium))
-                        }
                         if let chip { chipView(chip).opacity(usage.isStale ? 0.45 : 1) }
                         if let accountLine {
                             Text(accountLine).font(.system(size: 10, weight: .medium)).lineLimit(1).minimumScaleFactor(0.85)
                         }
                     }
                     .opacity(staticPart)
+                    if !accounts.isEmpty {
+                        Spacer(minLength: 0)
+                        // Çipler düğme: etkileşimli kopyada görünür (segment seçici gibi), statikte yer tutar
+                        accountPicker.opacity(interactive ? 1 : 0)
+                    }
                 }
                 Spacer(minLength: 4)
                 if !front.isEmpty {
@@ -370,6 +382,7 @@ private struct ProviderCard: View {
                     SkeletonRings(pulsing: !reduceMotion).opacity(staticPart)
                 }
             }
+            .fixedSize(horizontal: false, vertical: true)  // sol sütun halkalar kadar uzar, seçici alta oturur
             if let issue = usage.issue { hint(issue, interactive: interactive) }
         }
         .foregroundStyle(palette.ink)
@@ -402,11 +415,13 @@ private struct ProviderCard: View {
                 Button { if !on { onSelect(account.id) } } label: {
                     HStack(spacing: 4) {
                         if account.full { Circle().fill(palette.alert).frame(width: 5, height: 5) }
-                        Text(account.name).lineLimit(1).truncationMode(.tail)
+                        // Uzun özel ad kısaltılır; çip içerik boyunda kalır
+                        Text(account.name.count > 10 ? account.name.prefix(9) + "…" : account.name).lineLimit(1)
                     }
                     .font(.system(size: 10.5, weight: .semibold))
-                    .padding(.horizontal, 7).padding(.vertical, 3)
-                    .frame(maxWidth: 74)
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .frame(minWidth: 26)
+                    .fixedSize()
                     .background(on ? palette.segmentOn : Color.clear, in: RoundedRectangle(cornerRadius: 5))
                     .shadow(color: .black.opacity(on ? 0.12 : 0), radius: 1, y: 1)
                     .contentShape(Rectangle())
@@ -418,7 +433,6 @@ private struct ProviderCard: View {
         .padding(2)
         .background(palette.subtle, in: RoundedRectangle(cornerRadius: 7))
         .foregroundStyle(palette.ink)
-        .fixedSize()
     }
 
     /// Diğer hesapların durumu: gösterilen dolduysa boş olanı, değilse dolanın açılışını söyler
@@ -426,12 +440,12 @@ private struct ProviderCard: View {
         guard accounts.count > 1 else { return nil }
         let others = accounts.filter { $0.id != selected }
         if accounts.first(where: { $0.id == selected })?.full == true, let free = others.first(where: { !$0.full }) {
-            return "\(free.name) hesabında yer var"
+            return "\(free.longName) kullanılabilir"
         }
         guard let full = others.filter(\.full).min(by: { ($0.opensAt ?? .distantFuture) < ($1.opensAt ?? .distantFuture) }) else {
             return nil
         }
-        return "\(full.name) doldu" + (full.opensAt.map { " · \(Countdown.opens(at: $0))" } ?? "")
+        return "\(full.longName) doldu" + (full.opensAt.map { " · \(Countdown.opens(at: $0))" } ?? "")
     }
 
     /// Plan; eski veride "· 12 dk önce"
@@ -502,7 +516,7 @@ private struct ProviderCard: View {
             HStack(spacing: 8) {
                 BrandLogoShape(logo: id.logo).fill(palette.ink).frame(width: 20, height: 20).opacity(staticPart)
                 Text(id.name).font(.system(size: 15, weight: .bold)).opacity(staticPart)
-                if let name = accounts.first(where: { $0.id == selected })?.name {
+                if let name = accounts.first(where: { $0.id == selected })?.longName {
                     Text(name).font(.system(size: 11, weight: .medium)).lineLimit(1).opacity(staticPart)
                 }
                 Spacer()
@@ -583,6 +597,10 @@ private struct ProviderCard: View {
 
     /// Sağ tık: her limit için "açılınca haber ver" (Ayarlar → Bildirimler'den kapatılabilir)
     @ViewBuilder private var reminderMenu: some View {
+        if !accounts.isEmpty {
+            Button { onManageAccounts() } label: { Label("Hesapları Adlandır…", systemImage: "pencil") }
+            Divider()
+        }
         if NotificationPrefs.isOn(.reminders) {
             let limits = usage.limits.filter { ($0.resetsAt ?? .distantPast) > Date() }
             if limits.isEmpty {
@@ -611,7 +629,8 @@ private struct ProviderCard: View {
 /// Kartın hesap çipi: ad, doldu mu, dolduysa ne zaman açılır
 struct AccountChip: Identifiable, Equatable {
     let id: String
-    let name: String
+    let name: String       // çipte: "1" ya da verilen ad
+    let longName: String   // cümlede: "Hesap 2" ya da verilen ad
     let full: Bool
     let opensAt: Date?
 }

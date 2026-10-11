@@ -14,11 +14,10 @@ struct Account: Codable, Identifiable, Hashable {
     var isLocal: Bool { id == provider.rawValue }
     var storeID: UUID? { isLocal ? nil : UUID(uuidString: id) }
 
-    /// Çipte ve bildirimde görünen ad: verilen ad > e-postanın @ öncesi > "Bu Mac" / "Hesap"
-    var displayName: String {
-        if let name, !name.trimmingCharacters(in: .whitespaces).isEmpty { return name }
-        if let email, let local = email.split(separator: "@").first, !local.isEmpty { return String(local) }
-        return isLocal ? "Bu Mac" : "Yeni hesap"
+    /// Kullanıcının verdiği ad (boşsa nil). Verilmemişse çipte sıra numarası görünür: UsageStore.label
+    var customName: String? {
+        guard let name, !name.trimmingCharacters(in: .whitespaces).isEmpty else { return nil }
+        return name
     }
 
     /// Ayarlar'daki kaynak etiketi
