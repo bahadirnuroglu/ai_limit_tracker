@@ -26,7 +26,11 @@ enum CodexProvider {
         guard let root = try? JSONSerialization.jsonObject(with: body) as? [String: Any] else {
             throw SessionError.badResponse
         }
+        return parse(root)
+    }
 
+    /// wham/usage yanıtı (CLI token'ıyla ya da chatgpt.com oturumundan aynı biçimde gelir)
+    static func parse(_ root: [String: Any]) -> (plan: String?, limits: [Limit]) {
         var limits: [Limit] = []
         let groups = [("rate_limit", ""), ("code_review_rate_limit", "Review, ")]
         for (key, prefix) in groups {

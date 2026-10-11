@@ -1,8 +1,9 @@
 import AppKit
 import SwiftUI
+import WebKit
 
 struct Limit: Identifiable {
-    let id: String
+    var id: String             // ek hesaplarda hesap id'siyle öneklenir (bildirim/geçmiş anahtarları ayrışsın)
     let label: String
     let percent: Double        // 0–100
     let resetsAt: Date?
@@ -36,6 +37,13 @@ enum Countdown {
         return "\(m) dk"
     }
 
+    /// Dar etiketler için açılış zamanı: 24 saat içindeyse saat ("açılış 15:20"), değilse "3 g sonra"
+    static func opens(at date: Date) -> String {
+        date.timeIntervalSinceNow < 86_400
+            ? "açılış \(date.formatted(date: .omitted, time: .shortened))"
+            : "\(short(seconds: date.timeIntervalSinceNow)) sonra açılır"
+    }
+
     /// Sadece en büyük birim: "12 sa", "3 g", "40 dk" (dar yerler için)
     static func short(seconds: TimeInterval) -> String {
         let total = max(Int(seconds), 0)
@@ -60,7 +68,10 @@ struct ProviderUsage {
 
 @MainActor
 final class UsageStore: ObservableObject {
-    @Published private(set) var usage: [ProviderID: ProviderUsage] = [:]
+    @Published private(set) var usage: [String: ProviderUsage] = [:]   // hesap id → durum
+    @Published private(set) var accounts: [Account] = AccountList.load()
+    /// Popup'ta çiple seçilen hesap; popup her açılışta sıfırlanır (kart en uygun hesapla açılır)
+    @Published var selection: [ProviderID: String] = [:]
     @Published var lastUpdated: Date?
     @Published private var pending = 0
     var isRefreshing: Bool { pending > 0 }
@@ -79,22 +90,143 @@ final class UsageStore: ObservableObject {
     func setEnabled(_ id: ProviderID, _ on: Bool) {
         if on { enabledSet.insert(id) } else { enabledSet.remove(id) }
         UserDefaults.standard.set(enabled.map(\.rawValue), forKey: "enabledProviders")
-        if on { Task { await load(id); lastUpdated = Date() } }
+        if on { Task { await loadAll(id); lastUpdated = Date() } }
     }
 
-    /// Kurulum ekranı gibi yerlerden tek sağlayıcıyı hemen yeniden dene
+    /// Kurulum ekranı gibi yerlerden yerel hesabı hemen yeniden dene
     func reload(_ id: ProviderID, allowPrompt: Bool = false) {
-        Task { await load(id, allowPrompt: allowPrompt); lastUpdated = Date() }
+        Task { await load(.local(id), allowPrompt: allowPrompt); lastUpdated = Date() }
     }
 
-    /// Popup sırası: limite en yakın en üstte; verisi olmayanlar sona
+    /// Popup sırası: limite en yakın en üstte; verisi olmayanlar sona. Çip seçimi sırayı değiştirmez.
     var ordered: [ProviderID] {
-        enabled.sorted { self[$0].worst > self[$1].worst }
+        enabled.sorted { usage(of: best($0)).worst > usage(of: best($1)).worst }
     }
 
-    subscript(id: ProviderID) -> ProviderUsage { usage[id] ?? ProviderUsage() }
+    // MARK: Hesaplar
 
-    private let session = WebSession()
+    func accounts(for id: ProviderID) -> [Account] { accounts.filter { $0.provider == id } }
+
+    /// Popup'ta çip olarak görünenler: yerel hesap, ek hesap varken bağlı değilse gizlenir
+    /// (ör. Claude Code yok, sadece web'den eklenen iki hesap kullanılıyor)
+    func visibleAccounts(_ id: ProviderID) -> [Account] {
+        let all = accounts(for: id)
+        guard all.count > 1, usage(of: all[0]).limits.isEmpty,
+              all.dropFirst().contains(where: { !usage(of: $0).limits.isEmpty }) else { return all }
+        return Array(all.dropFirst())
+    }
+
+    /// Şu an kullanılabilecek hesap: verisi olanlar içinde en boş olanı
+    func best(_ id: ProviderID) -> Account {
+        let visible = visibleAccounts(id)
+        return visible.filter { !usage(of: $0).limits.isEmpty }.min { usage(of: $0).worst < usage(of: $1).worst }
+            ?? visible.first ?? .local(id)
+    }
+
+    /// Kartta gösterilen hesap: seçilen ya da en uygun
+    func displayed(_ id: ProviderID) -> Account {
+        if let key = selection[id], let account = visibleAccounts(id).first(where: { $0.id == key }) { return account }
+        return best(id)
+    }
+
+    func usage(of account: Account) -> ProviderUsage { usage[account.id] ?? ProviderUsage() }
+
+    /// Kartta gösterilen hesabın durumu
+    subscript(id: ProviderID) -> ProviderUsage { usage(of: displayed(id)) }
+
+    /// Bu Mac'teki oturumun durumu (kurulum ve Ayarlar'daki bağlantı satırı)
+    func local(_ id: ProviderID) -> ProviderUsage { usage(of: .local(id)) }
+
+    func anyConnected(_ id: ProviderID) -> Bool { accounts(for: id).contains { usage(of: $0).isConnected } }
+
+    /// Bildirim başlığı: tek hesapta "Claude", birden çoğunda "Claude · İş"
+    func title(_ account: Account) -> String {
+        accounts(for: account.provider).count > 1 ? "\(account.provider.name) · \(account.displayName)" : account.provider.name
+    }
+
+    func rename(_ account: Account, to name: String) {
+        guard let i = accounts.firstIndex(where: { $0.id == account.id }) else { return }
+        accounts[i].name = name.trimmingCharacters(in: .whitespaces).isEmpty ? nil : name
+        AccountList.save(accounts)
+    }
+
+    /// Yeni hesap: ayrı çerez kutusunda giriş penceresi açılır; pencere kapanınca veri gelirse hesap eklenir,
+    /// gelmezse (giriş yapılmadı) kutu silinir.
+    func addAccount(_ id: ProviderID) {
+        let account = Account(id: UUID().uuidString, provider: id)
+        let session = session(for: account)
+        session.onLoginWindowClosed = { [weak self] in Task { await self?.finishAdding(account) } }
+        session.showLogin(title: "Yeni \(id.name) hesabına giriş yap, sonra pencereyi kapat")
+    }
+
+    private func finishAdding(_ account: Account) async {
+        guard let session = sessions[account.id] else { return }
+        do {
+            let result = try await session.fetch()
+            let email = result.email?.lowercased()
+            if let email, accounts(for: account.provider).contains(where: { $0.email?.lowercased() == email }) {
+                discard(account)
+                let alert = NSAlert()
+                alert.messageText = "Bu hesap zaten ekli"
+                alert.informativeText = "\(email) bu listede var. Başka bir hesapla giriş yapmak için Hesap Ekle'yi tekrar dene."
+                alert.runModal()
+                return
+            }
+            var added = account
+            added.email = result.email
+            accounts.append(added)
+            AccountList.save(accounts)
+            session.onLoginWindowClosed = { [weak self] in self?.reload(added) }
+            apply(result, to: added)
+            lastUpdated = Date()
+        } catch {
+            discard(account)
+        }
+    }
+
+    func remove(_ account: Account) {
+        guard !account.isLocal else { return }
+        accounts.removeAll { $0.id == account.id }
+        AccountList.save(accounts)
+        usage[account.id] = nil
+        if selection[account.provider] == account.id { selection[account.provider] = nil }
+        discard(account)
+    }
+
+    /// Oturumu bırakır ve çerez kutusunu siler (WKWebView serbest kaldıktan sonra)
+    private func discard(_ account: Account) {
+        sessions[account.id] = nil
+        guard let storeID = account.storeID else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            Task { try? await WKWebsiteDataStore.remove(forIdentifier: storeID) }
+        }
+    }
+
+    func reload(_ account: Account) {
+        Task { await load(account); lastUpdated = Date() }
+    }
+
+    func login(_ account: Account) { session(for: account).showLogin() }
+
+    private var sessions: [String: WebSession] = [:]
+
+    /// Yerel Claude: varsayılan çerez kutusu (eski claude.ai girişi korunur). Ek hesap: kendi kutusu.
+    private func session(for account: Account) -> WebSession {
+        if let existing = sessions[account.id] { return existing }
+        let session: WebSession
+        if let storeID = account.storeID {
+            session = WebSession(provider: account.provider, dataStore: WKWebsiteDataStore(forIdentifier: storeID))
+            session.onLoginWindowClosed = { [weak self] in self?.reload(account) }
+        } else {
+            session = WebSession(provider: account.provider)
+            session.onLoginWindowClosed = { [weak self] in self?.refresh() }
+        }
+        sessions[account.id] = session
+        return session
+    }
+
+    // MARK: Menü çubuğu
+
     private var timer: Timer?
     private var lastRefresh = Date.distantPast
 
@@ -106,42 +238,47 @@ final class UsageStore: ObservableObject {
 
     var menuIcon: NSImage { menuIcon(style: menuBarStyle) }
 
-    /// Ayarlar'daki önizlemeler de bunu kullanır: halkalarda kısa pencere, "En dolu"da en dolu limit
+    /// Ayarlar'daki önizlemeler de bunu kullanır: halkalarda kısa pencere, "En dolu"da en dolu limit.
+    /// Birden çok hesapta şu an kullanılabilecek (en boş) hesap gösterilir; hepsi dolunca kırmızıya döner.
     func menuIcon(style: MenuBarStyle) -> NSImage {
         let entries = enabled.map { id -> MenuIcon.Entry in
-            let u = self[id]
+            let u = usage(of: best(id))
             let limit = style == .mostFull ? u.limits.max { $0.percent < $1.percent } : u.frontLimits.first
+            let lastUsed = accounts(for: id).flatMap { usage(of: $0).limits }.map { UsageHistory.lastIncrease($0.id) }.max() ?? 0
             return MenuIcon.Entry(logo: id.logo, percent: limit?.percent, resetsAt: limit?.resetsAt,
-                                  tint: id.menuTint, lastUsed: u.limits.map { UsageHistory.lastIncrease($0.id) }.max() ?? 0)
+                                  tint: id.menuTint, lastUsed: lastUsed)
         }
         return MenuIcon.image(entries, style: style)
     }
 
     init() {
-        session.onLoginWindowClosed = { [weak self] in self?.refresh() }
+        for id in ProviderID.allCases { _ = session(for: .local(id)) }
         refresh()
         // Dakikada bir bakılır: normalde 5 dk'da, bir limit %75'i geçtiyse her dakika yenilenir
         timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 guard let self else { return }
-                let busy = self.enabled.contains { self[$0].worst >= 75 }
+                let busy = self.usage.values.contains { $0.worst >= 75 }
                 if Date().timeIntervalSince(self.lastRefresh) >= (busy ? 55 : 295) { self.refresh() }
             }
         }
     }
 
-    func loginClaude() { session.showLogin() }
+    func loginClaude() { login(.local(.claude)) }
 
     /// Popup açılınca: veri 60 sn'den eskiyse hemen yenile
     func refreshIfStale() {
         if Date().timeIntervalSince(lastRefresh) > 60 { refresh() }
     }
 
-    func perform(_ action: Issue.Action, for id: ProviderID) {
+    /// Kartın ipucundaki düzeltme (kartta gösterilen hesap için)
+    func perform(_ action: Issue.Action, for id: ProviderID) { perform(action, account: displayed(id)) }
+
+    func perform(_ action: Issue.Action, account: Account) {
         switch action {
-        case .login where id == .claude: loginClaude()
+        case .login where account.provider == .claude || !account.isLocal: login(account)
         case .allowKeychain:
-            Task { await load(id, allowPrompt: true); lastUpdated = Date() }
+            Task { await load(account, allowPrompt: true); lastUpdated = Date() }
         case .openApp(let name):
             NSWorkspace.shared.openApplication(at: URL(fileURLWithPath: "/Applications/\(name).app"),
                                                configuration: NSWorkspace.OpenConfiguration())
@@ -155,58 +292,86 @@ final class UsageStore: ObservableObject {
         guard pending == 0 else { return }
         lastRefresh = Date()
         for id in enabled {
-            pending += 1
-            Task {
-                defer { pending -= 1 }
-                await load(id)
-                lastUpdated = Date()
+            for account in accounts(for: id) {
+                pending += 1
+                Task {
+                    defer { pending -= 1 }
+                    await load(account)
+                    lastUpdated = Date()
+                }
             }
         }
     }
 
-    private func load(_ id: ProviderID, allowPrompt: Bool = false) async {
-        var current = self[id]
-        do {
-            let (plan, note, limits) = try await fetch(id, allowPrompt: allowPrompt)
-            current.limits = limits
-            current.note = note
-            if plan != nil { current.plan = plan }
-            current.state = .ok
-            current.issue = nil
-            current.updatedAt = Date()
-            UsageHistory.record(limits)
-            Notifier.shared.process(provider: id.name, limits: limits)
-        } catch {
-            // Eski veri kalır; kartın altında sebep ve tek düzeltme görünür
-            current.issue = Issue.from(error, provider: id)
-            if case SessionError.needsLogin = error, current.limits.isEmpty { current.state = .needsLogin }
-            else if current.limits.isEmpty { current.state = .error(current.issue?.text ?? "") }
+    private func loadAll(_ id: ProviderID) async {
+        await withTaskGroup(of: Void.self) { group in
+            for account in accounts(for: id) { group.addTask { await self.load(account) } }
         }
-        usage[id] = current
     }
 
-    private func fetch(_ id: ProviderID, allowPrompt: Bool) async throws -> (String?, String?, [Limit]) {
-        switch id {
+    private func load(_ account: Account, allowPrompt: Bool = false) async {
+        do {
+            apply(try await fetch(account, allowPrompt: allowPrompt), to: account)
+        } catch {
+            // Eski veri kalır; kartın altında sebep ve tek düzeltme görünür
+            var current = usage(of: account)
+            if account.isLocal {
+                current.issue = Issue.from(error, provider: account.provider)
+            } else if case SessionError.needsLogin = error {
+                current.issue = Issue(text: "\(account.displayName) hesabının oturumu kapanmış.", action: .login)
+            } else {
+                current.issue = Issue.from(error, provider: account.provider)
+            }
+            if case SessionError.needsLogin = error, current.limits.isEmpty { current.state = .needsLogin }
+            else if current.limits.isEmpty { current.state = .error(current.issue?.text ?? "") }
+            usage[account.id] = current
+        }
+    }
+
+    private func apply(_ result: WebSession.Result, to account: Account) {
+        var current = usage(of: account)
+        // Ek hesapların limit kimlikleri öneklenir: bildirim, hatırlatma ve "son kullanılan" kayıtları ayrışır
+        let limits = account.isLocal ? result.limits : result.limits.map { var l = $0; l.id = "\(account.id).\(l.id)"; return l }
+        current.limits = limits
+        current.note = result.note
+        if result.plan != nil { current.plan = result.plan }
+        current.state = .ok
+        current.issue = nil
+        current.updatedAt = Date()
+        usage[account.id] = current
+        UsageHistory.record(limits)
+        Notifier.shared.process(provider: title(account), limits: limits)
+        if let email = result.email, email != account.email, let i = accounts.firstIndex(where: { $0.id == account.id }) {
+            accounts[i].email = email
+            AccountList.save(accounts)
+        }
+    }
+
+    private func fetch(_ account: Account, allowPrompt: Bool) async throws -> WebSession.Result {
+        if !account.isLocal { return try await session(for: account).fetch() }
+        let email = AccountList.localEmail(account.provider)
+        switch account.provider {
         case .claude:
             // Önce Claude Code oturumu (giriş gerekmez); yoksa ya da ağ dışı bir hata verirse claude.ai oturumu
+            let web = session(for: account)
             if ClaudeCodeAuth.isAvailable {
                 do {
                     let (plan, data) = try await ClaudeCodeAuth.fetchUsage(allowPrompt: allowPrompt)
-                    return (plan, nil, Self.parseClaude(data))
+                    return WebSession.Result(plan: plan, limits: Self.parseClaude(data), email: email)
                 } catch let error as URLError {
                     throw error
                 } catch {
-                    if let web = try? await session.fetchUsageJSON() { return (nil, nil, Self.parseClaude(web)) }
+                    if let result = try? await web.fetch() { return result }
                     throw error
                 }
             }
-            return (nil, nil, Self.parseClaude(try await session.fetchUsageJSON()))
+            return try await web.fetch()
         case .codex:
             let result = try await CodexProvider.fetch()
-            return (result.plan, nil, result.limits)
+            return WebSession.Result(plan: result.plan, limits: result.limits, email: email)
         case .cursor:
             let result = try await CursorProvider.fetch()
-            return (result.plan, result.note, result.limits)
+            return WebSession.Result(plan: result.plan, note: result.note, limits: result.limits, email: email)
         }
     }
 

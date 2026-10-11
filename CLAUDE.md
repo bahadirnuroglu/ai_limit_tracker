@@ -49,6 +49,16 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
 - LoginItem.swift: açılışta başlatma
 - Hatırlatma: karta sağ tık → limit başına "açılınca haber ver" (Notifier.toggleReminder, UserDefaults "reminders",
   halkada zil). Ayarlar → Bildirimler "İstediğin limit açılınca" (notify.reminders) kapalıysa menü gizli.
+- Çoklu hesap (Accounts.swift): her sağlayıcıda yerel hesap (id = sağlayıcı adı; Claude Code/claude.ai varsayılan çerezleri,
+  Codex CLI, Cursor uygulaması) + Ayarlar → Sağlayıcılar → "Hesap Ekle" ile web girişli ek hesaplar (id = UUID, her biri
+  WKWebsiteDataStore(forIdentifier:) ayrı çerez kutusu; WebSession sağlayıcıya göre JS ile claude.ai / chatgpt.com
+  (/api/auth/session → wham/usage) / cursor.com (/api/usage-summary) okur). UserDefaults "accounts" (ad, e-posta).
+  Giriş penceresi kapanınca veri gelmezse hesap eklenmez, kutu silinir; aynı e-posta reddedilir. Ek hesap limit id'leri
+  "<uuid>." önekli (bildirim/hatırlatma/geçmiş ayrışsın). Popup düzeni C (kullanıcı seçti): kartta hesap çipleri
+  (segment seçici dili, dolan hesapta kırmızı nokta), altında diğer hesabın durumu ("İş doldu · açılış 14:36" /
+  "Kişisel hesabında yer var"). Kart her açılışta en boş hesapla gelir (store.selection popup kapanınca sıfırlanır);
+  sıralama ve menü çubuğu ikonu en boş hesabı (best) kullanır. Ek hesap varken bağlı olmayan yerel hesap çipte gizlenir.
+  Ek hesap web girişleri gerçek hesapla test EDİLMEDİ (claude.ai /api/account e-posta alanı tahmini).
 - Kestirmeler/Siri (URL şeması + hazır kestirme) denendi, kullanıcı isteğiyle KALDIRILDI.
 - Onboarding.swift: Apple kurulum asistanı tarzı pencere (şeffaf başlık çubuğu, sistem Form/Toggle/borderedProminent,
   açık/koyu tema, yaylı sayfa geçişi, Enter=devam Esc=geri): hoş geldin → araçlar → bağlan → bildirimler → genel → hazır.

@@ -24,9 +24,14 @@ struct PopoverView: View {
                 VStack(spacing: 6) {
                     // Limite en yakın sağlayıcı en üstte; her kart kendi başına döner
                     ForEach(Array(store.ordered.enumerated()), id: \.element) { index, id in
+                        let account = store.displayed(id)
                         ProviderCard(
                             id: id, usage: store[id], shown: shown, order: index, flipped: flipped.contains(id),
+                            accounts: chips(id), selected: account.id, title: store.title(account),
                             onTap: { if flipped.contains(id) { flipped.remove(id) } else { flipped.insert(id) } },
+                            onSelect: { key in
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { store.selection[id] = key }
+                            },
                             onAction: { store.perform($0, for: id) }
                         )
                     }
@@ -58,7 +63,18 @@ struct PopoverView: View {
             store.refreshIfStale()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { shown = true }
         }
-        .onDisappear { shown = false; flipped = [] }
+        .onDisappear { shown = false; flipped = []; store.selection = [:] }
+    }
+
+    /// Birden çok hesap varsa kartın çipleri (tek hesapta boş: kart bugünküyle aynı)
+    private func chips(_ id: ProviderID) -> [AccountChip] {
+        let visible = store.visibleAccounts(id)
+        guard visible.count > 1 else { return [] }
+        return visible.map { account in
+            let full = store.usage(of: account).limits.filter { $0.percent >= 100 }
+            return AccountChip(id: account.id, name: account.displayName, full: !full.isEmpty,
+                               opensAt: full.compactMap(\.resetsAt).min())
+        }
     }
 
     /// Yeni sürüm varsa ince bir şerit: Güncelle → indiriliyor → kuruluyor → yeniden başlar
@@ -198,7 +214,11 @@ private struct ProviderCard: View {
     let shown: Bool
     let order: Int
     let flipped: Bool
+    let accounts: [AccountChip]   // birden çok hesapta çipler; tek hesapta boş
+    let selected: String
+    let title: String             // "Claude" ya da "Claude · İş" (hatırlatma bildirimi)
     let onTap: () -> Void
+    let onSelect: (String) -> Void
     let onAction: (Issue.Action) -> Void
 
     @State private var hover: CGPoint?
@@ -313,25 +333,35 @@ private struct ProviderCard: View {
                 BrandLogoShape(logo: id.logo).fill(palette.ink).frame(width: 24, height: 24)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 5) {
-                        Text(id.name).font(.system(size: 15, weight: .bold))
+                        Text(id.name).font(.system(size: 15, weight: .bold)).opacity(staticPart)
                         if hiddenCount > 0 {
                             Text("+\(hiddenCount)")
                                 .font(.system(size: 10, weight: .semibold))
                                 .padding(.horizontal, 5).padding(.vertical, 2)
                                 .background(palette.subtle, in: RoundedRectangle(cornerRadius: 5))
                                 .help("Arka yüzde \(hiddenCount) limit daha")
+                                .opacity(staticPart)
                         }
                     }
-                    if !subtitle.isEmpty {
-                        Text(subtitle).font(.system(size: 10, weight: .medium))
+                    if !accounts.isEmpty {
+                        // Çipler düğme: etkileşimli kopyada görünür (segment seçici gibi), statikte yer tutar
+                        accountPicker.opacity(interactive ? 1 : 0).padding(.vertical, 2)
                     }
-                    if let chip { chipView(chip).opacity(usage.isStale ? 0.45 : 1) }
+                    Group {
+                        if !subtitle.isEmpty {
+                            Text(subtitle).font(.system(size: 10, weight: .medium))
+                        }
+                        if let chip { chipView(chip).opacity(usage.isStale ? 0.45 : 1) }
+                        if let accountLine {
+                            Text(accountLine).font(.system(size: 10, weight: .medium)).lineLimit(1).minimumScaleFactor(0.85)
+                        }
+                    }
+                    .opacity(staticPart)
                 }
-                .opacity(staticPart)
                 Spacer(minLength: 4)
                 if !front.isEmpty {
                     HStack(spacing: 8) {
-                        ForEach(Array(front.enumerated()), id: \.element.id) { index, limit in
+                        ForEach(Array(front.enumerated()), id: \.offset) { index, limit in
                             RingGauge(limit: limit, shown: shown, delay: Double(order) * 0.1 + Double(index) * 0.07)
                         }
                     }
@@ -348,7 +378,7 @@ private struct ProviderCard: View {
     }
 
     private var accessibilitySummary: String {
-        var parts = [id.name]
+        var parts = [accounts.isEmpty ? id.name : title]
         if let plan = usage.plan { parts.append("\(plan) planı") }
         for limit in showBack ? usage.limits : front {
             var text = "\(limit.label) yüzde \(Int(limit.percent.rounded()))"
@@ -357,8 +387,51 @@ private struct ProviderCard: View {
         }
         if let chip { parts.append(chip.text.replacingOccurrences(of: "≈", with: "yaklaşık")) }
         if usage.isStale, let at = usage.updatedAt { parts.append("Son veri \(Ago.text(at))") }
+        if let accountLine { parts.append(accountLine) }
         if let issue = usage.issue { parts.append(issue.text) }
         return parts.joined(separator: ". ")
+    }
+
+    // MARK: Hesaplar
+
+    /// Hesap seçici: arka yüzdeki Limitler/Etkinlik seçicisiyle aynı dil; dolan hesapta kırmızı nokta
+    private var accountPicker: some View {
+        HStack(spacing: 0) {
+            ForEach(accounts) { account in
+                let on = account.id == selected
+                Button { if !on { onSelect(account.id) } } label: {
+                    HStack(spacing: 4) {
+                        if account.full { Circle().fill(palette.alert).frame(width: 5, height: 5) }
+                        Text(account.name).lineLimit(1).truncationMode(.tail)
+                    }
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .padding(.horizontal, 7).padding(.vertical, 3)
+                    .frame(maxWidth: 74)
+                    .background(on ? palette.segmentOn : Color.clear, in: RoundedRectangle(cornerRadius: 5))
+                    .shadow(color: .black.opacity(on ? 0.12 : 0), radius: 1, y: 1)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(account.full ? "\(account.name): doldu" : account.name)
+            }
+        }
+        .padding(2)
+        .background(palette.subtle, in: RoundedRectangle(cornerRadius: 7))
+        .foregroundStyle(palette.ink)
+        .fixedSize()
+    }
+
+    /// Diğer hesapların durumu: gösterilen dolduysa boş olanı, değilse dolanın açılışını söyler
+    private var accountLine: String? {
+        guard accounts.count > 1 else { return nil }
+        let others = accounts.filter { $0.id != selected }
+        if accounts.first(where: { $0.id == selected })?.full == true, let free = others.first(where: { !$0.full }) {
+            return "\(free.name) hesabında yer var"
+        }
+        guard let full = others.filter(\.full).min(by: { ($0.opensAt ?? .distantFuture) < ($1.opensAt ?? .distantFuture) }) else {
+            return nil
+        }
+        return "\(full.name) doldu" + (full.opensAt.map { " · \(Countdown.opens(at: $0))" } ?? "")
     }
 
     /// Plan; eski veride "· 12 dk önce"
@@ -374,7 +447,7 @@ private struct ProviderCard: View {
     /// Ad altındaki etiket: doldu / bu tempoyla ne zaman dolar
     private var chip: Chip? {
         if let full = usage.limits.filter({ $0.percent >= 100 }).min(by: { ($0.resetsAt ?? .distantFuture) < ($1.resetsAt ?? .distantFuture) }) {
-            let reset = full.resetsAt.map { " · \(Countdown.text(to: $0)) sonra açılır" } ?? ""
+            let reset = full.resetsAt.map { " · \(Countdown.opens(at: $0))" } ?? ""
             return Chip(text: "Doldu\(reset)", color: palette.alert)
         }
         let soon = usage.limits.compactMap { l in l.timeToFull.map { (l, $0) } }.min { $0.1 < $1.1 }
@@ -429,6 +502,9 @@ private struct ProviderCard: View {
             HStack(spacing: 8) {
                 BrandLogoShape(logo: id.logo).fill(palette.ink).frame(width: 20, height: 20).opacity(staticPart)
                 Text(id.name).font(.system(size: 15, weight: .bold)).opacity(staticPart)
+                if let name = accounts.first(where: { $0.id == selected })?.name {
+                    Text(name).font(.system(size: 11, weight: .medium)).lineLimit(1).opacity(staticPart)
+                }
                 Spacer()
                 segment.opacity(interactive ? 1 : 0)
             }
@@ -515,7 +591,7 @@ private struct ProviderCard: View {
                 ForEach(limits) { limit in
                     let on = notifier.hasReminder(limit)
                     Button {
-                        notifier.toggleReminder(provider: id.name, limit: limit)
+                        notifier.toggleReminder(provider: title, limit: limit)
                     } label: {
                         Label(on ? "\(limit.label) hatırlatmasını kaldır" : "\(limit.label) açılınca haber ver",
                               systemImage: on ? "bell.slash" : "bell")
@@ -530,6 +606,14 @@ private struct ProviderCard: View {
         let nx = hover.x / size.width * 2 - 1, ny = hover.y / size.height * 2 - 1
         return (Double(nx) * 4, Double(-ny) * 4)
     }
+}
+
+/// Kartın hesap çipi: ad, doldu mu, dolduysa ne zaman açılır
+struct AccountChip: Identifiable, Equatable {
+    let id: String
+    let name: String
+    let full: Bool
+    let opensAt: Date?
 }
 
 /// Uygulama ikonundaki gibi 270° halka: ortada yüzde, altında kısa ad ve sıfırlanmaya kalan süre.
@@ -554,6 +638,7 @@ private struct RingGauge: View {
                         .stroke(LinearGradient(colors: limit.colors, startPoint: .bottomLeading, endPoint: .topTrailing),
                                 style: StrokeStyle(lineWidth: line, lineCap: .round))
                         .animation(.spring(response: 0.9, dampingFraction: 0.68).delay(0.15 + delay), value: shown)
+                        .animation(.spring(response: 0.5, dampingFraction: 0.75), value: fraction)  // hesap değişince
                 }
                 .rotationEffect(.degrees(135))  // sol alttan başlar, saat yönünde dolar
                 .padding(line / 2)

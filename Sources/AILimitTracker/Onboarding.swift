@@ -161,7 +161,7 @@ private struct SetupAssistant: View {
 
     @ViewBuilder private var footerNote: some View {
         if step == .connect {
-            let waiting = store.enabled.filter { !store[$0].isConnected }.count
+            let waiting = store.enabled.filter { !store.anyConnected($0) }.count
             if waiting > 0 {
                 Text("\(waiting) sağlayıcı bağlı değil · sonra da bağlayabilirsin")
                     .font(.callout).foregroundStyle(.secondary)
@@ -407,7 +407,7 @@ private struct DonePage: View {
     @State private var bounce = 0
 
     var body: some View {
-        let connected = store.enabled.filter { store[$0].isConnected }.count
+        let connected = store.enabled.filter { store.anyConnected($0) }.count
         VStack(spacing: 22) {
             PageHeader(title: "Hazırsın",
                        subtitle: "\(connected) sağlayıcı bağlı. AI Limit Tracker menü çubuğunun sağ üstünde, halka simgesiyle duruyor.") {
@@ -459,16 +459,33 @@ private struct SettingsView: View {
         .frame(width: 560, height: 500)
     }
 
+    /// Her sağlayıcı ayrı bölüm: bağlantı satırı, (birden çoksa) hesaplar, "Hesap Ekle"
     private var providers: some View {
         Form {
-            Section {
-                ForEach(ProviderID.allCases) { id in
+            ForEach(ProviderID.allCases) { id in
+                Section {
                     ConnectRow(id: id, store: store, toggle: Binding(
                         get: { store.enabledSet.contains(id) }, set: { store.setEnabled(id, $0) }))
+                    if store.enabledSet.contains(id) {
+                        let accounts = store.accounts(for: id)
+                        if accounts.count > 1 {
+                            ForEach(accounts) { account in AccountRow(account: account, store: store) }
+                        }
+                        Button { store.addAccount(id) } label: {
+                            Label(accounts.count > 1 ? "Hesap Ekle…" : "Başka bir \(id.name) hesabı ekle…",
+                                  systemImage: "plus.circle.fill")
+                        }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.tint)
+                        .padding(.leading, 40)
+                        .help("\(id.webHost) girişiyle ikinci bir hesap bağlar; oturumlar birbirinden ayrı tutulur")
+                    }
+                } footer: {
+                    if id == ProviderID.allCases.last {
+                        Text("Birden çok hesapta popup'taki kartın üstünde hesap çipleri çıkar; kart her açılışta şu an kullanabileceğin hesapla gelir. Kapalı sağlayıcılar popup'ta ve menü çubuğunda gösterilmez.")
+                            .font(.callout).foregroundStyle(.secondary)
+                    }
                 }
-            } footer: {
-                Text("Kapalı sağlayıcılar popup'ta ve menü çubuğu simgesinde gösterilmez.")
-                    .font(.callout).foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
@@ -505,10 +522,13 @@ private struct SettingsView: View {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
         var lines = ["AI Limit Tracker \(version) · macOS \(ProcessInfo.processInfo.operatingSystemVersionString)"]
         for id in ProviderID.allCases {
-            let u = store[id]
-            let limits = u.limits.map { "\($0.label) %\(Int($0.percent))" }.joined(separator: ", ")
-            lines.append("\(id.name): \(store.enabledSet.contains(id) ? "açık" : "kapalı") · bulundu=\(id.isDetected) · "
-                         + "veri=[\(limits)] · ipucu=\(u.issue?.text ?? "-")")
+            for (index, account) in store.accounts(for: id).enumerated() {
+                let u = store.usage(of: account)
+                let limits = u.limits.map { "\($0.label) %\(Int($0.percent))" }.joined(separator: ", ")
+                let name = index == 0 ? id.name : "\(id.name) ek hesap \(index)"
+                lines.append("\(name): \(store.enabledSet.contains(id) ? "açık" : "kapalı") · bulundu=\(id.isDetected) · "
+                             + "veri=[\(limits)] · ipucu=\(u.issue?.text ?? "-")")
+            }
         }
         lines.append("Claude Code oturumu: \(ClaudeCodeAuth.isAvailable) · Codex girişi: \(CodexCLI.isLoggedIn)")
         lines.append("Bildirimler: " + NotificationPrefs.Kind.allCases.map { "\($0.rawValue)=\(NotificationPrefs.isOn($0))" }.joined(separator: " "))
@@ -560,7 +580,7 @@ private struct ConnectRow: View {
     @State private var codexInstalled: Bool?
     @State private var showCodexHelp = false
 
-    private var usage: ProviderUsage { store[id] }
+    private var usage: ProviderUsage { store.local(id) }
     private var enabled: Bool { toggle?.wrappedValue ?? true }
 
     var body: some View {
@@ -738,6 +758,74 @@ private struct StyleCard: View {
         .onHover { hovering = $0 }
         .accessibilityLabel("\(style.title): \(style.detail)")
         .accessibilityAddTraits(selected ? [.isSelected] : [])
+    }
+}
+
+/// Ayarlar → Sağlayıcılar'da bir hesap: baş harf, düzenlenebilir ad, e-posta · kaynak, durum, menü
+private struct AccountRow: View {
+    let account: Account
+    @ObservedObject var store: UsageStore
+    @State private var name = ""
+    @State private var confirmRemove = false
+    @FocusState private var editing: Bool
+
+    private var usage: ProviderUsage { store.usage(of: account) }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(String(account.displayName.prefix(1)).uppercased())
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundStyle(.secondary)
+                .frame(width: 24, height: 24)
+                .background(.quaternary.opacity(0.7), in: Circle())
+            VStack(alignment: .leading, spacing: 1) {
+                TextField("", text: $name, prompt: Text(account.displayName))
+                    .labelsHidden()
+                    .multilineTextAlignment(.leading)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 13, weight: .medium))
+                    .focused($editing)
+                    .onSubmit { store.rename(account, to: name) }
+                Text([account.email, account.sourceText].compactMap { $0 }.joined(separator: " · "))
+                    .font(.callout).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+            }
+            Spacer(minLength: 8)
+            status
+            Menu {
+                Button("Yeniden Adlandır") { editing = true }
+                if !account.isLocal {
+                    Button("Yeniden Giriş Yap") { store.login(account) }
+                    Divider()
+                    Button("Hesabı Kaldır…", role: .destructive) { confirmRemove = true }
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+        }
+        .padding(.leading, 40)
+        .onAppear { name = account.name ?? "" }
+        .onChange(of: editing) { _, now in if !now { store.rename(account, to: name) } }
+        .confirmationDialog("\(account.displayName) hesabı kaldırılsın mı?", isPresented: $confirmRemove) {
+            Button("Kaldır", role: .destructive) { store.remove(account) }
+        } message: {
+            Text("Bu hesabın oturumu uygulamadan silinir. Tekrar eklemek için yeniden giriş yapman gerekir.")
+        }
+    }
+
+    @ViewBuilder private var status: some View {
+        if usage.isConnected, let worst = usage.limits.max(by: { $0.percent < $1.percent }) {
+            Text(worst.percent >= 100 ? "Doldu" : "%\(Int(worst.percent.rounded()))")
+                .font(.callout.weight(.medium).monospacedDigit())
+                .foregroundStyle(worst.percent >= 90 ? .orange : .secondary)
+                .help("En dolu limit: \(worst.label)")
+        } else if let issue = usage.issue, let title = issue.actionTitle, let action = issue.action {
+            Button(title) { store.perform(action, account: account) }.controlSize(.small)
+        } else if usage.state == .loading {
+            ProgressView().controlSize(.small)
+        }
     }
 }
 

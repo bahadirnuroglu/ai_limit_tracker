@@ -73,8 +73,13 @@ enum CursorProvider {
         return (plan, note, limits)
     }
 
-    /// state.vscdb → ItemTable['cursorAuth/accessToken'] (salt okunur, kilit almadan)
-    private static func readToken() throws -> String? {
+    /// Cursor'da oturum açık hesabın e-postası (hesap adı için)
+    static var cachedEmail: String? { try? readValue("cursorAuth/cachedEmail") }
+
+    private static func readToken() throws -> String? { try readValue("cursorAuth/accessToken") }
+
+    /// state.vscdb → ItemTable[key] (salt okunur, kilit almadan)
+    private static func readValue(_ key: String) throws -> String? {
         var db: OpaquePointer?
         let uri = "file:\(databaseURL.path)?mode=ro&immutable=1"
         guard sqlite3_open_v2(uri, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_URI, nil) == SQLITE_OK else {
@@ -83,9 +88,10 @@ enum CursorProvider {
         }
         defer { sqlite3_close(db) }
         var stmt: OpaquePointer?
-        guard sqlite3_prepare_v2(db, "SELECT value FROM ItemTable WHERE key = 'cursorAuth/accessToken' LIMIT 1", -1, &stmt, nil) == SQLITE_OK else {
+        guard sqlite3_prepare_v2(db, "SELECT value FROM ItemTable WHERE key = ?1 LIMIT 1", -1, &stmt, nil) == SQLITE_OK else {
             return nil
         }
+        sqlite3_bind_text(stmt, 1, key, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
         defer { sqlite3_finalize(stmt) }
         guard sqlite3_step(stmt) == SQLITE_ROW else { return nil }
         if let text = sqlite3_column_text(stmt, 0) { return String(cString: text) }
