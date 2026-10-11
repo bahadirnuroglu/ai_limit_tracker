@@ -107,10 +107,9 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   her onAppear'da pencere alphaValue'yu 0->1 (0.18 sn) yapar. Her açılışta oynadığı log ile doğrulandı.
 
 ## Durum
-- YAYIN BEKLİYOR: 0.3.0 (Info.plist hazır) yerelde commit'li, GitHub'a gönderilmedi; yayında son sürüm v0.2.0.
-  Kullanıcı işler bitince TOPLU sürüm istiyor. Anahtar Zinciri'ndeki "ailimit-github" token'ı GEÇERSİZ (401);
-  yayından önce yeni fine-grained token (sadece ai_limit_tracker, Contents: Read and write), kullanıcı terminale
-  yapıştırarak kaydeder (sohbete değil), sonra `bash release.sh`.
+- YAYINDA: v0.3.0 (2026-10-11). Yeni sürüm: Info.plist sürümünü artır, commit, `bash release.sh`.
+  Kullanıcı işler bitince TOPLU sürüm istiyor. Token: Anahtar Zinciri "ailimit-github" (fine-grained, sadece
+  ai_limit_tracker, Contents: Read and write + Metadata); kullanıcı terminale yapıştırarak kaydeder, sohbete değil.
 - Endpoint'ler dahili ve belgesiz; değişebilir.
 - ChatGPT sohbet limiti için okunabilir kaynak yok, sadece Codex pencereleri ve plan adı gösteriliyor.
 - Açılışta başlatma: LoginItem.swift (SMAppService.mainApp); varsayılan açık, her açılışta yeniden kaydolur,
