@@ -55,7 +55,7 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   (/api/auth/session → wham/usage) / cursor.com (/api/usage-summary) okur). UserDefaults "accounts" (ad, e-posta).
   Giriş penceresi kapanınca veri gelmezse hesap eklenmez, kutu silinir; aynı e-posta reddedilir. Ek hesap limit id'leri
   "<uuid>." önekli (bildirim/hatırlatma/geçmiş ayrışsın). Popup düzeni C (kullanıcı seçti): kart ön yüzü sol sütun = üstte başlık
-  çerçevesi (logo, ad +N ve plana göre dikey ortalı), altında etiketler ve diğer hesabın durumu ("Hesap 1 doldu ·
+  çerçevesi (logo, ad ve plana göre dikey ortalı; "+N gizli limit" rozeti hesap sayısıyla karıştığı için KALDIRILDI), altında etiketler ve diğer hesabın durumu ("Hesap 1 doldu ·
   açılış 14:36" / "Hesap 2 kullanılabilir"), sol altta hesap çipleri (segment seçici dili, içerik boyunda, dolanda
   kırmızı nokta). Çipte e-posta GÖSTERİLMEZ: varsayılan "1", "2" (cümlede "Hesap 2"), kullanıcı Ayarlar'dan ad verir
   (karta sağ tık → "Hesapları Adlandır…"). Google/Apple girişi için WebSession açılır pencereye (WKUIDelegate) izin verir. Kart her açılışta en boş hesapla gelir (store.selection popup kapanınca sıfırlanır);

@@ -343,13 +343,6 @@ private struct ProviderCard: View {
                         VStack(alignment: .leading, spacing: 1) {
                             HStack(spacing: 5) {
                                 Text(id.name).font(.system(size: 15, weight: .bold))
-                                if hiddenCount > 0 {
-                                    Text("+\(hiddenCount)")
-                                        .font(.system(size: 10, weight: .semibold))
-                                        .padding(.horizontal, 5).padding(.vertical, 2)
-                                        .background(palette.subtle, in: RoundedRectangle(cornerRadius: 5))
-                                        .help("Arka yüzde \(hiddenCount) limit daha")
-                                }
                             }
                             if !subtitle.isEmpty {
                                 Text(subtitle).font(.system(size: 10, weight: .medium))
@@ -684,9 +677,9 @@ private struct RingGauge: View {
                 }
                 Text(limit.short ?? limit.label).font(.system(size: 10.5, weight: .medium)).lineLimit(1)
             }
-            if let reset = limit.resetsAt {
-                Text(Countdown.text(to: reset)).font(.system(size: 10, weight: .regular)).lineLimit(1)
-            }
+            // İkinci satır her halkada dolu: yan yana halkalar aynı hizada kalsın
+            Text(limit.resetsAt.map { Countdown.text(to: $0) } ?? limit.caption ?? " ")
+                .font(.system(size: 10, weight: .regular)).lineLimit(1)
         }
         .frame(width: 62)
         .help(limit.resetsAt.map { "\(limit.label): %\(Int(limit.percent.rounded())) · \(Countdown.text(to: $0)) sonra sıfırlanır" } ?? limit.label)

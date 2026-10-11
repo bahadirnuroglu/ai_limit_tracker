@@ -10,6 +10,7 @@ struct Limit: Identifiable {
     let window: TimeInterval?  // pencere uzunluğu (sn); tempo çizgisi için
     var model: String? = nil   // modele özel limit (opus, sonnet, review); nil = genel
     var short: String? = nil   // halka altındaki kısa ad
+    var caption: String? = nil // sıfırlanma zamanı yoksa halkanın ikinci satırı ("kullanım")
 }
 
 extension Limit {
@@ -413,13 +414,15 @@ final class UsageStore: ObservableObject {
                 model = key.hasPrefix("seven_day_") ? String(key.dropFirst("seven_day_".count)) : key
                 let names = ["opus": "Opus", "sonnet": "Sonnet", "oauth_apps": "Uygulamalar", "routines": "Rutinler",
                              "extra_usage": "Ekstra"]
+                // Ekstra kullanım: arka yüzde tam adıyla
+                let fullNames = ["extra_usage": "Ekstra kullanım"]
                 let name = names[model ?? key] ?? (model ?? key).replacingOccurrences(of: "_", with: " ").capitalized
-                label = key.hasPrefix("seven_day") ? "Haftalık · \(name)" : name
+                label = key.hasPrefix("seven_day") ? "Haftalık · \(name)" : (fullNames[key] ?? name)
                 short = name
                 window = key.hasPrefix("seven_day") ? 604_800 : nil
             }
             return Limit(id: "claude.\(key)", label: label, percent: util, resetsAt: date, window: window,
-                         model: model, short: short)
+                         model: model, short: short, caption: key == "extra_usage" ? "kullanım" : nil)
         }
         .sorted { a, b in
             let ia = order.firstIndex { a.id == "claude.\($0)" } ?? Int.max
