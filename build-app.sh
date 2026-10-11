@@ -32,9 +32,15 @@ lipo -create "$OBJ/$EXE-arm64" "$OBJ/$EXE-x86_64" -output "$APP/Contents/MacOS/$
 cp Info.plist "$APP/Contents/Info.plist"
 [ -f AppIcon.icns ] && cp AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
-# Ad-hoc imza (Developer ID yok). .pkg ile kurulunca karantina bayrağı taşımaz, sorunsuz açılır.
+# İmza: tools/make-signing-cert.sh ile üretilen sabit kimlik varsa o (Anahtar Zinciri izni güncellemelerde kalır,
+# uygulama içi güncelleme aynı sertifikayı doğrular); yoksa ad-hoc. Developer ID yok: Gatekeeper uyarısı her ikisinde de çıkar.
+SIGN_ID="AI Limit Tracker Code Signing"
 xattr -cr "$APP"
-codesign --force --sign - "$APP"
+if security find-identity -p codesigning 2>/dev/null | grep -q "$SIGN_ID"; then
+    codesign --force --sign "$SIGN_ID" "$APP"
+else
+    codesign --force --sign - "$APP"
+fi
 
 if [ "${1:-}" = "--install" ]; then
     # Eski adlarla çalışan kopyaları da kapat (AILimit / ClaudeLimit dönemi)

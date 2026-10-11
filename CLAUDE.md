@@ -14,6 +14,8 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   AppleScript ile (uygulama 170,205 · Applications 470,205; ikisi arka plandaki okla eşleşmeli).
   Disk ikonu .VolumeIcon.icns + SetFile -a C; .dmg dosyasına da ikon verilir.
 - Yayın: `bash release.sh` (main push + GitHub Release + dmg eki; token Anahtar Zinciri "ailimit-github").
+  İmza: tools/make-signing-cert.sh ile "AI Limit Tracker Code Signing" kimliği (kullanıcı bir kez çalıştırır); build-app.sh
+  varsa onunla, yoksa ad-hoc imzalar; release.sh kimlik yoksa durur.
   Önce Info.plist sürümünü artır ve commit et. UpdateChecker.repo depoyu belirler.
 - Dağıtım paketi: `bash build-pkg.sh` -> dist/AI-Limit-Tracker-<sürüm>.pkg (sürüm Info.plist'ten).
   Developer ID yok: ad-hoc imzalı, imzasız pkg. Evrensel ikili (arm64+x86_64).

@@ -18,6 +18,10 @@ if [ "$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOKEN"
     echo "GitHub token geçersiz ya da süresi dolmuş."; echo "$SAVE_HINT"; exit 1
 fi
 
+# Yayın sabit kimlikle imzalanmalı: uygulama içi güncelleme sonraki sürümlerde aynı sertifikayı doğrular
+security find-identity -p codesigning 2>/dev/null | grep -q "AI Limit Tracker Code Signing" \
+    || { echo "İmza kimliği yok. Bir kez çalıştır: bash tools/make-signing-cert.sh"; exit 1; }
+
 VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Info.plist)
 DMG="dist/AI-Limit-Tracker-$VERSION.dmg"
 bash build-dmg.sh
