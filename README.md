@@ -26,6 +26,9 @@ uygulama kendini indirip kurar ve yeniden açılır, "Yine de Aç" adımı tekra
   şifre gerekmez.
 - **Halka kartlar:** Her sağlayıcı tek satır: 5 saatlik limit ve son kullandığın modelin limiti.
   %90'ı geçen limit her zaman öne çıkar; bu tempoyla sıfırlanmadan dolacaksa "≈ 12 sa sonra dolar" yazar.
+- **Birden fazla hesap:** Aynı sağlayıcıya ikinci (üçüncü…) hesabı ekle; kartın altındaki çiplerle hesaplar
+  arasında geç. Kart her açılışta şu an kullanabileceğin hesapla gelir, dolan hesabın ne zaman açılacağını yazar.
+  Hesaplara Ayarlar → Sağlayıcılar'dan ad verebilirsin (İş, Kişisel…).
 - **Kartın arka yüzü:** Karta tıkla, döner: tüm limitler ve GitHub tarzı 13 haftalık etkinlik haritası
   (Claude Code ve Codex CLI kayıtlarından).
 - **Veri gelmezse:** Son veri soluk ve yaşıyla kalır; altında sebep ve tek düğmelik çözüm
@@ -45,6 +48,7 @@ Her şey senin hesabınla ve senin Mac'inde; üçüncü bir sunucuya hiçbir şe
 | Claude | Claude Code kuruluysa onun oturumu (`api.anthropic.com/api/oauth/usage`, macOS bir kez Anahtar Zinciri izni ister); yoksa uygulama içindeki claude.ai girişi. |
 | Codex | Codex CLI'nin `~/.codex/auth.json` girişi → `chatgpt.com/backend-api/wham/usage`. |
 | Cursor | Cursor uygulamasının kendi oturumu (salt okunur) → `cursor.com/api/usage-summary`. |
+| Ek hesaplar | Uygulama içindeki giriş penceresi (claude.ai, chatgpt.com, cursor.com); her hesabın çerezleri ayrı kutuda durur. |
 | Etkinlik haritası | Bu Mac'teki Claude Code (`~/.claude/projects`) ve Codex CLI (`~/.codex/sessions`) kayıtları. |
 
 Sorun yaşarsan **Ayarlar → Genel → Tanılama Bilgisini Kopyala** ile durumu paylaşabilirsin; token ya da hesap
@@ -76,7 +80,7 @@ Uygulama ikonu `tools/make-icon.swift` ile çizilir: `bash tools/make-icon.sh`.
 <summary><b>English</b></summary>
 
 AI Limit Tracker is a macOS menu bar app that shows your Claude, Codex and Cursor usage limits at a
-glance, warns you at 75% / 90% (you choose which), estimates when a limit will run out at your current pace, notifies
+glance, supports multiple accounts per provider, warns you at 75% / 90% (you choose which), estimates when a limit will run out at your current pace, notifies
 you when it resets, and flips each card to all limits plus a GitHub-style 13-week activity heatmap built from local
 Claude Code / Codex CLI logs. Most providers are read from sessions already on your Mac, no password needed.
 
