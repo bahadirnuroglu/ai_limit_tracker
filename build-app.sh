@@ -31,8 +31,6 @@ lipo -create "$OBJ/$EXE-arm64" "$OBJ/$EXE-x86_64" -output "$APP/Contents/MacOS/$
 
 cp Info.plist "$APP/Contents/Info.plist"
 [ -f AppIcon.icns ] && cp AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
-# Siri/Kestirmeler için hazır "AI Limitlerim" kestirmesi (imzalama ağ ister; olmazsa uygulama düğmeyi gizler)
-python3 tools/make-shortcut.py "$APP/Contents/Resources" >/dev/null 2>&1 || echo "uyarı: kestirme imzalanamadı, atlandı"
 
 # Ad-hoc imza (Developer ID yok). .pkg ile kurulunca karantina bayrağı taşımaz, sorunsuz açılır.
 xattr -cr "$APP"

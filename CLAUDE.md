@@ -49,10 +49,7 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
 - LoginItem.swift: açılışta başlatma
 - Hatırlatma: karta sağ tık → limit başına "açılınca haber ver" (Notifier.toggleReminder, UserDefaults "reminders",
   halkada zil). Ayarlar → Bildirimler "İstediğin limit açılınca" (notify.reminders) kapalıysa menü gizli.
-- Kestirmeler: App Intents KULLANILAMAZ (Xcode'un appintentsmetadataprocessor'ı yok). Bunun yerine URL şeması
-  ailimittracker:// (AppDelegate): open, refresh, x-callback-url/limits?x-success=… (özet "result" ile döner).
-  tools/make-shortcut.py derlemede "AI Limitlerim.shortcut"u üretip `shortcuts sign` ile imzalar, Resources'a koyar;
-  Kurulum → Genel ve Ayarlar → Genel'de "Kestirmeyi Ekle". Kestirmeye ekleme/Siri gerçek kullanıcıyla test EDİLMEDİ.
+- Kestirmeler/Siri (URL şeması + hazır kestirme) denendi, kullanıcı isteğiyle KALDIRILDI.
 - Onboarding.swift: Apple kurulum asistanı tarzı pencere (şeffaf başlık çubuğu, sistem Form/Toggle/borderedProminent,
   açık/koyu tema, yaylı sayfa geçişi, Enter=devam Esc=geri): hoş geldin → araçlar → bağlan → bildirimler → genel → hazır.
   Ayarlar ayrı pencere, sekmeler: Sağlayıcılar / Bildirimler / Genel (ConnectRow ortak).
