@@ -7,9 +7,17 @@ Limite takılmadan önce haber verir, limit yenilenince "devam edebilirsin" der.
 
 <sub>Görseldeki değerler örnektir.</sub>
 
-## İndir
+## Kur
 
-**[Son sürümü indir →](https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest)** (`AI-Limit-Tracker-x.y.z.dmg`)
+**En kısa yol (Terminal):** tek satır; uyarı ekranı çıkmaz, en son sürümü indirip Applications'a kurar ve açar.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/bahadirnuroglu/ai_limit_tracker/main/install.sh | bash
+```
+
+Script kurmadan önce uygulamanın kimliğini ve imzasını doğrular; içeriğini [buradan](install.sh) görebilirsin.
+
+**Ya da dmg ile:** **[Son sürümü indir →](https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest)** (`AI-Limit-Tracker-x.y.z.dmg`)
 
 1. dmg'yi aç, **AI Limit Tracker**'ı **Applications** klasörüne sürükle.
 2. Applications'tan aç. "Apple doğrulayamadı" uyarısı çıkarsa **Bitti** de, sonra
@@ -84,7 +92,9 @@ glance, supports multiple accounts per provider, warns you at 75% / 90% (you cho
 you when it resets, and flips each card to all limits plus a GitHub-style 13-week activity heatmap built from local
 Claude Code / Codex CLI logs. Most providers are read from sessions already on your Mac, no password needed.
 
-Download the latest `.dmg` from [Releases](https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest),
+Install with one line in Terminal (no Gatekeeper prompt):
+`curl -fsSL https://raw.githubusercontent.com/bahadirnuroglu/ai_limit_tracker/main/install.sh | bash`
+or download the latest `.dmg` from [Releases](https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest),
 drag the app to Applications, then allow it once in System Settings → Privacy & Security → Open Anyway
 (the app is ad-hoc signed). Requires macOS 14+. Unofficial; not affiliated with Anthropic, OpenAI or Anysphere.
 

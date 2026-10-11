@@ -17,6 +17,10 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   İmza: tools/make-signing-cert.sh ile "AI Limit Tracker Code Signing" kimliği (kullanıcı bir kez çalıştırır); build-app.sh
   varsa onunla, yoksa ad-hoc imzalar; release.sh kimlik yoksa durur.
   Önce Info.plist sürümünü artır ve commit et. UpdateChecker.repo depoyu belirler.
+- Tek satır kurulum: install.sh (repo kökü, main'den raw ile çalışır): latest dmg'yi curl ile indirir (karantina yok →
+  Gatekeeper uyarısı yok), kimlik + sertifika (certificate leaf H"4730…") doğrular, /Applications (yazılamazsa
+  ~/Applications) içine ditto, açar (-600'e karşı tekrar dener). Sertifika değişirse install.sh'taki hash güncellenmeli.
+  Gatekeeper'ı tarayıcı indirmesinde tamamen kaldırmak için Apple Developer ID + notarization gerekir (kullanıcı şimdilik istemedi).
 - Dağıtım paketi: `bash build-pkg.sh` -> dist/AI-Limit-Tracker-<sürüm>.pkg (sürüm Info.plist'ten).
   Developer ID yok: ad-hoc imzalı, imzasız pkg. Evrensel ikili (arm64+x86_64).
   BundleIsRelocatable=false; pre/postinstall pkg/scripts içinde (eskiyi kapatır, yeniyi açar).
