@@ -135,11 +135,13 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
 - Güncelleme doğrulaması (UpdateChecker.verify): paket kimliği + beklenen sürüm + imza bütünlüğü; çalışan uygulama
   sertifikayla imzalıysa yeni sürüm aynı designated requirement'ı karşılamalı. Ad-hoc'ta sadece bütünlük.
 - Tek seferlik giriş (kullanıcı şartı: "kurdu, default browser'dan bir kez giriş yaptı, bir daha gerek kalmayacak"): OwnAuth.swift.
-  ToolLogin aracın girişini GEÇİCİ klasörde (CLAUDE_CONFIG_DIR / CODEX_HOME) çalıştırır; token'lar uygulamanın kendi Anahtar Zinciri
-  kaydına ("ailimit-oauth", hesap = sağlayıcı) taşınır (Claude: klasördeki .credentials.json ya da "Claude Code-credentials-<özet>"
+  ToolLogin aracın girişini GEÇİCİ klasörde (CLAUDE_CONFIG_DIR / CODEX_HOME) çalıştırır; token'lar uygulamanın kendi oturum DOSYASINA
+  (~/Library/Application Support/AI Limit Tracker/sessions.json, klasör 0700, dosya 0600) taşınır. Anahtar Zinciri KULLANILMAZ:
+  Apple ekip kimliği olmayan uygulamanın kayıtları cdhash'e bağlı, her güncellemede okunamaz oluyordu (0.3.5/0.3.6'da yaşandı;
+  sabit sertifika bunu ÇÖZMEZ, Claude Code kaydının "İzin ver"i de her güncellemede bu yüzden geri gelir) (Claude: klasördeki .credentials.json ya da "Claude Code-credentials-<özet>"
   kaydı, /usr/bin/security ile okunup silinir; Codex: auth.json). Uygulama süresi dolunca kendisi yeniler (Claude
   platform.claude.com/v1/oauth/token, Codex auth.openai.com/oauth/token), reddedilirse kaydı siler → "Giriş Yap". Sıra: kendi
-  oturum > Claude Code / Codex CLI (YALNIZCA okunur; asıl kayıtlara YAZILMAZ, auto-mode sınıflandırıcısı da engelliyor) > web.
+  oturum > Claude Code / Codex CLI (YALNIZCA okunur; araç varken Claude Code kaydı izin isterse "İzin ver" yerine "Giriş yap"; asıl kayıtlara YAZILMAZ, auto-mode sınıflandırıcısı da engelliyor) > web.
   Kartta "Giriş yap" yerel hesapta araç varsa tarayıcı girişini başlatır. VARSAYILAN YOL tek seferlik giriş (kullanıcı: "bir defa
   giriş yapsın, sonrasında öyle böyle demeyelim"): ConnectRow araç varsa ve kendi oturum yoksa, araç oturumundan bağlı olsa bile
   "Giriş Yap" gösterir (Claude'da Mac parolası sorusu da kalkar); web penceresinden bağlanan (store.source == .web) rahatsız edilmez.

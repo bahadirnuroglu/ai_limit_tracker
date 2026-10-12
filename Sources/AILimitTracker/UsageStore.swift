@@ -428,6 +428,10 @@ final class UsageStore: ObservableObject {
                     throw error
                 } catch {
                     if let result = try? await web.fetch() { source[.claude] = .web; return result }
+                    // Mac parolası sormak yerine tek seferlik giriş (kendi oturum güncellemelerde de kalır)
+                    if case ProviderError.needsPermission = error, !allowPrompt, ToolLogin.isAvailable(.claude) {
+                        throw SessionError.needsLogin
+                    }
                     throw error
                 }
             }

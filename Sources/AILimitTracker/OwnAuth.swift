@@ -5,9 +5,9 @@ import Security
 ///
 /// "Giriş Yap" aracın girişini (claude auth login / codex login) uygulamaya ait geçici bir klasörde başlatır
 /// (CLAUDE_CONFIG_DIR / CODEX_HOME). Araç varsayılan tarayıcıda OAuth açar; kullanıcı oradaki Google/Apple oturumuyla
-/// ya da kayıtlı mailiyle onaylar. Gelen token'lar uygulamanın kendi Anahtar Zinciri kaydına ("ailimit-oauth",
-/// hesap = sağlayıcı) taşınır, geçici klasör ve kayıt silinir. Süresi dolunca uygulama kendisi yeniler ve yine kendi
-/// kaydına yazar. Kullanıcının asıl Claude Code / Codex oturumuna hiç dokunulmaz (onlar yalnızca okunur).
+/// ya da kayıtlı mailiyle onaylar. Gelen token'lar uygulamanın kendi oturum dosyasına (Application Support/AI Limit
+/// Tracker/sessions.json, 0600) taşınır, geçici klasör ve kayıt silinir. Süresi dolunca uygulama kendisi yeniler ve
+/// yine kendi dosyasına yazar. Kullanıcının asıl Claude Code / Codex oturumuna hiç dokunulmaz (onlar yalnızca okunur).
 enum OwnAuth {
     struct Token: Codable {
         var access: String
@@ -20,14 +20,13 @@ enum OwnAuth {
         var idToken: String?     // Codex
     }
 
-    private static let service = "ailimit-oauth"
     private static let claudeTokenURL = URL(string: "https://platform.claude.com/v1/oauth/token")!
     private static let claudeClientID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"   // Claude Code
     private static let codexTokenURL = URL(string: "https://auth.openai.com/oauth/token")!
     private static let codexClientID = "app_EMoamEEZ73f0CkXaXp7hrann"            // Codex CLI
 
     @MainActor private static var cache: [ProviderID: Token] = [:]
-    @MainActor private static var absent: Set<ProviderID> = []   // kayıt yok (her çizimde Anahtar Zinciri'ne bakılmasın)
+    @MainActor private static var absent: Set<ProviderID> = []   // kayıt yok (her çizimde dosyaya bakılmasın)
     @MainActor private static var refreshing: [ProviderID: Task<Token, Error>] = [:]
 
     // MARK: Kayıt
@@ -40,10 +39,8 @@ enum OwnAuth {
     @MainActor static func load(_ id: ProviderID) -> Token? {
         if let cached = cache[id] { return cached }
         if absent.contains(id) { return nil }
-        let (status, data) = readItem(id)
-        guard let data, let token = try? JSONDecoder().decode(Token.self, from: data) else {
-            // Sadece kayıt gerçekten yoksa hatırla; Anahtar Zinciri kilitliyse bir sonraki denemede yeniden bakılır
-            if status == errSecItemNotFound { absent.insert(id) }
+        guard let token = readAll()[id.rawValue] else {
+            absent.insert(id)
             return nil
         }
         cache[id] = token
@@ -53,38 +50,42 @@ enum OwnAuth {
     @MainActor static func save(_ token: Token, for id: ProviderID) {
         cache[id] = token
         absent.remove(id)
-        guard let data = try? JSONEncoder().encode(token) else { return }
-        writeItem(id, data)
+        var all = readAll()
+        all[id.rawValue] = token
+        writeAll(all)
     }
 
     @MainActor static func remove(_ id: ProviderID) {
         cache[id] = nil
         absent.insert(id)
-        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
-                                    kSecAttrService as String: service, kSecAttrAccount as String: id.rawValue]
-        SecItemDelete(query as CFDictionary)
+        var all = readAll()
+        all[id.rawValue] = nil
+        writeAll(all)
     }
 
-    /// Kendi kaydımız: uygulama oluşturduğu için soru çıkmaz; yine de sormadan okunur
-    private static func readItem(_ id: ProviderID) -> (OSStatus, Data?) {
-        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service,
-                                    kSecAttrAccount as String: id.rawValue, kSecReturnData as String: true]
-        SecKeychainSetUserInteractionAllowed(false)
-        defer { SecKeychainSetUserInteractionAllowed(true) }
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        return (status, status == errSecSuccess ? item as? Data : nil)
+    /// Anahtar Zinciri DEĞİL: Apple ekip kimliği olmayan (kendinden imzalı) uygulamanın kayıtları macOS'ta derlemenin
+    /// cdhash'ine bağlanıyor, her güncellemede okunamaz oluyordu (0.3.5/0.3.6). Dosya yalnızca kullanıcıya açık
+    /// (klasör 0700, dosya 0600), Codex CLI'nin ~/.codex/auth.json'u gibi.
+    private static var storeURL: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("AI Limit Tracker", isDirectory: true)
+            .appendingPathComponent("sessions.json")
     }
 
-    private static func writeItem(_ id: ProviderID, _ data: Data) {
-        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service,
-                                    kSecAttrAccount as String: id.rawValue]
-        if SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary) == errSecItemNotFound {
-            var add = query
-            add[kSecValueData as String] = data
-            add[kSecAttrLabel as String] = "AI Limit Tracker (\(id.name))"
-            SecItemAdd(add as CFDictionary, nil)
-        }
+    private static func readAll() -> [String: Token] {
+        guard let data = try? Data(contentsOf: storeURL),
+              let all = try? JSONDecoder().decode([String: Token].self, from: data) else { return [:] }
+        return all
+    }
+
+    private static func writeAll(_ all: [String: Token]) {
+        let fm = FileManager.default
+        let dir = storeURL.deletingLastPathComponent()
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        try? fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir.path)
+        guard let data = try? JSONEncoder().encode(all) else { return }
+        try? data.write(to: storeURL, options: [.atomic])
+        try? fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: storeURL.path)
     }
 
     // MARK: Geçerli token
