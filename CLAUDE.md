@@ -140,8 +140,10 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   kaydı, /usr/bin/security ile okunup silinir; Codex: auth.json). Uygulama süresi dolunca kendisi yeniler (Claude
   platform.claude.com/v1/oauth/token, Codex auth.openai.com/oauth/token), reddedilirse kaydı siler → "Giriş Yap". Sıra: kendi
   oturum > Claude Code / Codex CLI (YALNIZCA okunur; asıl kayıtlara YAZILMAZ, auto-mode sınıflandırıcısı da engelliyor) > web.
-  Kartta "Giriş yap" yerel hesapta araç varsa tarayıcı girişini başlatır. Claude Code ile bağlıyken satırda "Kesintisiz bağlantı
-  için bir kez tarayıcıda giriş yap" bağlantısı. Gerçek girişle uçtan uca TEST EDİLMEDİ (kullanıcı/arkadaş test edecek).
+  Kartta "Giriş yap" yerel hesapta araç varsa tarayıcı girişini başlatır. VARSAYILAN YOL tek seferlik giriş (kullanıcı: "bir defa
+  giriş yapsın, sonrasında öyle böyle demeyelim"): ConnectRow araç varsa ve kendi oturum yoksa, araç oturumundan bağlı olsa bile
+  "Giriş Yap" gösterir (Claude'da Mac parolası sorusu da kalkar); web penceresinden bağlanan (store.source == .web) rahatsız edilmez.
+  Popup araç oturumu çalıştıkça bir şey demez. Gerçek girişle uçtan uca TEST EDİLMEDİ (kullanıcı/arkadaş test edecek).
 - Claude Code Anahtar Zinciri: okuma ana iş parçacığı DIŞINDA; sormadan okumada SecKeychainSetUserInteractionAllowed(false)
   (eski tip giriş anahtar zinciri kSecUseAuthenticationUIFail'i yok sayıp izin penceresi açıyor ve popup'ı donduruyordu).
 - Yerel Codex/Cursor: CLI girişi / Cursor uygulaması yoksa ya da oturumu düşmüşse varsayılan çerez kutusunda

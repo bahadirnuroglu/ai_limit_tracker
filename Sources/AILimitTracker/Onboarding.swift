@@ -267,7 +267,7 @@ private struct ConnectPage: View {
     var body: some View {
         VStack(spacing: 8) {
             PageHeader(title: "Hesaplarını bağla",
-                       subtitle: "Claude Code, Codex ya da Cursor bu Mac'te girişliyse hiçbir şey yapma: limitler oradan okunur. Olmayanlara bir kez giriş yeter.") {
+                       subtitle: "Her araç için bir kez giriş yap: tarayıcında açılır, oradaki Google oturumun ya da kayıtlı şifrelerin kullanılır. Sonra bağlantı hep açık kalır.") {
                 SymbolTile(symbol: "link", color: .blue)
             }
             Form {
@@ -577,8 +577,19 @@ private struct ConnectRow: View {
         }
     }
 
+    /// Varsayılan yol tek seferlik giriş: araç varsa ve uygulamanın kendi oturumu yoksa (araç oturumundan okunsa bile;
+    /// o oturum eskiyebilir) "Giriş Yap" gösterilir. Web penceresinden bağlanan (ör. ücretsiz Claude) rahatsız edilmez.
+    private var wantsOneTimeLogin: Bool {
+        id != .cursor && ToolLogin.isAvailable(id) && !OwnAuth.has(id) && store.source[id] != .web
+    }
+
     private var detail: String {
         if !enabled { return "Popup'ta gösterilmiyor" }
+        if wantsOneTimeLogin && !tool.running.contains(id) {
+            return id == .claude
+                ? "Bir kez giriş yap (Pro ya da Max hesabı); bağlantı hep açık kalır. Tarayıcında açılır."
+                : "Bir kez giriş yap; bağlantı hep açık kalır. Tarayıcında açılır."
+        }
         if usage.isConnected {
             let first = usage.frontLimits.first.map { "\($0.short ?? $0.label) %\(Int($0.percent.rounded()))" }
             return [usage.plan, first].compactMap { $0 }.joined(separator: " · ")
@@ -601,7 +612,7 @@ private struct ConnectRow: View {
     }
 
     @ViewBuilder private var trailing: some View {
-        if usage.isConnected {
+        if usage.isConnected && !wantsOneTimeLogin {
             Label("Bağlı", systemImage: "checkmark.circle.fill")
                 .labelStyle(.titleAndIcon).foregroundStyle(.green).font(.callout.weight(.medium))
         } else if tool.running.contains(id) {
@@ -612,7 +623,7 @@ private struct ConnectRow: View {
             }
         } else if busy || (usage.state == .loading && usage.issue == nil && store.isRefreshing) {
             ProgressView().controlSize(.small)
-        } else if needsLogin && ToolLogin.isAvailable(id) {
+        } else if wantsOneTimeLogin || (needsLogin && ToolLogin.isAvailable(id)) {
             // Aracın kendi girişi varsayılan tarayıcıda (Chrome'daki Google oturumu); uygulama penceresi altta bağlantı
             Button("Giriş Yap") { store.toolLogin(id) }
                 .buttonStyle(.borderedProminent).controlSize(.small)
@@ -622,18 +633,11 @@ private struct ConnectRow: View {
         }
     }
 
-    /// Satırın altındaki ikinci yol. Giriş gerekiyorsa: sitenin girişi uygulama penceresinde (Google/Apple da olur).
-    /// Claude Code oturumundan okunuyorsa: o oturum Claude Code kullanılmayınca saatler içinde eskir; tek seferlik
-    /// girişle uygulama kendi oturumunu tutar ve kesilmez.
+    /// Satırın altındaki ikinci yol: sitenin girişi uygulama penceresinde (Google/Apple da olur; ücretsiz Claude hesabı)
     private var windowLink: (String, () -> Void)? {
-        guard enabled, ToolLogin.isAvailable(id), !tool.running.contains(id) else { return nil }
-        if !usage.isConnected && needsLogin {
-            return ("Ya da uygulama penceresinde giriş yap", { store.login(.local(id)) })
-        }
-        if usage.isConnected, id != .cursor, !OwnAuth.has(id) {
-            return ("Kesintisiz bağlantı için bir kez tarayıcıda giriş yap", { store.toolLogin(id) })
-        }
-        return nil
+        guard enabled, ToolLogin.isAvailable(id), !tool.running.contains(id),
+              wantsOneTimeLogin || (!usage.isConnected && needsLogin) else { return nil }
+        return ("Ya da uygulama penceresinde giriş yap", { store.login(.local(id)) })
     }
 
     /// Çözüm giriş mi? (ipucu .login istiyor ya da yerel oturum hiç yok)

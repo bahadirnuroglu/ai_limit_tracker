@@ -402,6 +402,11 @@ final class UsageStore: ObservableObject {
         return WebSession.Result(plan: result.plan, limits: result.limits, email: token.email)
     }
 
+    /// Yerel hesabın verisi en son nereden geldi: uygulamanın kendi oturumu (tek seferlik giriş, kalıcı), aracın
+    /// oturumu (Claude Code / Codex CLI; eskiyebilir) ya da web penceresi girişi
+    enum LocalSource { case own, tool, web }
+    @Published private(set) var source: [ProviderID: LocalSource] = [:]
+
     private func fetch(_ account: Account, allowPrompt: Bool) async throws -> WebSession.Result {
         if !account.isLocal { return try await session(for: account).fetch() }
         let email = AccountList.localEmail(account.provider)
@@ -410,35 +415,45 @@ final class UsageStore: ObservableObject {
             // Önce uygulamanın kendi oturumu (tek seferlik giriş, kendisi yenilenir), sonra Claude Code oturumu
             // (giriş gerekmez, yalnızca okunur), en son claude.ai oturumu
             if OwnAuth.has(.claude) {
-                do { return try await ownClaude() } catch let error as URLError { throw error } catch {}
+                do { let r = try await ownClaude(); source[.claude] = .own; return r }
+                catch let error as URLError { throw error } catch {}
             }
             let web = session(for: account)
             if ClaudeCodeAuth.isAvailable {
                 do {
                     let (plan, data) = try await ClaudeCodeAuth.fetchUsage(allowPrompt: allowPrompt)
+                    source[.claude] = .tool
                     return WebSession.Result(plan: plan, limits: Self.parseClaude(data), email: email)
                 } catch let error as URLError {
                     throw error
                 } catch {
-                    if let result = try? await web.fetch() { return result }
+                    if let result = try? await web.fetch() { source[.claude] = .web; return result }
                     throw error
                 }
             }
-            return try await web.fetch()
+            let r = try await web.fetch()
+            source[.claude] = .web
+            return r
         case .codex:
             // Kendi oturum, sonra Codex CLI girişi (yalnızca okunur), en son chatgpt.com oturumu
             if OwnAuth.has(.codex) {
-                do { return try await ownCodex() } catch let error as URLError { throw error } catch {}
+                do { let r = try await ownCodex(); source[.codex] = .own; return r }
+                catch let error as URLError { throw error } catch {}
             }
             let web = session(for: account)
-            guard CodexCLI.isLoggedIn else { return try await web.fetch() }
+            guard CodexCLI.isLoggedIn else {
+                let r = try await web.fetch()
+                source[.codex] = .web
+                return r
+            }
             do {
                 let result = try await CodexProvider.fetch()
+                source[.codex] = .tool
                 return WebSession.Result(plan: result.plan, limits: result.limits, email: email)
             } catch let error as URLError {
                 throw error
             } catch {
-                if let result = try? await web.fetch() { return result }
+                if let result = try? await web.fetch() { source[.codex] = .web; return result }
                 throw error
             }
         case .cursor:
