@@ -137,6 +137,8 @@ enum OwnAuth {
         request.timeoutInterval = 30
         let (data, response) = try await URLSession.shared.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        // Tanı için yalnızca durum kodu (token yazılmaz): Konsol'da "AILimit refresh" ara
+        NSLog("AILimit refresh %@ HTTP %d", id.rawValue, status)
         if status == 400 || status == 401 || status == 403 { throw RefreshError.rejected }
         guard status == 200, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let access = json["access_token"] as? String else { throw SessionError.http(status) }

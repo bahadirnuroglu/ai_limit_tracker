@@ -415,9 +415,23 @@ final class UsageStore: ObservableObject {
         }
     }
 
+    /// HTTP 429 (çok fazla istek) sonrası hesap başına bekleme: 2 dk'dan başlar, her 429'da ikiye katlanır (en çok 30 dk)
+    private var backoff: [String: (until: Date, step: TimeInterval)] = [:]
+
     private func load(_ account: Account, allowPrompt: Bool = false) async {
+        if let wait = backoff[account.id], wait.until > Date() { return }
         do {
             apply(try await fetch(account, allowPrompt: allowPrompt), to: account)
+            backoff[account.id] = nil
+        } catch SessionError.http(429) {
+            let step = min((backoff[account.id]?.step ?? 60) * 2, 1800)
+            backoff[account.id] = (Date().addingTimeInterval(step), step)
+            // Eski veri kalır, uyarı çıkmaz; veri hiç yoksa kısa bir not
+            var current = usage(of: account)
+            if current.limits.isEmpty {
+                current.issue = Issue(text: "\(account.provider.name) kısa süreliğine sınır koydu; birkaç dakika içinde tekrar denenecek.", action: nil)
+                usage[account.id] = current
+            }
         } catch {
             // Eski veri kalır; kartın altında sebep ve tek düzeltme görünür
             var current = usage(of: account)
@@ -496,8 +510,10 @@ final class UsageStore: ObservableObject {
             // Önce uygulamanın kendi oturumu (tek seferlik giriş, kendisi yenilenir), sonra Claude Code oturumu
             // (giriş gerekmez, yalnızca okunur), en son claude.ai oturumu
             if OwnAuth.has(.claude) {
+                // Yalnızca oturum gerçekten yoksa/iptalse alttaki kaynaklara düş; 429 ve sunucu hataları geçicidir,
+                // "giriş yap" dedirtmesin
                 do { let r = try await ownClaude("claude"); source[.claude] = .own; return r }
-                catch let error as URLError { throw error } catch {}
+                catch SessionError.needsLogin {}
             }
             let web = session(for: account)
             if ClaudeCodeAuth.isAvailable {
@@ -523,7 +539,7 @@ final class UsageStore: ObservableObject {
             // Kendi oturum, sonra Codex CLI girişi (yalnızca okunur), en son chatgpt.com oturumu
             if OwnAuth.has(.codex) {
                 do { let r = try await ownCodex("codex"); source[.codex] = .own; return r }
-                catch let error as URLError { throw error } catch {}
+                catch SessionError.needsLogin {}
             }
             let web = session(for: account)
             guard CodexCLI.isLoggedIn else {
