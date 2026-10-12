@@ -360,13 +360,12 @@ private struct ProviderCard: View {
                     HStack(alignment: .center, spacing: 9) {
                         BrandLogoShape(logo: id.logo).fill(palette.ink).frame(width: 24, height: 24)
                         VStack(alignment: .leading, spacing: 1) {
-                            HStack(alignment: .firstTextBaseline, spacing: 5) {
-                                Text(id.name).font(.system(size: 15, weight: .bold))
-                                if let heading { Text(heading).font(.system(size: 12, weight: .medium)).lineLimit(1) }
-                            }
+                            Text(id.name).font(.system(size: 15, weight: .bold))
                             if !subtitle.isEmpty {
                                 Text(subtitle).font(.system(size: 10, weight: .medium))
                             }
+                            // Ayrık düzende hesabın adı (Ayarlar'dan değiştirilebilir) adın ve planın altında rozet
+                            if let heading { chipView(Chip(text: heading, color: palette.ink)).padding(.top, 3) }
                         }
                         .opacity(staticPart)
                     }
