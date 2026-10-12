@@ -1,6 +1,8 @@
 // AI Limit Tracker — Figma'daki kalan ekranlar (Scripter eklentisinde çalıştırılır)
 // Figma: Eklentiler > Scripter > yeni script > bu dosyanın tamamını yapıştır > Çalıştır (▶).
-// Starter plan en fazla 3 sayfa: hepsi tek "Ekranlar" sayfasında üç bölüm (Ayarlar, Kurulum, Menü Çubuğu).
+// Starter plan en fazla 3 sayfa: hepsi tek "Ekranlar" sayfasında bölümler (Ayarlar, Kurulum, Menü Çubuğu, Giriş penceresi,
+// Popup · Ayrık düzen). Ayrıca Popup ve Bileşenler sayfalarında "≈ X sa sonra dolar" etiketlerini "Bu hızla X saatte dolar" yapar.
+// Uygulama sürümü: 0.3.11.
 // Tekrar çalıştırılabilir: "Ekranlar" sayfasının içini temizleyip baştan kurar.
 // Var olan değişkenleri (Tema · Açık / Tema · Koyu) ve yazı stillerini kullanır; eksik "sistem/*" renklerini ekler.
 
@@ -139,6 +141,8 @@ function makeSection(name, y, w, h) { const s = figma.createSection(); s.name = 
 const secSettings = makeSection("Ayarlar", -40, 2500, 600);
 const secSetup = makeSection("Kurulum", 640, 3640, 720);
 const secMenu = makeSection("Menü Çubuğu", 1440, 560, 260);
+const secLogin = makeSection("Giriş penceresi", 1780, 1620, 680);
+const secSplit = makeSection("Popup · Ayrık düzen", 2540, 900, 560);
 const into = (sec, node, x, y) => { sec.appendChild(node); node.x = x; node.y = y; };
 
 // ============ AYARLAR (560×500, sekmeler) ============
@@ -168,10 +172,12 @@ function settingsWindow(selected) {
     return row([av, titled(name, meta, 260), "spacer", text(value, { size: 12, style: "Medium", color: "sistem/ikincil yazı" }), symbol("ellipsis.circle", 14, "sistem/ikincil yazı")], { indent: 40 });
   };
   const addRow = label => { const r = row([symbol("plus.circle.fill", 13, "sistem/vurgu"), text(label, { size: 13, color: "sistem/vurgu" })], { indent: 40 }); r.itemSpacing = 6; return r; };
-  section(body, [provRow("Claude", "Pro · 5 saat %42"), accRow("B", "bireysel", "Claude Code", "%42"), accRow("İ", "iş", "claude.ai", "%0"), addRow("Hesap Ekle…")]);
-  section(body, [provRow("Codex", "Team · 5 saat %0"), addRow("Başka bir Codex hesabı ekle…")]);
+  // Codex: araç oturumundan okunuyor ama uygulamanın kendi oturumu yok → varsayılan yol tek seferlik giriş
+  const loginRow = (p, detail) => row([logoTile(p), titled(p, detail, 250), "spacer", button("Giriş Yap", true, true), toggle(true)]);
+  section(body, [provRow("Claude", "Pro · 5 saat %42"), accRow("B", "bireysel", "Tarayıcıdan giriş", "%42"), accRow("İ", "iş", "Tarayıcıdan giriş", "%0"), addRow("Hesap Ekle…")]);
+  section(body, [loginRow("Codex", "Bir kez giriş yap; bağlantı hep açık kalır. Varsayılan tarayıcında açılır."), addRow("Başka bir Codex hesabı ekle…")]);
   section(body, [provRow("Cursor", "Free · Aylık %0"), addRow("Başka bir Cursor hesabı ekle…")],
-    { footer: "Birden çok hesapta popup'taki kartın sol altında hesap çipleri çıkar. Kapalı sağlayıcılar popup'ta ve menü çubuğunda gösterilmez." });
+    { footer: "Birden çok hesapta popup'taki kartın sol altında hesap çipleri çıkar; yalnızca tek sağlayıcı bağlıysa her hesap ayrı kart olur. Hesap Ekle varsayılan tarayıcında açılır: tarayıcıda o an açık hesap eklenir. Kapalı sağlayıcılar popup'ta ve menü çubuğunda gösterilmez." });
   into(secSettings, win, 40, 50);
 }
 // 2) Menü Çubuğu
@@ -212,7 +218,7 @@ function settingsWindow(selected) {
 {
   const { win, body } = settingsWindow(3);
   section(body, [row([text("Mac açılınca başlat", { size: 13 }), "spacer", toggle(true)]), row([text("Kısayol", { size: 13 }), "spacer", keycaps(["⌃", "⌥", "L"])])]);
-  section(body, [row([titled("Sürüm 0.3.4", "En son sürümü kullanıyorsun · son kontrol 14:20", 300), "spacer", button("Güncellemeleri Denetle")]),
+  section(body, [row([titled("Sürüm 0.3.11", "En son sürümü kullanıyorsun · son kontrol 14:20", 300), "spacer", button("Güncellemeleri Denetle")]),
     row([button("Tanılama Bilgisini Kopyala"), "spacer", button("Kurulumu Yeniden Başlat")])],
     { footer: "Tanılama bilgisi sürüm, macOS ve her sağlayıcının durumunu içerir; token ya da hesap bilgisi içermez." });
   into(secSettings, win, 1900, 50);
@@ -257,11 +263,13 @@ const steps = [];
 }
 // 3 Bağlan
 {
-  const { win, content } = setupWindow("Bağlan", { title: "Hesaplarını bağla", subtitle: "Çoğu araç kendi oturumundan okunur, şifre gerekmez. Bağlanmayanları popup'tan sonra da bağlayabilirsin.", tile: tile("link", { r: .2, g: .5, b: 1 }) });
+  const { win, content } = setupWindow("Bağlan", { title: "Hesaplarını bağla", subtitle: "Her araç için bir kez giriş yap: tarayıcında açılır, oradaki Google oturumun ya da kayıtlı şifrelerin kullanılır. Sonra bağlantı hep açık kalır.", tile: tile("link", { r: .2, g: .5, b: 1 }) });
   const ok = () => { const l = frame("HORIZONTAL", { itemSpacing: 4, counterAxisAlignItems: "CENTER", name: "bağlı" }); l.appendChild(symbol("checkmark.circle.fill", 12, "sistem/yeşil")); l.appendChild(text("Bağlı", { size: 12, style: "Medium", color: "sistem/yeşil" })); return l; };
-  section(content, [row([logoTile("Claude"), titled("Claude", "Claude Code oturumu kullanılır. macOS bir kez Mac parolanı isteyecek; Her Zaman İzin Ver'i seç.", 250), "spacer", button("İzin Ver", true, true)]),
-    row([logoTile("Codex"), titled("Codex", "Team · 5 saat %0", 250), "spacer", ok()]),
-    row([logoTile("Cursor"), titled("Cursor", "cursor.com hesabınla giriş yap.", 250), "spacer", button("Giriş Yap", true, true)])],
+  // Tarayıcıda giriş beklenirken satırın sağı
+  const waiting = () => { const l = frame("HORIZONTAL", { itemSpacing: 8, counterAxisAlignItems: "CENTER", name: "tarayıcıda devam et" }); l.appendChild(symbol("rays", 13, "sistem/ikincil yazı")); l.appendChild(text("Tarayıcıda devam et", { size: 12, color: "sistem/ikincil yazı" })); l.appendChild(button("Vazgeç", false, true)); return l; };
+  section(content, [row([logoTile("Claude"), titled("Claude", "Bir kez giriş yap (Pro ya da Max hesabı); bağlantı hep açık kalır. Varsayılan tarayıcında açılır.", 230), "spacer", button("Giriş Yap", true, true)]),
+    row([logoTile("Codex"), titled("Codex", "Bir kez giriş yap; bağlantı hep açık kalır. Varsayılan tarayıcında açılır.", 190), "spacer", waiting()]),
+    row([logoTile("Cursor"), titled("Cursor", "Free · Aylık %0", 250), "spacer", ok()])],
     { footer: "Aynı araçta birden çok hesabın mı var? Kurulumdan sonra Ayarlar → Sağlayıcılar → Hesap Ekle ile ekleyebilir, popup'ta aralarında geçebilirsin." });
   steps.push(win);
 }
@@ -330,12 +338,77 @@ const names = ["Son kullanılan iki", "En dolu", "Yan yana", "Barlar"];
 const legend = text("Soldan sağa: Son kullanılan iki (iç içe halkalar) · En dolu (halka + logo) · Yan yana · Barlar. Hepsi 22 pt; Claude turuncu, Codex sistem rengi, Cursor mavi.", { size: 11, color: "sistem/ikincil yazı", width: 400 });
 into(secMenu, legend, 90, 180);
 
+// ============ GİRİŞ PENCERESİ (uygulama penceresi; yalnızca araç yoksa: Cursor, Claude Code/Codex kurulu olmayan Mac) ============
+function loginWindow(done) {
+  const win = window(done ? "Giriş penceresi · Giriş tamam" : "Giriş penceresi", 720, 520, "claude.ai girişi · AI Limit Tracker");
+  const note = add(win, frame("HORIZONTAL", { name: "not", itemSpacing: 12, counterAxisAlignItems: "CENTER", paddingLeft: 16, paddingRight: 16, paddingTop: 12, paddingBottom: 12 }), "x");
+  note.fills = [paint("sistem/bölüm")];
+  note.appendChild(symbol(done ? "checkmark.circle.fill" : "lock.shield", 22, done ? "sistem/yeşil" : "sistem/vurgu"));
+  const v = frame("VERTICAL", { name: "metin", itemSpacing: 2 });
+  v.appendChild(text(done ? "Giriş tamam" : "Bu pencere tarayıcından ayrı", { size: 13, style: "Semibold" }));
+  v.appendChild(done ? text("Limitlerin geliyor, pencere kapanıyor…", { size: 12, color: "sistem/ikincil yazı" })
+    : text("Chrome ya da Safari'deki girişin ve kayıtlı şifrelerin burada görünmez. claude.ai hesabına bir kez giriş yapman yeter: oturum hatırlanır, giriş bitince pencere kendiliğinden kapanır.", { size: 12, color: "sistem/ikincil yazı", width: 520 }));
+  note.appendChild(v); spacer(note);
+  if (!done) note.appendChild(button("Kapat"));
+  const sep = figma.createRectangle(); sep.resize(720, .5); sep.fills = [paint("sistem/ayraç")]; add(win, sep, "x");
+  const site = add(win, frame("VERTICAL", { name: "site", itemSpacing: 6, primaryAxisAlignItems: "CENTER", counterAxisAlignItems: "CENTER" }), "xy");
+  site.fills = [paint("sistem/kontrol")];
+  site.appendChild(text("claude.ai giriş sayfası", { size: 15, style: "Semibold", color: "sistem/ikincil yazı" }));
+  site.appendChild(text("Sitenin kendisi: Google / Apple ile devam et ya da e-posta", { size: 12, color: "sistem/ikincil yazı" }));
+  return win;
+}
+into(secLogin, loginWindow(false), 40, 60);
+into(secLogin, loginWindow(true), 820, 60);
+into(secLogin, text("Claude ve Codex'te her giriş (Giriş Yap, Hesap Ekle, Yeniden Giriş Yap) varsayılan tarayıcıda açılır (claude auth login / codex login). Bu pencere yalnızca tarayıcı girişi mümkün değilse: Cursor ve Claude Code/Codex kurulu olmayan Mac. Giriş 2 sn'de bir denetlenir, veri gelince pencere kendiliğinden kapanır.", { size: 12, color: "sistem/ikincil yazı", width: 1500 }), 40, 600);
+
+// ============ POPUP · AYRIK DÜZEN (tek sağlayıcı bağlı, birden çok hesap: her hesap ayrı kart, çip yok) ============
+const cardComp = compPage.findOne(n => n.type === "COMPONENT" && n.name === "Kart / Ön yüz");
+async function loadFontsOf(t) { for (const f of t.getRangeAllFontNames(0, t.characters.length)) await figma.loadFontAsync(f); }
+// "≈ 2 sa sonra dolar" → "Bu hızla 2 saatte dolar" (uygulamadaki Countdown.within)
+const UNIT = { sa: "saatte", dk: "dakikada", g: "günde" };
+async function fixEta(root) {
+  let n = 0;
+  for (const t of root.findAll(x => x.type === "TEXT" && x.characters.indexOf("sonra dolar") >= 0)) {
+    const m = t.characters.match(/(\d+)\s*(sa|dk|g)\s*sonra dolar/);
+    if (!m) continue;
+    await loadFontsOf(t);
+    t.characters = "Bu hızla " + m[1] + " " + UNIT[m[2]] + " dolar"; n++;
+  }
+  return n;
+}
+function accountBadge(label) {
+  const b = frame("HORIZONTAL", { name: "hesap rozeti", paddingLeft: 5, paddingRight: 5, paddingTop: 3, paddingBottom: 3, cornerRadius: 5 });
+  b.fills = [raw(.4, .4, .4, .13)];
+  const t = text(label, { size: 10.5, style: "Semibold" }); t.fills = [raw(.4, .4, .4)]; b.appendChild(t);
+  return b;
+}
+async function splitCard(label) {
+  const card = cardComp.createInstance().detachInstance();
+  card.name = "Kart · " + label;
+  const picker = card.findOne(n => n.name === "Hesap Seçici");
+  if (picker) picker.remove();
+  await fixEta(card);
+  const name = card.findOne(n => n.type === "TEXT" && n.characters === "Claude");
+  if (name && name.parent) name.parent.appendChild(accountBadge(label));
+  return card;
+}
+if (cardComp) {
+  const tray = frame("VERTICAL", { name: "Popup · ayrık düzen", itemSpacing: 6, paddingLeft: 6, paddingRight: 6, paddingTop: 6, paddingBottom: 6, cornerRadius: 14 });
+  tray.fills = [paint("sistem/bölüm")]; tray.strokes = [paint("sistem/ayraç")]; tray.strokeWeight = .5;
+  for (const label of ["bireysel", "iş"]) { const c = await splitCard(label); tray.appendChild(c); }
+  into(secSplit, tray, 40, 60);
+}
+into(secSplit, text("Yalnızca TEK sağlayıcı bağlıysa ve onda birden çok hesap varsa her hesap ayrı kart: hesap çipleri yok, hesabın adı (Ayarlar'dan değiştirilebilir) adın ve planın altında sabit boyda rozet. Menü çubuğunda hesap başına halka. İkinci bir sağlayıcı bağlanınca tek kart + çiplere döner.", { size: 12, color: "sistem/ikincil yazı", width: 400 }), 460, 60);
+
 // ============ Popup alt şeridindeki boşluk düzeltmesi ============
 const popupPage = figma.root.children.find(p => p.name === "Popup");
 await figma.setCurrentPageAsync(popupPage);
 let fixed = 0;
 for (const n of popupPage.findAll(n => n.type === "FRAME" && n.name === "boşluk")) { n.layoutSizingVertical = "FIXED"; n.resize(n.width, 1); fixed++; }
+let etas = await fixEta(popupPage);
+await figma.setCurrentPageAsync(compPage);
+etas += await fixEta(compPage);
 
 await figma.setCurrentPageAsync(screens);
 figma.viewport.scrollAndZoomIntoView(screens.children);
-if (typeof print === "function") print("Bitti: Ekranlar sayfası (Ayarlar 4, Kurulum 6, Menü Çubuğu); popup boşluk düzeltmesi: " + fixed);
+if (typeof print === "function") print("Bitti: Ekranlar (Ayarlar 4, Kurulum 6, Menü Çubuğu, Giriş penceresi 2, Ayrık düzen" + (cardComp ? "" : " — Kart / Ön yüz bulunamadı") + "); boşluk düzeltmesi: " + fixed + "; etiket metni: " + etas);
