@@ -110,13 +110,18 @@ final class UsageStore: ObservableObject {
 
     /// Tek seferlik giriş: aracın girişi varsayılan tarayıcıda (ToolLogin), token'lar uygulamanın kendi kaydına (OwnAuth);
     /// bitince yerel hesap yeniden okunur. Sonrasında bağlantıyı uygulama kendisi yeniler.
-    func toolLogin(_ id: ProviderID) {
+    func toolLogin(_ id: ProviderID) { toolLogin(.local(id)) }
+
+    func toolLogin(_ account: Account) {
         Task {
-            guard await ToolLogin.shared.start(id) else { return }
-            await load(.local(id), allowPrompt: false)
+            guard await ToolLogin.shared.start(account.provider, key: ownKey(account)) else { return }
+            await load(account, allowPrompt: false)
             lastUpdated = Date()
         }
     }
+
+    /// Hesabın OwnAuth anahtarı: yerel hesapta sağlayıcı adı (eski kayıtlarla uyumlu), ek hesapta UUID
+    private func ownKey(_ account: Account) -> String { account.isLocal ? account.provider.rawValue : account.id }
 
     /// Popup sırası: limite en yakın en üstte; verisi olmayanlar sona. Çip seçimi sırayı değiştirmez.
     var ordered: [ProviderID] {
@@ -179,10 +184,15 @@ final class UsageStore: ObservableObject {
         AccountList.save(accounts)
     }
 
-    /// Yeni hesap: ayrı çerez kutusunda giriş penceresi açılır; pencere kapanınca veri gelirse hesap eklenir,
-    /// gelmezse (giriş yapılmadı) kutu silinir.
+    /// Yeni hesap. Araç varsa (Claude Code / Codex) giriş varsayılan tarayıcıda: tarayıcıda o an açık hesap onaylanır,
+    /// token OwnAuth'a hesabın UUID'siyle yazılır. Araç yoksa ayrı çerez kutusunda giriş penceresi açılır; pencere
+    /// kapanınca veri gelirse hesap eklenir, gelmezse (giriş yapılmadı) kutu silinir.
     func addAccount(_ id: ProviderID) {
         let account = Account(id: UUID().uuidString, provider: id)
+        if ToolLogin.isAvailable(id) {
+            Task { await addWithBrowser(account) }
+            return
+        }
         let session = session(for: account)
         session.onLoginWindowClosed = { [weak self] in Task { await self?.finishAdding(account) } }
         session.showLogin(title: "Yeni \(id.name) hesabı · \(id.webHost) girişi")
@@ -193,12 +203,9 @@ final class UsageStore: ObservableObject {
         do {
             let result = try await session.fetch()
             let email = result.email?.lowercased()
-            if let email, accounts(for: account.provider).contains(where: { $0.email?.lowercased() == email }) {
+            if let email, isDuplicate(email, provider: account.provider) {
                 discard(account)
-                let alert = NSAlert()
-                alert.messageText = "Bu hesap zaten ekli"
-                alert.informativeText = "\(email) bu listede var. Başka bir hesapla giriş yapmak için Hesap Ekle'yi tekrar dene."
-                alert.runModal()
+                duplicateAlert(email, browser: false)
                 return
             }
             var added = account
@@ -213,8 +220,41 @@ final class UsageStore: ObservableObject {
         }
     }
 
+    private func addWithBrowser(_ account: Account) async {
+        guard await ToolLogin.shared.start(account.provider, key: account.id) else { return }
+        let email = OwnAuth.load(account.id)?.email
+        if let email, isDuplicate(email, provider: account.provider) {
+            OwnAuth.remove(account.id)
+            duplicateAlert(email, browser: true)
+            return
+        }
+        var added = account
+        added.email = email
+        accounts.append(added)
+        AccountList.save(accounts)
+        await load(added)
+        lastUpdated = Date()
+    }
+
+    private func isDuplicate(_ email: String, provider: ProviderID) -> Bool {
+        let email = email.lowercased()
+        return accounts(for: provider).contains { $0.email?.lowercased() == email }
+            || AccountList.localEmail(provider)?.lowercased() == email
+            || OwnAuth.load(provider.rawValue)?.email?.lowercased() == email
+    }
+
+    private func duplicateAlert(_ email: String, browser: Bool) {
+        let alert = NSAlert()
+        alert.messageText = "Bu hesap zaten ekli"
+        alert.informativeText = browser
+            ? "\(email) bu listede var. Tarayıcında başka hesaba geçip Hesap Ekle'yi tekrar dene."
+            : "\(email) bu listede var. Başka bir hesapla giriş yapmak için Hesap Ekle'yi tekrar dene."
+        alert.runModal()
+    }
+
     func remove(_ account: Account) {
         guard !account.isLocal else { return }
+        OwnAuth.remove(account.id)
         accounts.removeAll { $0.id == account.id }
         AccountList.save(accounts)
         usage[account.id] = nil
@@ -235,7 +275,10 @@ final class UsageStore: ObservableObject {
         Task { await load(account); lastUpdated = Date() }
     }
 
-    func login(_ account: Account) { session(for: account).showLogin() }
+    /// Giriş her zaman varsayılan tarayıcıda (araç varsa); uygulama penceresi yalnızca araç yoksa (Cursor, araçsız Mac)
+    func login(_ account: Account) {
+        if ToolLogin.isAvailable(account.provider) { toolLogin(account) } else { session(for: account).showLogin() }
+    }
 
     private var sessions: [String: WebSession] = [:]
 
@@ -305,9 +348,7 @@ final class UsageStore: ObservableObject {
 
     func perform(_ action: Issue.Action, account: Account) {
         switch action {
-        case .login:
-            // Yerel hesapta araç varsa varsayılan tarayıcıda tek seferlik giriş (sonra kalıcı)
-            if account.isLocal && ToolLogin.isAvailable(account.provider) { toolLogin(account.provider) } else { login(account) }
+        case .login: login(account)
         case .allowKeychain:
             Task { await load(account, allowPrompt: true); lastUpdated = Date() }
         case .openApp(let name):
@@ -379,24 +420,24 @@ final class UsageStore: ObservableObject {
     }
 
     /// Uygulamanın kendi Claude oturumu; 401'de bir kez zorla yenileyip tekrar dener
-    private func ownClaude() async throws -> WebSession.Result {
-        var token = try await OwnAuth.valid(.claude)
+    private func ownClaude(_ key: String) async throws -> WebSession.Result {
+        var token = try await OwnAuth.valid(key, provider: .claude)
         var (data, status) = try await ClaudeCodeAuth.usage(token.access)
         if status == 401 {
-            token = try await OwnAuth.valid(.claude, force: true)
+            token = try await OwnAuth.valid(key, provider: .claude, force: true)
             (data, status) = try await ClaudeCodeAuth.usage(token.access)
         }
         guard status == 200 else { throw status == 401 ? SessionError.needsLogin : SessionError.http(status) }
         return WebSession.Result(plan: token.plan, limits: Self.parseClaude(data), email: token.email)
     }
 
-    private func ownCodex() async throws -> WebSession.Result {
-        var token = try await OwnAuth.valid(.codex)
+    private func ownCodex(_ key: String) async throws -> WebSession.Result {
+        var token = try await OwnAuth.valid(key, provider: .codex)
         let result: (plan: String?, limits: [Limit])
         do {
             result = try await CodexProvider.fetch(access: token.access, accountID: token.accountID)
         } catch SessionError.needsLogin {
-            token = try await OwnAuth.valid(.codex, force: true)
+            token = try await OwnAuth.valid(key, provider: .codex, force: true)
             result = try await CodexProvider.fetch(access: token.access, accountID: token.accountID)
         }
         return WebSession.Result(plan: result.plan, limits: result.limits, email: token.email)
@@ -408,14 +449,20 @@ final class UsageStore: ObservableObject {
     @Published private(set) var source: [ProviderID: LocalSource] = [:]
 
     private func fetch(_ account: Account, allowPrompt: Bool) async throws -> WebSession.Result {
-        if !account.isLocal { return try await session(for: account).fetch() }
+        if !account.isLocal {
+            // Tarayıcıdan eklenen hesap kendi oturumuyla; eski (pencereden eklenen) hesaplar web oturumuyla
+            if OwnAuth.has(account.id) {
+                return account.provider == .claude ? try await ownClaude(account.id) : try await ownCodex(account.id)
+            }
+            return try await session(for: account).fetch()
+        }
         let email = AccountList.localEmail(account.provider)
         switch account.provider {
         case .claude:
             // Önce uygulamanın kendi oturumu (tek seferlik giriş, kendisi yenilenir), sonra Claude Code oturumu
             // (giriş gerekmez, yalnızca okunur), en son claude.ai oturumu
             if OwnAuth.has(.claude) {
-                do { let r = try await ownClaude(); source[.claude] = .own; return r }
+                do { let r = try await ownClaude("claude"); source[.claude] = .own; return r }
                 catch let error as URLError { throw error } catch {}
             }
             let web = session(for: account)
@@ -441,7 +488,7 @@ final class UsageStore: ObservableObject {
         case .codex:
             // Kendi oturum, sonra Codex CLI girişi (yalnızca okunur), en son chatgpt.com oturumu
             if OwnAuth.has(.codex) {
-                do { let r = try await ownCodex(); source[.codex] = .own; return r }
+                do { let r = try await ownCodex("codex"); source[.codex] = .own; return r }
                 catch let error as URLError { throw error } catch {}
             }
             let web = session(for: account)

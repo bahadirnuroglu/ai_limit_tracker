@@ -25,41 +25,44 @@ enum OwnAuth {
     private static let codexTokenURL = URL(string: "https://auth.openai.com/oauth/token")!
     private static let codexClientID = "app_EMoamEEZ73f0CkXaXp7hrann"            // Codex CLI
 
-    @MainActor private static var cache: [ProviderID: Token] = [:]
-    @MainActor private static var absent: Set<ProviderID> = []   // kayıt yok (her çizimde dosyaya bakılmasın)
-    @MainActor private static var refreshing: [ProviderID: Task<Token, Error>] = [:]
+    // Anahtar: yerel hesapta sağlayıcı adı ("claude"), ek hesapta hesabın UUID'si
+    @MainActor private static var cache: [String: Token] = [:]
+    @MainActor private static var absent: Set<String> = []   // kayıt yok (her çizimde dosyaya bakılmasın)
+    @MainActor private static var refreshing: [String: Task<Token, Error>] = [:]
 
     // MARK: Kayıt
 
-    @MainActor static func has(_ id: ProviderID) -> Bool {
-        if cache[id] != nil { return true }
-        return load(id) != nil
+    @MainActor static func has(_ id: ProviderID) -> Bool { has(id.rawValue) }
+
+    @MainActor static func has(_ key: String) -> Bool {
+        if cache[key] != nil { return true }
+        return load(key) != nil
     }
 
-    @MainActor static func load(_ id: ProviderID) -> Token? {
-        if let cached = cache[id] { return cached }
-        if absent.contains(id) { return nil }
-        guard let token = readAll()[id.rawValue] else {
-            absent.insert(id)
+    @MainActor static func load(_ key: String) -> Token? {
+        if let cached = cache[key] { return cached }
+        if absent.contains(key) { return nil }
+        guard let token = readAll()[key] else {
+            absent.insert(key)
             return nil
         }
-        cache[id] = token
+        cache[key] = token
         return token
     }
 
-    @MainActor static func save(_ token: Token, for id: ProviderID) {
-        cache[id] = token
-        absent.remove(id)
+    @MainActor static func save(_ token: Token, for key: String) {
+        cache[key] = token
+        absent.remove(key)
         var all = readAll()
-        all[id.rawValue] = token
+        all[key] = token
         writeAll(all)
     }
 
-    @MainActor static func remove(_ id: ProviderID) {
-        cache[id] = nil
-        absent.insert(id)
+    @MainActor static func remove(_ key: String) {
+        cache[key] = nil
+        absent.insert(key)
         var all = readAll()
-        all[id.rawValue] = nil
+        all[key] = nil
         writeAll(all)
     }
 
@@ -92,19 +95,19 @@ enum OwnAuth {
 
     /// Süresi dolduysa (ya da force) yeniler. Yenileme reddedilirse (iptal edilmiş oturum) kayıt silinir:
     /// kart yeniden "Giriş Yap" gösterir.
-    @MainActor static func valid(_ id: ProviderID, force: Bool = false) async throws -> Token {
-        guard let token = load(id) else { throw SessionError.needsLogin }
+    @MainActor static func valid(_ key: String, provider: ProviderID, force: Bool = false) async throws -> Token {
+        guard let token = load(key) else { throw SessionError.needsLogin }
         if !force, (token.expires ?? .distantFuture) > Date().addingTimeInterval(60) { return token }
-        if let running = refreshing[id] { return try await running.value }
-        let task = Task { try await refresh(token, id: id) }
-        refreshing[id] = task
-        defer { refreshing[id] = nil }
+        if let running = refreshing[key] { return try await running.value }
+        let task = Task { try await refresh(token, id: provider) }
+        refreshing[key] = task
+        defer { refreshing[key] = nil }
         do {
             let fresh = try await task.value
-            save(fresh, for: id)
+            save(fresh, for: key)
             return fresh
         } catch RefreshError.rejected {
-            remove(id)
+            remove(key)
             throw SessionError.needsLogin
         }
     }
@@ -154,7 +157,7 @@ enum OwnAuth {
 
     /// `claude auth login` geçici klasörde bittikten sonra: token'ı (klasördeki dosyadan ya da Claude Code'un o klasör
     /// için açtığı Anahtar Zinciri kaydından) kendi kaydımıza taşı, geçici kaydı sil
-    @MainActor static func importClaude(configDir: URL, startedAt: Date) async -> Bool {
+    @MainActor static func importClaude(configDir: URL, startedAt: Date, key: String) async -> Bool {
         var root: [String: Any]?
         let file = configDir.appendingPathComponent(".credentials.json")
         if let data = try? Data(contentsOf: file) {
@@ -177,7 +180,7 @@ enum OwnAuth {
             plan: (oauth["subscriptionType"] as? String)?.capitalized,
             email: email
         )
-        save(token, for: .claude)
+        save(token, for: key)
         return true
     }
 
@@ -240,7 +243,7 @@ enum OwnAuth {
     }
 
     /// `codex login` geçici CODEX_HOME'da bittikten sonra auth.json'u kendi kaydımıza taşı
-    @MainActor static func importCodex(home: URL) -> Bool {
+    @MainActor static func importCodex(home: URL, key: String) -> Bool {
         guard let data = try? Data(contentsOf: home.appendingPathComponent("auth.json")),
               let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let tokens = root["tokens"] as? [String: Any],
@@ -254,7 +257,7 @@ enum OwnAuth {
             accountID: tokens["account_id"] as? String,
             idToken: idToken
         )
-        save(token, for: .codex)
+        save(token, for: key)
         return true
     }
 

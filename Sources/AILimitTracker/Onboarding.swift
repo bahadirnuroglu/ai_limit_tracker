@@ -464,7 +464,9 @@ private struct SettingsView: View {
                         .buttonStyle(.borderless)
                         .foregroundStyle(.tint)
                         .padding(.leading, 40)
-                        .help("\(id.webHost) girişiyle ikinci bir hesap bağlar; oturumlar birbirinden ayrı tutulur")
+                        .help(ToolLogin.isAvailable(id)
+                              ? "Varsayılan tarayıcında açılır; tarayıcıda o an açık olan \(id.name) hesabı eklenir. Önce tarayıcıda eklemek istediğin hesaba geç."
+                              : "\(id.webHost) girişiyle ikinci bir hesap bağlar; oturumlar birbirinden ayrı tutulur")
                     }
                 } footer: {
                     if id == ProviderID.allCases.last {
@@ -570,7 +572,7 @@ private struct ConnectRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            ProviderLabel(id: id, detail: detail, link: windowLink)
+            ProviderLabel(id: id, detail: detail)
             Spacer(minLength: 8)
             if enabled { trailing }
             if let toggle { Toggle("", isOn: toggle).toggleStyle(.switch).labelsHidden() }
@@ -587,8 +589,8 @@ private struct ConnectRow: View {
         if !enabled { return "Popup'ta gösterilmiyor" }
         if wantsOneTimeLogin && !tool.running.contains(id) {
             return id == .claude
-                ? "Bir kez giriş yap (Pro ya da Max hesabı); bağlantı hep açık kalır. Tarayıcında açılır."
-                : "Bir kez giriş yap; bağlantı hep açık kalır. Tarayıcında açılır."
+                ? "Bir kez giriş yap (Pro ya da Max hesabı); bağlantı hep açık kalır. Varsayılan tarayıcında açılır."
+                : "Bir kez giriş yap; bağlantı hep açık kalır. Varsayılan tarayıcında açılır."
         }
         if usage.isConnected {
             let first = usage.frontLimits.first.map { "\($0.short ?? $0.label) %\(Int($0.percent.rounded()))" }
@@ -599,7 +601,7 @@ private struct ConnectRow: View {
         case .claude:
             return ClaudeCodeAuth.isAvailable
                 ? "Claude Code oturumu kullanılır. macOS bir kez Mac parolanı isteyecek; Her Zaman İzin Ver'i seç."
-                : ToolLogin.isAvailable(.claude) ? "Giriş Yap tarayıcında açılır (Pro ya da Max hesabı). Ücretsiz hesapta uygulama penceresinden gir."
+                : ToolLogin.isAvailable(.claude) ? "Giriş Yap varsayılan tarayıcında açılır (Pro ya da Max hesabı)."
                 : "Claude Code girişliyse kendiliğinden okunur; yoksa claude.ai ile bir kez giriş yap."
         case .codex:
             return CodexCLI.isLoggedIn ? "Codex CLI girişi kullanılır, şifre gerekmez."
@@ -631,13 +633,6 @@ private struct ConnectRow: View {
         } else if let (title, action) = primaryAction {
             Button(title, action: action).buttonStyle(.borderedProminent).controlSize(.small)
         }
-    }
-
-    /// Satırın altındaki ikinci yol: sitenin girişi uygulama penceresinde (Google/Apple da olur; ücretsiz Claude hesabı)
-    private var windowLink: (String, () -> Void)? {
-        guard enabled, ToolLogin.isAvailable(id), !tool.running.contains(id),
-              wantsOneTimeLogin || (!usage.isConnected && needsLogin) else { return nil }
-        return ("Ya da uygulama penceresinde giriş yap", { store.login(.local(id)) })
     }
 
     /// Çözüm giriş mi? (ipucu .login istiyor ya da yerel oturum hiç yok)
@@ -869,7 +864,6 @@ private struct AccountRow: View {
 private struct ProviderLabel: View {
     let id: ProviderID
     let detail: String
-    var link: (String, () -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 10) {
@@ -881,9 +875,6 @@ private struct ProviderLabel: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(id.name).font(.system(size: 13, weight: .semibold))
                 Text(detail).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                if let (title, action) = link {
-                    Button(title, action: action).buttonStyle(.link).font(.callout)
-                }
             }
         }
     }

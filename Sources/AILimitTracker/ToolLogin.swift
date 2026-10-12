@@ -58,9 +58,11 @@ final class ToolLogin: ObservableObject {
         }
     }
 
-    /// Girişi başlatır; araç bitince true (başarılı) / false döner. Kullanıcı tarayıcıda vazgeçerse araç beklemeye
-    /// devam eder: 10 dk sonra ya da cancel ile kapatılır.
-    func start(_ id: ProviderID) async -> Bool {
+    /// Girişi başlatır; araç bitince true (başarılı) / false döner. Token OwnAuth'a `key` ile yazılır (yerel hesap:
+    /// sağlayıcı adı, ek hesap: hesabın UUID'si). Kullanıcı tarayıcıda vazgeçerse araç beklemeye devam eder: 10 dk sonra
+    /// ya da cancel ile kapatılır.
+    func start(_ id: ProviderID, key: String? = nil) async -> Bool {
+        let key = key ?? id.rawValue
         guard let path = Self.executable(id) else { return false }
         // Önceki giriş hâlâ bekliyorsa (ör. tarayıcıda yanlış hesap açıktı) kapatıp baştan başla
         if running.contains(id) {
@@ -104,8 +106,8 @@ final class ToolLogin: ObservableObject {
         defer { running.remove(id); processes[id] = nil }
         guard status == 0 else { return false }
         switch id {
-        case .claude: return await OwnAuth.importClaude(configDir: dir, startedAt: startedAt)
-        case .codex: return OwnAuth.importCodex(home: dir)
+        case .claude: return await OwnAuth.importClaude(configDir: dir, startedAt: startedAt, key: key)
+        case .codex: return OwnAuth.importCodex(home: dir, key: key)
         case .cursor: return false
         }
     }

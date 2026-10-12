@@ -145,7 +145,12 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   Kartta "Giriş yap" yerel hesapta araç varsa tarayıcı girişini başlatır. VARSAYILAN YOL tek seferlik giriş (kullanıcı: "bir defa
   giriş yapsın, sonrasında öyle böyle demeyelim"): ConnectRow araç varsa ve kendi oturum yoksa, araç oturumundan bağlı olsa bile
   "Giriş Yap" gösterir (Claude'da Mac parolası sorusu da kalkar); web penceresinden bağlanan (store.source == .web) rahatsız edilmez.
-  Popup araç oturumu çalıştıkça bir şey demez. Gerçek girişle uçtan uca TEST EDİLMEDİ (kullanıcı/arkadaş test edecek).
+  Popup araç oturumu çalıştıkça bir şey demez.
+  KURAL (kullanıcı: "login kullanıcının default browser'ında açılmalı"): araç varsa (Claude/Codex) HER giriş varsayılan tarayıcıda:
+  store.login(account) → toolLogin; "Hesap Ekle" de (tarayıcıda o an açık hesap eklenir, OwnAuth anahtarı = hesabın UUID'si;
+  yerel = sağlayıcı adı). "Uygulama penceresinde giriş yap" bağlantısı KALDIRILDI. Uygulama penceresi (WebSession) yalnızca araç
+  yoksa (Cursor, araçsız Mac) ve eski pencereden eklenmiş hesapların okunmasında. Arc'ta dış bağlantılar "Little Arc"ta, Arc'ın
+  seçtiği profilde açılır (kullanıcıda HubX profili = iş hesabı → "Pro/Max gerekir"); profili uygulama seçemez. Gerçek girişle uçtan uca TEST EDİLMEDİ (kullanıcı/arkadaş test edecek).
 - Claude Code Anahtar Zinciri: okuma ana iş parçacığı DIŞINDA; sormadan okumada SecKeychainSetUserInteractionAllowed(false)
   (eski tip giriş anahtar zinciri kSecUseAuthenticationUIFail'i yok sayıp izin penceresi açıyor ve popup'ı donduruyordu).
 - Yerel Codex/Cursor: CLI girişi / Cursor uygulaması yoksa ya da oturumu düşmüşse varsayılan çerez kutusunda
