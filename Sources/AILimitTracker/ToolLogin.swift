@@ -52,7 +52,8 @@ final class ToolLogin: ObservableObject {
     private static func arguments(_ id: ProviderID) -> [String] {
         switch id {
         case .claude: return ["auth", "login", "--claudeai"]
-        case .codex: return ["login"]
+        // Girişi dosyaya yazdır (bazı sürümler varsayılan olarak Anahtar Zinciri'ne yazar; OwnAuth auth.json'u okur)
+        case .codex: return ["login", "-c", "cli_auth_credentials_store=\"file\""]
         case .cursor: return []
         }
     }

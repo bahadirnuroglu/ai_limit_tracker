@@ -40,8 +40,10 @@ enum OwnAuth {
     @MainActor static func load(_ id: ProviderID) -> Token? {
         if let cached = cache[id] { return cached }
         if absent.contains(id) { return nil }
-        guard let data = readItem(id), let token = try? JSONDecoder().decode(Token.self, from: data) else {
-            absent.insert(id)
+        let (status, data) = readItem(id)
+        guard let data, let token = try? JSONDecoder().decode(Token.self, from: data) else {
+            // Sadece kayıt gerçekten yoksa hatırla; Anahtar Zinciri kilitliyse bir sonraki denemede yeniden bakılır
+            if status == errSecItemNotFound { absent.insert(id) }
             return nil
         }
         cache[id] = token
@@ -64,13 +66,14 @@ enum OwnAuth {
     }
 
     /// Kendi kaydımız: uygulama oluşturduğu için soru çıkmaz; yine de sormadan okunur
-    private static func readItem(_ id: ProviderID) -> Data? {
+    private static func readItem(_ id: ProviderID) -> (OSStatus, Data?) {
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service,
                                     kSecAttrAccount as String: id.rawValue, kSecReturnData as String: true]
         SecKeychainSetUserInteractionAllowed(false)
         defer { SecKeychainSetUserInteractionAllowed(true) }
         var item: CFTypeRef?
-        return SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess ? item as? Data : nil
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        return (status, status == errSecSuccess ? item as? Data : nil)
     }
 
     private static func writeItem(_ id: ProviderID, _ data: Data) {
