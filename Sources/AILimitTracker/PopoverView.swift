@@ -684,8 +684,12 @@ private struct RingGauge: View {
                 .rotationEffect(.degrees(135))  // sol alttan başlar, saat yönünde dolar
                 .padding(line / 2)
                 Text("\(shown ? Int(limit.percent.rounded()) : 0)%")
-                    .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                    // "100%" halkanın içine (≈ 34 pt) sığsın: üç hanede küçük yazı, yine de taşarsa ölçeklenir
+                    .font(.system(size: limit.percent.rounded() >= 100 ? 10.5 : 12.5, weight: .semibold, design: .rounded))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .frame(maxWidth: size - line * 2 - 4)
                     .contentTransition(.numericText())
                     .animation(.easeOut(duration: 0.6).delay(0.15 + delay), value: shown)
             }
