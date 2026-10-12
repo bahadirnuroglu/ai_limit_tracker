@@ -4,17 +4,18 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
-/* Düzen: Raycast ana sayfasının iskeleti — yüzen gezinme hapı, ışık çizgili giriş, Mac çerçevesinde canlı demo ve altında
-   özellik rafı, sol metin + sağ tuş ızgarası, sekmeli kart ızgarası, büyük pencere, üçlü kart, kapanış çağrısı */
+/* Düzen: Raycast ana sayfasının iskeleti — yüzen gezinme hapı, WebGL cam çubuklu giriş, Mac çerçevesinde sekmeli demo,
+   tuş ızgarası, bento özellikler, sekmeli sağlayıcı ızgarası, büyük pencere, kapanış çağrısı. Animasyonlar GSAP + ScrollTrigger. */
 :root {
   color-scheme: dark;
   --bg: #07080a;
-  --panel: #0d0e11;
+  --card: rgba(255, 255, 255, .02);
   --line: rgba(255, 255, 255, .06);
   --line-2: rgba(255, 255, 255, .1);
   --fg: #ffffff;
   --gray: #6a6b6c;
   --gray-2: #9c9c9d;
+  --desc: rgba(255, 255, 255, .4);
   --glow: #ff6a3d;
   --tempo: #8f7cf7;
   --calm: #56a3ff;
@@ -27,7 +28,7 @@
   --round: ui-rounded, "SF Pro Rounded", "Inter", sans-serif;
 }
 * { box-sizing: border-box }
-html { background: var(--bg); scroll-behavior: smooth }
+html { background: var(--bg) }
 body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 16px; line-height: 1.5; letter-spacing: .2px; -webkit-font-smoothing: antialiased; padding-inline: 16px; overflow-x: hidden }
 a { color: inherit; text-decoration: none }
 h1, h2, h3, h4, p { margin: 0 }
@@ -35,7 +36,6 @@ h1, h2, h3 { text-wrap: balance }
 .wrap { max-width: 1104px; margin-inline: auto }
 :focus-visible { outline: 2px solid var(--calm); outline-offset: 3px; border-radius: 6px }
 
-/* Raycast düğmesi */
 .dl { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 8px 12px; border-radius: 8px; background: #e6e6e6; color: #2f3031; font-size: 14px; font-weight: 500; line-height: 16px; box-shadow: rgba(0,0,0,.5) 0 0 0 2px, rgba(255,255,255,.19) 0 0 14px 0, rgba(0,0,0,.2) 0 -1px .4px 0 inset, #fff 0 1px .4px 0 inset; transition: background .15s }
 .dl:hover { background: #fff }
 .dl svg { width: 14px; height: 14px }
@@ -43,55 +43,52 @@ h1, h2, h3 { text-wrap: balance }
 .fine a { color: var(--gray-2) }
 .fine a:hover { color: var(--fg) }
 
-/* Bölüm başlığı: beyaz satır + gri satır, aynı boyda */
 .head { display: flex; flex-direction: column; font-size: 20px; font-weight: 500; line-height: 1.25 }
 .head h2 { font-size: inherit; font-weight: inherit }
 .head p { color: var(--gray) }
 .head.center { text-align: center; align-items: center }
+.eyebrow { font-family: var(--mono); font-size: 12px; color: var(--glow); letter-spacing: .1em; text-transform: uppercase }
+.big-head { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center }
+.big-head h2 { font-size: 32px; line-height: 1.2; font-weight: 500; letter-spacing: -.8px }
+.big-head p:last-child { color: var(--gray); font-size: 18px; max-width: 40ch }
 
-/* Gezinme hapı */
 .navbar { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); z-index: 20; display: flex; align-items: center; gap: 24px; height: 52px; padding: 0 10px 0 16px; border-radius: 16px; border: 1px solid var(--line-2); background: rgba(7, 8, 10, .62); backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%); margin-top: 16px }
 .logo { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px }
 .navlinks { display: flex; gap: 22px; margin-inline: auto; font-size: 14px; color: var(--gray-2) }
 .navlinks a:hover { color: var(--fg) }
 .navbar .dl { height: 32px; padding: 6px 12px }
 
-/* Giriş: ışık çizgileri */
-.hero { position: relative; min-height: 820px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 20px; padding-block: 80px 60px; isolation: isolate }
-.streaks { position: absolute; inset: -80px -40vw 0; z-index: -1; overflow: hidden; pointer-events: none; mask-image: radial-gradient(42% 46% at 50% 45%, #000 20%, transparent 72%); -webkit-mask-image: radial-gradient(42% 46% at 50% 45%, #000 20%, transparent 72%) }
-.streaks .rig { position: absolute; left: 50%; top: 46%; width: 900px; height: 900px; transform: translate(-50%, -50%) rotate(-38deg) }
-.streak { position: absolute; left: 0; width: 900px; height: 30px; border-radius: 20px; background: linear-gradient(90deg, transparent 0%, rgba(120, 18, 8, .35) 22%, rgba(230, 70, 40, .8) 44%, rgba(255, 150, 110, .75) 49%, rgba(90, 10, 6, .55) 58%, transparent 80%); filter: blur(1px); box-shadow: 0 0 30px rgba(255, 80, 40, .12); animation: drift 9s ease-in-out infinite alternate }
-.streak::after { content: ""; position: absolute; inset: 5px 38%; border-radius: inherit; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .5), transparent); filter: blur(3px); opacity: .35 }
-@keyframes drift { from { transform: translateX(-60px) } to { transform: translateX(60px) } }
+.hero { position: relative; min-height: 860px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 20px; padding-block: 60px; isolation: isolate }
+.glass { position: absolute; z-index: -1; pointer-events: none; left: 50%; transform: translateX(-50%); width: min(1400px, 140vw) }
+.hero .glass { top: -120px; height: 1000px }
+.glass canvas { width: 100%; height: 100%; display: block }
+.glass.fallback { background: radial-gradient(40% 35% at 55% 45%, rgba(255, 90, 50, .35), transparent 70%) }
 .hero h1 { font-size: clamp(42px, 6.2vw, 64px); line-height: 1.1; font-weight: 600; letter-spacing: -.01em; max-width: 13ch }
+.hero h1 .w { display: inline-block }
 .hero .sub { font-size: 18px; max-width: 34ch; opacity: .92 }
-.hero .actions { margin-top: 150px; display: flex; flex-direction: column; align-items: center; gap: 14px }
+.hero .actions { margin-top: 170px; display: flex; flex-direction: column; align-items: center; gap: 14px }
 
-/* Mac çerçevesi */
-.demo { margin-top: 40px; display: flex; flex-direction: column; align-items: center; gap: 22px }
-.mac { position: relative; width: 100%; aspect-ratio: 16 / 9.4; border-radius: 16px; overflow: hidden; border: 1px solid var(--line-2); box-shadow: 0 0 0 1px rgba(0,0,0,.6), 0 30px 120px rgba(255, 90, 50, .12); background: radial-gradient(70% 90% at 75% 10%, rgba(255, 106, 61, .55), transparent 60%), radial-gradient(60% 70% at 15% 90%, rgba(143, 60, 30, .55), transparent 65%), linear-gradient(160deg, #24110c, #0b0607 70%) }
+.demo { margin-top: 40px; display: flex; flex-direction: column; align-items: center; gap: 22px; perspective: 1400px }
+.mac { position: relative; width: 100%; aspect-ratio: 16 / 9.4; border-radius: 16px; overflow: hidden; border: 1px solid var(--line-2); box-shadow: 0 0 0 1px rgba(0,0,0,.6), 0 30px 120px rgba(255, 90, 50, .12); background: radial-gradient(70% 90% at 75% 10%, rgba(255, 106, 61, .5), transparent 60%), radial-gradient(60% 70% at 15% 90%, rgba(143, 60, 30, .5), transparent 65%), linear-gradient(160deg, #24110c, #0b0607 70%); transform-origin: 50% 0 }
 .mac-bar { display: flex; align-items: center; gap: 16px; height: 26px; padding-inline: 14px; background: rgba(0, 0, 0, .35); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); font-size: 12px; color: rgba(255, 255, 255, .88); letter-spacing: 0; white-space: nowrap; overflow: hidden }
 .mac-bar b { font-weight: 600 }
 .mac-bar .r { margin-left: auto; display: flex; align-items: center; gap: 14px }
 .mb-ring { display: grid; place-items: center; width: 30px; height: 20px; border-radius: 5px; background: rgba(255, 255, 255, .2) }
 .screen { position: absolute; inset: 26px 0 0 }
-.view { position: absolute; inset: 0; display: flex; justify-content: flex-end; align-items: flex-start; padding: 8px clamp(10px, 4%, 40px) 0; opacity: 0; transform: translateY(6px); transition: opacity .35s, transform .35s; pointer-events: none }
-.view.on { opacity: 1; transform: none; pointer-events: auto }
+.view { position: absolute; inset: 0; display: flex; justify-content: flex-end; align-items: flex-start; padding: 8px clamp(10px, 4%, 40px) 0; visibility: hidden }
+.view.on { visibility: visible }
 .view.centered { justify-content: center; align-items: center; padding: 0 }
-
-/* Raf (Raycast'teki özellik seçici) */
 .shelf { display: flex; flex-direction: column; align-items: center; gap: 14px }
 .shelf-row { display: flex; gap: 8px; padding: 6px; border-radius: 14px; border: 1px solid var(--line-2); background: rgba(255, 255, 255, .03) }
-.shelf button { width: 44px; height: 44px; border-radius: 10px; border: 1px solid transparent; background: transparent; color: var(--gray-2); display: grid; place-items: center; cursor: pointer }
+.shelf button { width: 44px; height: 44px; border-radius: 10px; border: 1px solid transparent; background: transparent; color: var(--gray-2); display: grid; place-items: center; cursor: pointer; transition: background .2s, color .2s }
 .shelf button:hover { background: rgba(255, 255, 255, .05); color: var(--fg) }
 .shelf button[aria-selected="true"] { background: rgba(255, 255, 255, .1); border-color: var(--line-2); color: var(--fg) }
 .shelf button svg { width: 18px; height: 18px }
 .caption { font-size: 15px; color: var(--gray); text-align: center; max-width: 46ch; min-height: 46px }
 .caption b { color: var(--fg); font-weight: 500 }
 
-/* Popup ve kartlar (uygulamadaki gibi) */
 .popup { width: 340px; flex: none; padding: 6px; border-radius: 16px; background: rgba(26, 26, 30, .8); backdrop-filter: blur(30px) saturate(160%); -webkit-backdrop-filter: blur(30px) saturate(160%); border: 1px solid rgba(255, 255, 255, .12); box-shadow: 0 30px 80px rgba(0, 0, 0, .55); display: flex; flex-direction: column; gap: 6px }
-.card { position: relative; border-radius: 12px; padding: 13px; background: linear-gradient(160deg, var(--metal-1), var(--metal-2)); color: var(--metal-ink); overflow: hidden; display: flex; gap: 10px; justify-content: space-between; min-height: 106px; letter-spacing: 0 }
+.card { position: relative; border-radius: 12px; padding: 13px; background: linear-gradient(160deg, var(--metal-1), var(--metal-2)); color: var(--metal-ink); overflow: hidden; display: flex; gap: 10px; justify-content: space-between; min-height: 106px; letter-spacing: 0; text-align: left }
 .card::before { content: ""; position: absolute; inset: 4px; border: 1px solid rgba(255, 255, 255, .09); border-radius: 9px; pointer-events: none }
 .card::after { content: ""; position: absolute; inset: -40%; background: conic-gradient(from 0deg, transparent 0 20%, rgba(120, 200, 255, .35), rgba(190, 140, 255, .35), rgba(255, 170, 120, .3), transparent 55% 100%); filter: blur(22px); mix-blend-mode: screen; opacity: .2; animation: holo 14s linear infinite; pointer-events: none }
 @keyframes holo { to { transform: rotate(360deg) } }
@@ -110,38 +107,33 @@ h1, h2, h3 { text-wrap: balance }
 .gauge .pct { font-family: var(--round); font-size: 12px; font-weight: 600; fill: var(--metal-ink) }
 .gauge .l { font-size: 10.5px; font-weight: 500 }
 .gauge .r { font-size: 10px; color: rgba(201, 201, 207, .7); font-variant-numeric: tabular-nums }
-.arc { transition: stroke-dashoffset 1s cubic-bezier(.2, .8, .2, 1) }
 .foot { display: flex; align-items: center; gap: 6px; padding: 4px 4px 2px; font-size: 11px; color: rgba(255, 255, 255, .55); letter-spacing: 0 }
 .foot .sp { margin-right: auto }
-.glass { padding: 4px 10px; border-radius: 999px; background: rgba(255, 255, 255, .08); color: rgba(255, 255, 255, .85) }
-/* Kartın arka yüzü */
+.pill { padding: 4px 10px; border-radius: 999px; background: rgba(255, 255, 255, .08); color: rgba(255, 255, 255, .85) }
 .back { flex-direction: column; justify-content: flex-start; gap: 9px }
 .tabs { display: flex; gap: 2px; padding: 2px; border-radius: 7px; background: rgba(255, 255, 255, .06); width: max-content; margin-left: auto }
 .tabs span { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 5px }
 .tabs span.on { background: rgba(255, 255, 255, .14) }
 .mrow { display: grid; grid-template-columns: 92px minmax(0, 1fr) 34px; gap: 8px; align-items: center; font-size: 11px; position: relative; z-index: 1 }
-.mrow .bar { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .1); overflow: hidden }
-.mrow .bar i { display: block; height: 100%; border-radius: 3px }
+.bar { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .1); overflow: hidden; display: block }
+.bar i { display: block; height: 100%; border-radius: 3px; transform-origin: left }
 .mrow .v { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--round); font-weight: 600 }
 .heat { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 3px; position: relative; z-index: 1 }
 .heat i { aspect-ratio: 1; border-radius: 2px; display: block }
-/* Bildirim */
 .notes { display: flex; flex-direction: column; gap: 8px; width: 350px; margin-top: 6px }
-.note { display: flex; gap: 11px; align-items: flex-start; padding: 12px 14px; border-radius: 16px; background: rgba(40, 40, 46, .72); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, .1); box-shadow: 0 10px 30px rgba(0, 0, 0, .35); letter-spacing: 0 }
+.note { display: flex; gap: 11px; align-items: flex-start; padding: 12px 14px; border-radius: 16px; background: rgba(40, 40, 46, .72); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, .1); box-shadow: 0 10px 30px rgba(0, 0, 0, .35); letter-spacing: 0; text-align: left }
 .note .ic { width: 32px; height: 32px; border-radius: 8px; flex: none; background: linear-gradient(160deg, #3a3b40, #222327); display: grid; place-items: center }
 .note b { font-size: 13px; display: block; font-weight: 600 }
 .note span { font-size: 12.5px; color: rgba(255, 255, 255, .7) }
 .note time { margin-left: auto; font-size: 11px; color: rgba(255, 255, 255, .45); white-space: nowrap }
-/* Menü çubuğu stilleri */
 .styles { display: grid; grid-template-columns: repeat(2, 200px); gap: 12px }
-.sty { border-radius: 14px; padding: 14px; background: rgba(20, 20, 24, .75); backdrop-filter: blur(20px); border: 1px solid var(--line-2); display: flex; flex-direction: column; gap: 6px; font-size: 13px; letter-spacing: 0 }
+.sty { border-radius: 14px; padding: 14px; background: rgba(20, 20, 24, .75); backdrop-filter: blur(20px); border: 1px solid var(--line-2); display: flex; flex-direction: column; gap: 6px; font-size: 13px; letter-spacing: 0; text-align: left }
 .sty.on { border-color: var(--calm); box-shadow: 0 0 0 1px var(--calm) }
 .sty .strip { height: 34px; border-radius: 8px; background: rgba(255, 255, 255, .08); display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 4px }
 .sty small { color: rgba(255, 255, 255, .55); font-size: 11.5px }
 
-section { padding-top: 140px }
+section { padding-top: 160px }
 
-/* Sol metin + sağ tuş ızgarası */
 .split { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 48px; align-items: start }
 .split .head { position: sticky; top: 110px }
 .split .dl { margin-top: 24px; width: max-content }
@@ -152,26 +144,50 @@ section { padding-top: 140px }
 .k.f p { font-size: 14px; line-height: 1.35 }
 .k.f p span { color: var(--gray) }
 
-/* Sekmeli sağlayıcı ızgarası */
+/* Bento (Raycast AI bölümündeki kart dili: %2 beyaz zemin, 30 px köşe, 24 px iç boşluk, 30 px aralık) */
+.bento { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 250px; gap: 30px; margin-top: 48px }
+.tile { position: relative; overflow: hidden; border-radius: 30px; background: var(--card); padding: 24px; display: flex; flex-direction: column; gap: 6px; isolation: isolate }
+.tile::before, .wide::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.02)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none }
+.tile .vis { flex: 1; min-height: 0; display: grid; place-items: center; position: relative }
+.tile h3 { font-size: 16px; font-weight: 500; line-height: 24px }
+.tile p { color: var(--desc); font-size: 15px; line-height: 22.5px; max-width: 42ch }
+.tile .halo { position: absolute; z-index: -1; inset: auto -20% -60% -20%; height: 120%; background: radial-gradient(50% 50% at 50% 50%, rgba(255, 106, 61, .14), transparent 70%); pointer-events: none }
+.t-a { grid-column: span 2; grid-row: span 2 }
+.t-b { grid-row: span 2 }
+.t-f { grid-column: span 2 }
+.mini { display: flex; flex-direction: column; gap: 6px; width: min(100%, 340px) }
+.mini .card { min-height: 96px }
+.bigring { width: 180px; height: 180px; position: relative; margin-inline: auto }
+.bigring svg { width: 100%; height: 100%; overflow: visible }
+.bigring .n { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--round); font-size: 44px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -1px }
+.eta { font-size: 13px; color: #b7a9ff; font-weight: 500; margin-top: 10px; text-align: center }
+.menu { width: 230px; border-radius: 10px; padding: 5px; background: rgba(36, 36, 40, .92); border: 1px solid var(--line-2); box-shadow: 0 16px 40px rgba(0,0,0,.5); font-size: 13px; letter-spacing: 0 }
+.menu div { padding: 5px 9px; border-radius: 6px; display: flex; justify-content: space-between; gap: 10px; color: rgba(255,255,255,.85) }
+.menu div.hl { background: var(--calm); color: #fff }
+.menu hr { border: 0; height: 1px; background: var(--line-2); margin: 4px 6px }
+.combo { display: flex; align-items: center; gap: 8px; color: var(--gray) }
+.ck { min-width: 64px; height: 64px; padding: 8px; border-radius: 12px; background: linear-gradient(180deg, #1b1c1f, #121315); border: 1px solid var(--line-2); box-shadow: 0 1px 0 rgba(255, 255, 255, .05) inset, 0 4px 0 #040405; display: flex; flex-direction: column; justify-content: space-between; align-items: center; color: var(--fg); font-size: 11px; letter-spacing: 0 }
+.ck b { font-size: 18px; font-weight: 500 }
+.accts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; width: 100% }
+.acct { border-radius: 14px; border: 1px solid var(--line); background: rgba(255,255,255,.03); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; text-align: left }
+.acct small { color: var(--desc); font-size: 12px }
+.icons { display: flex; gap: 10px }
+.icons span { width: 46px; height: 32px; border-radius: 8px; background: rgba(255, 255, 255, .06); border: 1px solid var(--line); display: grid; place-items: center }
+
 .tabbar { display: flex; gap: 4px; padding: 4px; border-radius: 10px; border: 1px solid var(--line-2); width: max-content }
 .tabbar button { height: 30px; padding: 0 12px; border-radius: 7px; border: 0; background: transparent; color: var(--gray-2); font: 500 13px var(--sans); cursor: pointer }
 .tabbar button[aria-selected="true"] { background: rgba(255, 255, 255, .1); color: var(--fg) }
 .row-head { display: flex; align-items: end; justify-content: space-between; gap: 20px; flex-wrap: wrap }
 .lgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 32px }
-.lcard { border-radius: 14px; border: 1px solid var(--line); background: var(--panel); padding: 18px; display: flex; flex-direction: column; gap: 10px; min-height: 150px }
+.lcard { border-radius: 16px; background: var(--card); border: 1px solid var(--line); padding: 18px; display: flex; flex-direction: column; gap: 10px; min-height: 150px }
 .lcard .top { display: flex; align-items: center; gap: 10px }
-.lcard .top svg { width: 26px; height: 26px; flex: none }
+.lcard .top svg { width: 24px; height: 24px; flex: none }
 .lcard h3 { font-size: 15px; font-weight: 500 }
-.lcard p { color: var(--gray); font-size: 14px; line-height: 1.45 }
+.lcard p { color: var(--desc); font-size: 14px; line-height: 1.45 }
 .lcard .meter { margin-top: auto; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .07); overflow: hidden }
 .lcard .meter i { display: block; height: 100% }
 
-/* Büyük pencere */
-.eyebrow { font-family: var(--mono); font-size: 12px; color: var(--glow); letter-spacing: .1em; text-transform: uppercase }
-.big { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center }
-.big h2 { font-size: 32px; line-height: 1.2; font-weight: 500; letter-spacing: -.8px }
-.big > p { color: var(--gray); font-size: 18px; max-width: 40ch }
-.window { margin-top: 32px; width: 100%; border-radius: 16px; border: 1px solid var(--line-2); background: var(--panel); overflow: hidden; display: grid; grid-template-columns: 240px minmax(0, 1fr) }
+.window { margin-top: 40px; width: 100%; border-radius: 16px; border: 1px solid var(--line-2); background: #0b0c0e; overflow: hidden; display: grid; grid-template-columns: 240px minmax(0, 1fr) }
 .window .side { border-right: 1px solid var(--line); padding: 14px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--gray-2); text-align: left }
 .window .side .lights { display: flex; gap: 7px; margin-bottom: 14px }
 .window .side .lights i { width: 11px; height: 11px; border-radius: 50%; display: block }
@@ -181,35 +197,23 @@ section { padding-top: 140px }
 .stack { display: flex; flex-direction: column; gap: 12px }
 .stack .lbl { font-size: 13px; color: var(--gray) }
 .stack .num { font-size: 44px; font-weight: 600; letter-spacing: -1px; font-variant-numeric: tabular-nums; line-height: 1 }
-.stack .eta { font-size: 14px; color: #b7a9ff }
-.sub2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; margin-top: 12px; width: 100%; text-align: left }
-.sub2 .lcard { min-height: 120px }
 
-/* Üçlü kart */
-.trio { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; margin-top: 32px }
-.trio .lcard.wide { grid-column: span 2; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); align-items: center; gap: 24px; min-height: 240px }
-.art { border-radius: 12px; background: radial-gradient(80% 120% at 80% 0%, rgba(255, 106, 61, .3), transparent 60%), #0a0b0d; border: 1px solid var(--line); min-height: 180px; display: grid; place-items: center; padding: 18px }
+.wide { margin-top: 32px; border-radius: 30px; background: var(--card); padding: 24px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 24px; align-items: center; position: relative }
+.wide h3 { font-size: 16px; font-weight: 500 }
+.wide p { color: var(--desc); font-size: 15px; line-height: 22.5px }
+.art { border-radius: 18px; background: radial-gradient(80% 120% at 80% 0%, rgba(255, 106, 61, .3), transparent 60%), #0a0b0d; min-height: 220px; display: grid; place-items: center; padding: 18px }
 .auth { width: min(100%, 300px); border-radius: 12px; background: #f5f5f7; color: #1d1d1f; padding: 18px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; letter-spacing: 0 }
 .auth b { font-size: 15px }
 .auth span { font-size: 12px; color: #6e6e73 }
 .auth .ok { margin-top: 4px; background: #1d1d1f; color: #fff; font-size: 12.5px; font-weight: 500; padding: 7px 16px; border-radius: 8px }
-.combo { display: flex; align-items: center; gap: 10px; color: var(--gray) }
-.ck { min-width: 76px; height: 76px; padding: 10px; border-radius: 12px; background: linear-gradient(180deg, #1b1c1f, #121315); border: 1px solid var(--line-2); box-shadow: 0 1px 0 rgba(255, 255, 255, .05) inset, 0 4px 0 #040405; display: flex; flex-direction: column; justify-content: space-between; align-items: center; color: var(--fg); font-size: 12px; letter-spacing: 0 }
-.ck b { font-size: 20px; font-weight: 500 }
-.acc { display: flex; flex-direction: column; gap: 6px; width: min(100%, 280px) }
-.acc div { display: flex; justify-content: space-between; padding: 10px 12px; border-radius: 10px; background: rgba(255, 255, 255, .04); border: 1px solid var(--line); font-size: 13px }
-.acc small { color: var(--gray); font-size: 12px }
-
 .privacy { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 32px }
 
-/* Kapanış */
-.final { position: relative; padding-block: 160px 0; display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center; isolation: isolate }
-.final .streaks { inset: 300px -40vw 0; mask-image: linear-gradient(transparent, #000 40%, #000 70%, transparent); -webkit-mask-image: linear-gradient(transparent, #000 40%, #000 70%, transparent) }
-.final .streaks .rig { top: 55% }
+.final { position: relative; padding-block: 200px 0; display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center; isolation: isolate }
+.final .glass { top: 260px; height: 700px; -webkit-mask-image: linear-gradient(transparent, #000 35%, #000 70%, transparent); mask-image: linear-gradient(transparent, #000 35%, #000 70%, transparent) }
 .term { margin-top: 8px; display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 14px; border-radius: 10px; background: #000; border: 1px solid var(--line-2); max-width: 100%; text-align: left }
 .term code { font-family: var(--mono); font-size: 12.5px; color: #cfcfd2; white-space: nowrap; overflow-x: auto; min-width: 0; scrollbar-width: none; letter-spacing: 0 }
 .term button { flex: none; height: 26px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--line-2); background: rgba(255, 255, 255, .06); color: var(--fg); font: 500 12px var(--sans); cursor: pointer }
-.spacer { height: 320px }
+.spacer { height: 360px }
 footer { border-top: 1px solid var(--line); padding-block: 40px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; font-size: 13px }
 footer h4 { margin-bottom: 12px; font-size: 13px; font-weight: 500 }
 footer a { color: var(--gray); display: block; margin-bottom: 8px }
@@ -219,15 +223,18 @@ footer .legal { grid-column: 1 / -1; color: var(--gray); font-size: 12px; max-wi
 @media (max-width: 900px) {
   .navlinks { display: none }
   .navbar .dl { margin-left: auto }
-  .hero { min-height: 640px }
-  .hero .actions { margin-top: 90px }
+  .hero { min-height: 680px }
+  .hero .glass { height: 760px; top: -60px }
+  .hero .actions { margin-top: 110px }
   .mac { aspect-ratio: auto; height: 600px }
   .mac-bar span:nth-child(n+4) { display: none }
-  .split, .window, .window .main, .trio .lcard.wide { grid-template-columns: minmax(0, 1fr) }
+  .split, .window, .window .main, .wide { grid-template-columns: minmax(0, 1fr) }
   .split .head { position: static }
   .window .side { display: none }
-  .lgrid, .privacy, .trio, .sub2 { grid-template-columns: minmax(0, 1fr) }
-  .trio .lcard.wide { grid-column: auto }
+  .lgrid, .privacy { grid-template-columns: minmax(0, 1fr) }
+  .bento { grid-template-columns: minmax(0, 1fr); grid-auto-rows: auto; gap: 16px }
+  .t-a, .t-b, .t-f { grid-column: auto; grid-row: auto }
+  .tile { min-height: 300px }
   .keys { grid-template-columns: repeat(4, minmax(0, 1fr)) }
   .keys .k:not(.f) { display: none }
   footer { grid-template-columns: repeat(2, minmax(0, 1fr)) }
@@ -236,25 +243,20 @@ footer .legal { grid-column: 1 / -1; color: var(--gray); font-size: 12px; max-wi
   .popup, .notes { width: 100% }
   .styles { grid-template-columns: repeat(2, minmax(0, 1fr)) }
   .view { padding-inline: 8px }
-  .combo .ck { min-width: 60px; height: 64px }
+  .accts { grid-template-columns: minmax(0, 1fr) }
 }
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto }
-  .streak, .card::after { animation: none }
-  .arc, .view { transition: none }
+  .card::after { animation: none }
 }
 </style>
 
 <div class="wrap">
   <nav class="navbar" aria-label="Site">
-    <a class="logo" href="#top">
-      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="var(--glow)" stroke-width="3" stroke-linecap="round" stroke-dasharray="29 27.5" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="20.7 6.9" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="7 20.6" transform="rotate(135 12 12)"/></svg>
-      AI Limit Tracker
-    </a>
+    <a class="logo" href="#top"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="#ff6a3d" stroke-width="3" stroke-linecap="round" stroke-dasharray="28.8 27.7" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="20.7 6.9" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="7.0 20.6" transform="rotate(135 12 12)"/></svg>AI Limit Tracker</a>
     <div class="navlinks">
-      <a href="#demo">Özellikler</a>
+      <a href="#demo">Demo</a>
+      <a href="#ozellikler">Özellikler</a>
       <a href="#saglayicilar">Sağlayıcılar</a>
-      <a href="#tempo">Tempo</a>
       <a href="#gizlilik">Gizlilik</a>
       <a href="https://github.com/bahadirnuroglu/ai_limit_tracker">GitHub</a>
     </div>
@@ -263,10 +265,10 @@ footer .legal { grid-column: 1 / -1; color: var(--gray); font-size: 12px; max-wi
 
   <main id="top">
     <header class="hero">
-      <div class="streaks" aria-hidden="true"><div class="rig"></div></div>
-      <h1>Limitine takılmadan çalış.</h1>
-      <p class="sub">Claude, Codex ve Cursor limitlerin menü çubuğunda. Dolmadan önce haber verir, açılınca hatırlatır.</p>
-      <div class="actions">
+      <div class="glass" id="glassHero" aria-hidden="true"></div>
+      <h1 id="title">Limitine takılmadan çalış.</h1>
+      <p class="sub" data-hero>Claude, Codex ve Cursor limitlerin menü çubuğunda. Dolmadan önce haber verir, açılınca hatırlatır.</p>
+      <div class="actions" data-hero>
         <a class="dl" href="https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest"><svg viewBox="0 0 15 18" fill="currentColor" aria-hidden="true"><path d="M12.4 9.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.9-3-.8C3 4.4 1.6 5.3.8 6.7c-1.7 2.9-.4 7.2 1.2 9.6.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8s1.9.8 3.1.8c1.3 0 2.1-1.2 2.9-2.4.9-1.3 1.3-2.6 1.3-2.7 0 0-2.5-1-2.5-3.9ZM10.1 2.8C10.7 2 11.2 1 11 0c-.9 0-2 .6-2.6 1.4-.6.6-1.1 1.7-.9 2.6 1 .1 2-.5 2.6-1.2Z"/></svg>Mac için indir</a>
         <p class="fine">macOS 14 Sonoma ve üstü · Ücretsiz</p>
         <p class="fine"><a href="#kur">Terminal ile kur</a> &nbsp;|&nbsp; <a href="https://github.com/bahadirnuroglu/ai_limit_tracker">GitHub</a></p>
@@ -274,15 +276,12 @@ footer .legal { grid-column: 1 / -1; color: var(--gray); font-size: 12px; max-wi
     </header>
 
     <section id="demo" style="padding-top:40px">
-      <div class="head center"><h2>Bir bakış, her limit.</h2><p>Menü çubuğunda, bir tık uzağında.</p></div>
+      <div class="head center" data-reveal><h2>Bir bakış, her limit.</h2><p>Menü çubuğunda, bir tık uzağında.</p></div>
       <div class="demo">
-        <div class="mac" role="img" aria-label="Mac masaüstünde açık AI Limit Tracker popup'ı">
+        <div class="mac" id="mac" role="img" aria-label="Mac masaüstünde açık AI Limit Tracker popup'ı">
           <div class="mac-bar" aria-hidden="true">
             <b>Finder</b><span>Dosya</span><span>Düzen</span><span>Görüntü</span><span>Git</span><span>Pencere</span>
-            <div class="r">
-              <span class="mb-ring"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="var(--glow)" stroke-width="3" stroke-linecap="round" stroke-dasharray="30.5 26.0" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="20.7 6.9" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="7.2 20.4" transform="rotate(135 12 12)"/></svg></span>
-              <span>Pzt 12 Eki 16:41</span>
-            </div>
+            <div class="r"><span class="mb-ring"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="#ff6a3d" stroke-width="3" stroke-linecap="round" stroke-dasharray="30.5 26.0" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="20.7 6.9" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="7.2 20.4" transform="rotate(135 12 12)"/></svg></span><span>Pzt 12 Eki 16:41</span></div>
           </div>
           <div class="screen">
             <div class="view on" data-view="0">
@@ -290,7 +289,7 @@ footer .legal { grid-column: 1 / -1; color: var(--gray); font-size: 12px; max-wi
                 <div class="card"><div class="cl"><div class="ch"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg><div><div class="cn">Claude</div><div class="cp">PRO</div></div></div><span class="chip">Bu hızla 49 dakikada dolar</span><div class="chips"><span class="on">bireysel</span><span>iş</span></div></div><div class="rings"><div class="gauge" data-p="72" data-l="5 saat" data-r="2 sa 54 dk"></div><div class="gauge" data-p="44" data-l="Haftalık" data-r="3 g 17 sa"></div></div></div>
                 <div class="card"><div class="cl"><div class="ch"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg><div><div class="cn">Codex</div><div class="cp">TEAM</div></div></div></div><div class="rings"><div class="gauge" data-p="35" data-l="5 saat" data-r="4 sa 6 dk"></div><div class="gauge" data-p="5" data-l="Haftalık" data-r="6 g 23 sa"></div></div></div>
                 <div class="card"><div class="cl"><div class="ch"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg><div><div class="cn">Cursor</div><div class="cp">FREE</div></div></div></div><div class="rings"><div class="gauge" data-p="0" data-l="Aylık" data-r="10 g 0 sa"></div><div class="gauge" data-p="0" data-l="Auto" data-r="10 g 0 sa"></div></div></div>
-                <div class="foot"><span class="sp">Güncellendi 16:41</span><span class="glass">Ayarlar</span><span class="glass">Yenile</span><span class="glass">Çık</span></div>
+                <div class="foot"><span class="sp">Güncellendi 16:41</span><span class="pill">Ayarlar</span><span class="pill">Yenile</span><span class="pill">Çık</span></div>
               </div>
             </div>
             <div class="view" data-view="1">
@@ -305,30 +304,30 @@ footer .legal { grid-column: 1 / -1; color: var(--gray); font-size: 12px; max-wi
                 </div>
                 <div class="card back">
                   <div class="ch"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg><div class="cn">Codex</div><div class="tabs"><span>Limitler</span><span class="on">Etkinlik</span></div></div>
-                  <div class="heat" id="heat"></div>
+                  <div class="heat" data-heat="143,124,247"></div>
                   <div style="font-size:10.5px;position:relative;z-index:1;color:rgba(201,201,207,.7)">Codex · 4,2M token · 41 gün</div>
                 </div>
               </div>
             </div>
             <div class="view" data-view="2">
               <div class="notes">
-                <div class="note"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="var(--alert)" stroke-width="3" stroke-linecap="round" stroke-dasharray="39.0 17.5" transform="rotate(135 12 12)"/></svg></span><div><b>Claude · %90</b><span>5 saatlik limitin dolmak üzere. 1 sa 12 dk sonra yenilenir.</span></div><time>şimdi</time></div>
+                <div class="note"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="#ff5b4e" stroke-width="3" stroke-linecap="round" stroke-dasharray="39.0 17.5" transform="rotate(135 12 12)"/></svg></span><div><b>Claude · %90</b><span>5 saatlik limitin dolmak üzere. 1 sa 12 dk sonra yenilenir.</span></div><time>şimdi</time></div>
                 <div class="note"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.4-2h-4.8a2.5 2.5 0 0 0 2.4 2Zm7-6V11a7 7 0 0 0-5.5-6.8V3.5a1.5 1.5 0 0 0-3 0v.7A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg></span><div><b>Claude açıldı</b><span>5 saatlik limitin yenilendi, devam edebilirsin.</span></div><time>dün</time></div>
-                <div class="note"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="var(--tempo)" stroke-width="3" stroke-linecap="round" stroke-dasharray="31.8 24.8" transform="rotate(135 12 12)"/></svg></span><div><b>Codex · %75</b><span>Haftalık limitinin dörtte üçü kullanıldı.</span></div><time>Cum</time></div>
+                <div class="note"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="#8f7cf7" stroke-width="3" stroke-linecap="round" stroke-dasharray="31.8 24.8" transform="rotate(135 12 12)"/></svg></span><div><b>Codex · %75</b><span>Haftalık limitinin dörtte üçü kullanıldı.</span></div><time>Cum</time></div>
               </div>
             </div>
             <div class="view centered" data-view="3">
               <div class="styles">
-                <div class="sty on"><span class="strip"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="var(--glow)" stroke-width="3" stroke-linecap="round" stroke-dasharray="30.5 26.0" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="20.7 6.9" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="7.2 20.4" transform="rotate(135 12 12)"/></svg></span><b>Son kullanılan iki</b><small>İç içe halkalar</small></div>
-                <div class="sty"><span class="strip"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="var(--alert)" stroke-width="3" stroke-linecap="round" stroke-dasharray="39.0 17.5" transform="rotate(135 12 12)"/></svg></span><b>En dolu</b><small>Limite en yakın sağlayıcı</small></div>
-                <div class="sty"><span class="strip"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="var(--glow)" stroke-width="3" stroke-linecap="round" stroke-dasharray="30.5 26.0" transform="rotate(135 12 12)"/></svg><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-dasharray="14.8 41.7" transform="rotate(135 12 12)"/></svg></span><b>Yan yana</b><small>Her sağlayıcı kendi halkası</small></div>
-                <div class="sty"><span class="strip"><svg width="40" height="20" viewBox="0 0 40 20" aria-hidden="true"><rect x="2" y="3" width="36" height="3.5" rx="1.75" fill="rgba(255,255,255,.25)"/><rect x="2" y="3" width="26" height="3.5" rx="1.75" fill="var(--glow)"/><rect x="2" y="9" width="36" height="3.5" rx="1.75" fill="rgba(255,255,255,.25)"/><rect x="2" y="9" width="12.6" height="3.5" rx="1.75" fill="#fff"/><rect x="2" y="15" width="36" height="3.5" rx="1.75" fill="rgba(255,255,255,.25)"/><rect x="2" y="15" width="3.5" height="3.5" rx="1.75" fill="var(--calm)"/></svg></span><b>Barlar</b><small>Alt alta ince barlar</small></div>
+                <div class="sty on"><span class="strip"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="#ff6a3d" stroke-width="3" stroke-linecap="round" stroke-dasharray="30.5 26.0" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="20.7 6.9" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="7.2 20.4" transform="rotate(135 12 12)"/></svg></span><b>Son kullanılan iki</b><small>İç içe halkalar</small></div>
+                <div class="sty"><span class="strip"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="#ff5b4e" stroke-width="3" stroke-linecap="round" stroke-dasharray="39.0 17.5" transform="rotate(135 12 12)"/></svg></span><b>En dolu</b><small>Limite en yakın sağlayıcı</small></div>
+                <div class="sty"><span class="strip"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="#ff6a3d" stroke-width="3" stroke-linecap="round" stroke-dasharray="30.5 26.0" transform="rotate(135 12 12)"/></svg><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-dasharray="14.8 41.7" transform="rotate(135 12 12)"/></svg></span><b>Yan yana</b><small>Her sağlayıcı kendi halkası</small></div>
+                <div class="sty"><span class="strip"><svg width="40" height="20" viewBox="0 0 40 20" aria-hidden="true"><rect x="2" y="3" width="36" height="3.5" rx="1.75" fill="rgba(255,255,255,.25)"/><rect x="2" y="3" width="26" height="3.5" rx="1.75" fill="#ff6a3d"/><rect x="2" y="9" width="36" height="3.5" rx="1.75" fill="rgba(255,255,255,.25)"/><rect x="2" y="9" width="12.6" height="3.5" rx="1.75" fill="#fff"/><rect x="2" y="15" width="36" height="3.5" rx="1.75" fill="rgba(255,255,255,.25)"/><rect x="2" y="15" width="3.5" height="3.5" rx="1.75" fill="#56a3ff"/></svg></span><b>Barlar</b><small>Alt alta ince barlar</small></div>
               </div>
             </div>
           </div>
         </div>
-        <div class="shelf">
-          <div class="shelf-row" role="tablist" aria-label="Özellikler">
+        <div class="shelf" data-reveal>
+          <div class="shelf-row" role="tablist" aria-label="Demo">
             <button role="tab" aria-selected="true" aria-label="Popup" data-tab="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8" stroke-dasharray="37.7 12.6" transform="rotate(135 12 12)"/></svg></button>
             <button role="tab" aria-selected="false" aria-label="Tüm limitler" data-tab="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h10M4 17h13"/></svg></button>
             <button role="tab" aria-selected="false" aria-label="Bildirimler" data-tab="2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 16V11a6 6 0 0 0-12 0v5l-2 2h16l-2-2ZM10 21h4"/></svg></button>
@@ -341,14 +340,14 @@ footer .legal { grid-column: 1 / -1; color: var(--gray); font-size: 12px; max-wi
 
     <section>
       <div class="split">
-        <div class="head"><h2>Limit sayısı değil,<br>akışın önemli.</h2><p>Uzun bir işin ortasında duvara çarpmamak için.</p><a class="dl" href="https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest"><svg viewBox="0 0 15 18" fill="currentColor" aria-hidden="true"><path d="M12.4 9.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.9-3-.8C3 4.4 1.6 5.3.8 6.7c-1.7 2.9-.4 7.2 1.2 9.6.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8s1.9.8 3.1.8c1.3 0 2.1-1.2 2.9-2.4.9-1.3 1.3-2.6 1.3-2.7 0 0-2.5-1-2.5-3.9ZM10.1 2.8C10.7 2 11.2 1 11 0c-.9 0-2 .6-2.6 1.4-.6.6-1.1 1.7-.9 2.6 1 .1 2-.5 2.6-1.2Z"/></svg>İndir</a></div>
-        <div class="keys">
+        <div class="head" data-reveal><h2>Limit sayısı değil,<br>akışın önemli.</h2><p>Uzun bir işin ortasında duvara çarpmamak için.</p><a class="dl" href="https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest"><svg viewBox="0 0 15 18" fill="currentColor" aria-hidden="true"><path d="M12.4 9.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.9-3-.8C3 4.4 1.6 5.3.8 6.7c-1.7 2.9-.4 7.2 1.2 9.6.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8s1.9.8 3.1.8c1.3 0 2.1-1.2 2.9-2.4.9-1.3 1.3-2.6 1.3-2.7 0 0-2.5-1-2.5-3.9ZM10.1 2.8C10.7 2 11.2 1 11 0c-.9 0-2 .6-2.6 1.4-.6.6-1.1 1.7-.9 2.6 1 .1 2-.5 2.6-1.2Z"/></svg>İndir</a></div>
+        <div class="keys" id="keys">
           <span class="k">esc</span><span class="k">F1</span><span class="k">F2</span><span class="k">F3</span><span class="k">F4</span><span class="k">F5</span><span class="k">F6</span><span class="k">F7</span>
           <span class="k f"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg><p>Anlık. <span>Popup açılınca bir dakikadan eski veriyi tazeler.</span></p></span>
           <span class="k">1</span><span class="k">2</span>
           <span class="k f"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 16V11a6 6 0 0 0-12 0v5l-2 2h16l-2-2ZM10 21h4"/></svg><p>Önceden. <span>%75 ve %90'da bir kez haber verir.</span></p></span>
           <span class="k">Q</span><span class="k">W</span><span class="k">E</span><span class="k">R</span>
-          <span class="k f"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><p>Kişisel. <span>Dört ikon stili, istediğin bildirimler.</span></p></span>
+          <span class="k f"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><p>Kişisel. <span>Dört ikon stili, istediğin bildirimler.</span></p></span>
           <span class="k">A</span><span class="k">S</span>
           <span class="k f"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3Z"/></svg><p>Güvenilir. <span>Sunucu yok; verin Mac'inde kalır.</span></p></span>
           <span class="k">Z</span><span class="k">X</span><span class="k">C</span><span class="k">V</span>
@@ -356,8 +355,69 @@ footer .legal { grid-column: 1 / -1; color: var(--gray); font-size: 12px; max-wi
       </div>
     </section>
 
+    <section id="ozellikler">
+      <div class="big-head" data-reveal>
+        <p class="eyebrow">Özellikler</p>
+        <h2>Limitlerin için gereken her şey</h2>
+        <p>Ne kadar kaldı, ne zaman dolar, ne zaman açılır. Hepsi tek popup'ta.</p>
+      </div>
+      <div class="bento" id="bento">
+        <article class="tile t-a">
+          <div class="halo"></div>
+          <div class="vis">
+            <div class="mini">
+              <div class="card"><div class="cl"><div class="ch"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg><div><div class="cn">Claude</div><div class="cp">PRO</div></div></div><span class="chip">Bu hızla 49 dakikada dolar</span></div><div class="rings"><div class="gauge" data-p="72" data-l="5 saat" data-r="2 sa 54 dk"></div><div class="gauge" data-p="44" data-l="Haftalık" data-r="3 g 17 sa"></div></div></div>
+              <div class="card"><div class="cl"><div class="ch"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg><div><div class="cn">Codex</div><div class="cp">TEAM</div></div></div></div><div class="rings"><div class="gauge" data-p="35" data-l="5 saat" data-r="4 sa 6 dk"></div><div class="gauge" data-p="5" data-l="Haftalık" data-r="6 g 23 sa"></div></div></div>
+            </div>
+          </div>
+          <h3>Tek bakışta</h3>
+          <p>Her sağlayıcı bir kart, her kartta en önemli iki limit. Limite en yakın olan her zaman en üstte.</p>
+        </article>
+        <article class="tile t-b">
+          <div class="vis">
+            <div>
+              <div class="bigring"><svg viewBox="0 0 200 200" aria-hidden="true"><defs><linearGradient id="tg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#8f7cf7"/><stop offset="1" stop-color="#ff5b4e"/></linearGradient></defs><circle cx="100" cy="100" r="84" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="18" stroke-linecap="round" stroke-dasharray="395.8 527.8" transform="rotate(135 100 100)"/><circle id="bigArc" cx="100" cy="100" r="84" fill="none" stroke="url(#tg)" stroke-width="18" stroke-linecap="round" stroke-dasharray="395.8 527.8" stroke-dashoffset="51.5" transform="rotate(135 100 100)"/></svg><div class="n"><span id="bigNum">87</span>%</div></div>
+              <p class="eta" id="bigEta">Bu hızla 22 dakikada dolar</p>
+            </div>
+          </div>
+          <h3>Tempo</h3>
+          <p>Son kullanım hızına bakıp limitin ne zaman dolacağını söyler.</p>
+        </article>
+        <article class="tile">
+          <div class="vis"><div class="notes" style="width:100%;margin:0"><div class="note"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="#ff5b4e" stroke-width="3" stroke-linecap="round" stroke-dasharray="39.0 17.5" transform="rotate(135 12 12)"/></svg></span><div><b>Claude · %90</b><span>1 sa 12 dk sonra yenilenir.</span></div></div></div></div>
+          <h3>Dolmadan haber</h3>
+          <p>%75'te erken, %90'da son uyarı.</p>
+        </article>
+        <article class="tile">
+          <div class="vis"><div class="menu"><div>Kartı Çevir</div><div>Hesapları Adlandır…</div><hr><div class="hl">Açılınca haber ver <span>5 saat</span></div><div>Açılınca haber ver <span>Haftalık</span></div></div></div>
+          <h3>Açılınca hatırlat</h3>
+          <p>Dolan limite sağ tıkla, açıldığı an bildirim gelsin.</p>
+        </article>
+        <article class="tile">
+          <div class="vis"><div class="combo"><span class="ck"><b>⌃</b>control</span>+<span class="ck"><b>⌥</b>option</span>+<span class="ck"><b>L</b>&nbsp;</span></div></div>
+          <h3>Her yerden aç</h3>
+          <p>Hangi uygulamada olursan ol, tek kısayol.</p>
+        </article>
+        <article class="tile t-f">
+          <div class="vis">
+            <div class="accts">
+              <div class="acct"><span>bireysel</span><span class="bar"><i style="width:100%;background:var(--alert)"></i></span><small>Doldu · açılış 19:10</small></div>
+              <div class="acct"><span>iş</span><span class="bar"><i style="width:12%;background:var(--calm)"></i></span><small>Kullanılabilir</small></div>
+            </div>
+          </div>
+          <h3>Birden çok hesap</h3>
+          <p>Kişisel ve iş hesabın yan yana. Biri dolunca diğerinin hazır olduğunu söyler.</p>
+        </article>
+        <article class="tile">
+          <div class="vis"><div class="icons"><span><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="#ff6a3d" stroke-width="3" stroke-linecap="round" stroke-dasharray="30.5 26.0" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="20.7 6.9" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="7.2 20.4" transform="rotate(135 12 12)"/></svg></span><span><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="#ff5b4e" stroke-width="3" stroke-linecap="round" stroke-dasharray="39.0 17.5" transform="rotate(135 12 12)"/></svg></span><span><svg width="40" height="20" viewBox="0 0 40 20" aria-hidden="true"><rect x="2" y="3" width="36" height="3.5" rx="1.75" fill="rgba(255,255,255,.25)"/><rect x="2" y="3" width="26" height="3.5" rx="1.75" fill="#ff6a3d"/><rect x="2" y="9" width="36" height="3.5" rx="1.75" fill="rgba(255,255,255,.25)"/><rect x="2" y="9" width="12.6" height="3.5" rx="1.75" fill="#fff"/><rect x="2" y="15" width="36" height="3.5" rx="1.75" fill="rgba(255,255,255,.25)"/><rect x="2" y="15" width="3.5" height="3.5" rx="1.75" fill="#56a3ff"/></svg></span></div></div>
+          <h3>Menü çubuğu, senin tarzın</h3>
+          <p>Dört ikon stili, gerçek renkleriyle.</p>
+        </article>
+      </div>
+    </section>
+
     <section id="saglayicilar">
-      <div class="row-head">
+      <div class="row-head" data-reveal>
         <div class="head"><h2>Kullandığın her araç için.</h2><p>Hangi limit ne zaman açılıyor, hepsi aynı yerde.</p></div>
         <div class="tabbar" role="tablist" aria-label="Sağlayıcı">
           <button role="tab" aria-selected="true" data-prov="claude">Claude</button>
@@ -369,52 +429,45 @@ footer .legal { grid-column: 1 / -1; color: var(--gray); font-size: 12px; max-wi
     </section>
 
     <section id="tempo">
-      <div class="big">
-        <p class="eyebrow">Tempo</p>
-        <h2>Ne zaman dolacağını önceden bil</h2>
-        <p>Son kullanım hızına bakar, bu tempoyla limitin ne zaman dolacağını söyler.</p>
-        <div class="window" aria-hidden="true">
-          <div class="side">
-            <div class="lights"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
-            <span class="on">Claude · bireysel</span><span>Claude · iş</span><span>Codex</span><span>Cursor</span>
-          </div>
-          <div class="main">
-            <div class="stack">
-              <span class="lbl">5 saatlik pencere</span>
-              <span class="num">%87</span>
-              <div class="mrow" style="grid-template-columns:minmax(0,1fr)"><span class="bar" style="height:8px"><i style="width:87%;background:linear-gradient(90deg,var(--tempo),var(--alert))"></i></span></div>
-              <span class="eta">Bu hızla 22 dakikada dolar</span>
-              <span class="lbl">Pencere 2 sa 29 dk sonra, 19:10'da yenilenir.</span>
-            </div>
-            <div class="stack">
-              <span class="lbl">Etkinlik · 13 hafta</span>
-              <div class="heat" id="heat2"></div>
-              <span class="lbl" style="font-size:12px">Claude Code kayıtlarından, bu Mac'te.</span>
-            </div>
-          </div>
+      <div class="big-head" data-reveal>
+        <p class="eyebrow">Etkinlik</p>
+        <h2>Kartı çevir, tüm tabloyu gör</h2>
+        <p>Her limit ayrı ayrı, yanında 13 haftalık kullanımın.</p>
+      </div>
+      <div class="window" id="window" aria-hidden="true">
+        <div class="side">
+          <div class="lights"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
+          <span class="on">Claude · bireysel</span><span>Claude · iş</span><span>Codex</span><span>Cursor</span>
         </div>
-        <div class="sub2">
-          <div class="lcard"><h3>Açılınca haber ver</h3><p>Dolan limite sağ tıkla. Yenilendiği an bildirim gelir; beklemene gerek kalmaz.</p></div>
-          <div class="lcard"><h3>Diğer hesap hazır mı?</h3><p>Biri dolunca kart diğer hesabın durumunu söyler: "Hesap 2 kullanılabilir".</p></div>
+        <div class="main">
+          <div class="stack">
+            <span class="lbl">5 saatlik pencere</span>
+            <span class="num"><span id="winNum">87</span>%</span>
+            <div class="mrow"><span>5 saat</span><span class="bar"><i style="width:87%;background:linear-gradient(90deg,var(--tempo),var(--alert))"></i></span><span class="v">%87</span></div>
+            <div class="mrow"><span>Haftalık</span><span class="bar"><i style="width:44%;background:var(--calm)"></i></span><span class="v">%44</span></div>
+            <div class="mrow"><span>Opus haftalık</span><span class="bar"><i style="width:61%;background:var(--calm)"></i></span><span class="v">%61</span></div>
+            <span class="lbl">Pencere 2 sa 29 dk sonra, 19:10'da yenilenir.</span>
+          </div>
+          <div class="stack">
+            <span class="lbl">Etkinlik · 13 hafta</span>
+            <div class="heat" data-heat="255,106,61"></div>
+            <span class="lbl" style="font-size:12px">Claude Code kayıtlarından, bu Mac'te.</span>
+          </div>
         </div>
       </div>
     </section>
 
     <section id="giris">
-      <div class="head"><h2>Bir kez kur, unut.</h2><p>Gerisini uygulama halleder.</p></div>
-      <div class="trio">
-        <div class="lcard wide">
-          <div style="display:flex;flex-direction:column;gap:8px"><h3>Tek seferlik giriş</h3><p>Giriş, kullandığın tarayıcıda açılır; oradaki Google oturumun ve kayıtlı şifrelerin hazır. Bağlantıyı sonra uygulama kendisi tazeler.</p></div>
-          <div class="art"><div class="auth"><svg width="26" height="26" viewBox="0 0 24 24" fill="#d97757" aria-hidden="true"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg><b>Bağlantıya izin ver</b><span>Kullanım limitlerin menü çubuğunda gösterilecek.</span><span class="ok">İzin ver</span></div></div>
-        </div>
-        <div class="lcard"><div class="art"><div class="acc"><div><span>bireysel</span><small>Doldu · açılış 19:10</small></div><div><span>iş</span><small>Kullanılabilir</small></div></div></div><h3>Hesaplar arasında geç</h3><p>Kişisel ve iş hesabın yan yana; seçtiğin hesap menü çubuğunda.</p></div>
-        <div class="lcard"><div class="art"><div class="combo"><span class="ck"><b>⌃</b>control</span>+<span class="ck"><b>⌥</b>option</span>+<span class="ck"><b>L</b>&nbsp;</span></div></div><h3>Her yerden aç</h3><p>Hangi uygulamada olursan ol, popup bir kısayol uzağında.</p></div>
+      <div class="head" data-reveal><h2>Bir kez kur, unut.</h2><p>Gerisini uygulama halleder.</p></div>
+      <div class="wide" data-reveal>
+        <div style="display:flex;flex-direction:column;gap:8px"><h3>Tek seferlik giriş</h3><p>Giriş, kullandığın tarayıcıda açılır; oradaki Google oturumun ve kayıtlı şifrelerin hazır. Bağlantıyı sonra uygulama kendisi tazeler.</p></div>
+        <div class="art"><div class="auth"><svg width="26" height="26" viewBox="0 0 24 24" fill="#d97757" aria-hidden="true"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg><b>Bağlantıya izin ver</b><span>Kullanım limitlerin menü çubuğunda gösterilecek.</span><span class="ok">İzin ver</span></div></div>
       </div>
     </section>
 
     <section id="gizlilik">
-      <div class="head"><h2>Verilerin Mac'inde kalır.</h2><p>Bizim bir sunucumuz yok.</p></div>
-      <div class="privacy">
+      <div class="head" data-reveal><h2>Verilerin Mac'inde kalır.</h2><p>Bizim bir sunucumuz yok.</p></div>
+      <div class="privacy" id="privacy">
         <div class="lcard"><h3>Doğrudan kaynağından</h3><p>Uygulama yalnızca Anthropic, OpenAI ve Cursor'ın kendi adresleriyle konuşur. Kullanımın başka hiçbir yere gitmez.</p></div>
         <div class="lcard"><h3>Araçlarına dokunmaz</h3><p>Claude Code ve Codex oturumlarını yalnızca okur. Kendi oturumu yalnızca senin kullanıcının okuyabildiği bir dosyada durur.</p></div>
         <div class="lcard"><h3>İmzalı güncellemeler</h3><p>Yeni sürüm uygulamanın içinden kurulur; kurulmadan önce imzası doğrulanır.</p></div>
@@ -422,17 +475,17 @@ footer .legal { grid-column: 1 / -1; color: var(--gray); font-size: 12px; max-wi
     </section>
 
     <div class="final" id="kur">
-      <div class="streaks" aria-hidden="true"><div class="rig"></div></div>
-      <div class="head center"><h2>Limitine takılma.</h2><p>İndir, ücretsiz kullan.</p></div>
-      <a class="dl" href="https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest"><svg viewBox="0 0 15 18" fill="currentColor" aria-hidden="true"><path d="M12.4 9.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.9-3-.8C3 4.4 1.6 5.3.8 6.7c-1.7 2.9-.4 7.2 1.2 9.6.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8s1.9.8 3.1.8c1.3 0 2.1-1.2 2.9-2.4.9-1.3 1.3-2.6 1.3-2.7 0 0-2.5-1-2.5-3.9ZM10.1 2.8C10.7 2 11.2 1 11 0c-.9 0-2 .6-2.6 1.4-.6.6-1.1 1.7-.9 2.6 1 .1 2-.5 2.6-1.2Z"/></svg>Mac için indir</a>
-      <p class="fine">macOS 14 Sonoma ve üstü · Apple Silicon ve Intel</p>
-      <div class="term"><code id="cmd">curl -fsSL https://raw.githubusercontent.com/bahadirnuroglu/ai_limit_tracker/main/install.sh | bash</code><button type="button" id="copy">Kopyala</button></div>
+      <div class="glass" id="glassFinal" aria-hidden="true"></div>
+      <div class="head center" data-reveal><h2>Limitine takılma.</h2><p>İndir, ücretsiz kullan.</p></div>
+      <a class="dl" data-reveal href="https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest"><svg viewBox="0 0 15 18" fill="currentColor" aria-hidden="true"><path d="M12.4 9.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.9-3-.8C3 4.4 1.6 5.3.8 6.7c-1.7 2.9-.4 7.2 1.2 9.6.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8s1.9.8 3.1.8c1.3 0 2.1-1.2 2.9-2.4.9-1.3 1.3-2.6 1.3-2.7 0 0-2.5-1-2.5-3.9ZM10.1 2.8C10.7 2 11.2 1 11 0c-.9 0-2 .6-2.6 1.4-.6.6-1.1 1.7-.9 2.6 1 .1 2-.5 2.6-1.2Z"/></svg>Mac için indir</a>
+      <p class="fine" data-reveal>macOS 14 Sonoma ve üstü · Apple Silicon ve Intel</p>
+      <div class="term" data-reveal><code id="cmd">curl -fsSL https://raw.githubusercontent.com/bahadirnuroglu/ai_limit_tracker/main/install.sh | bash</code><button type="button" id="copy">Kopyala</button></div>
       <div class="spacer"></div>
     </div>
   </main>
 
   <footer>
-    <div><h4>Ürün</h4><a href="#demo">Özellikler</a><a href="#saglayicilar">Sağlayıcılar</a><a href="#tempo">Tempo</a></div>
+    <div><h4>Ürün</h4><a href="#demo">Demo</a><a href="#ozellikler">Özellikler</a><a href="#saglayicilar">Sağlayıcılar</a></div>
     <div><h4>İndir</h4><a href="https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest">Son sürüm</a><a href="#kur">Terminal ile kur</a></div>
     <div><h4>Kaynak</h4><a href="https://github.com/bahadirnuroglu/ai_limit_tracker">GitHub</a></div>
     <div><h4>Gizlilik</h4><a href="#gizlilik">Verilerin nerede</a></div>
@@ -440,23 +493,77 @@ footer .legal { grid-column: 1 / -1; color: var(--gray); font-size: 12px; max-wi
   </footer>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script>
 (function () {
   var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   var LOGO = { claude: "m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z", codex: "M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z", cursor: "M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23" };
 
-  // Işık çizgileri
-  document.querySelectorAll(".streaks .rig").forEach(function (rig) {
-    [120, 210, 300, 385, 470, 560, 650, 740].forEach(function (t, i) {
-      var s = document.createElement("i"); s.className = "streak";
-      s.style.top = t + "px"; s.style.left = (i % 2 ? 60 : -40) + "px";
-      s.style.opacity = (0.18 + (i % 3) * 0.16).toFixed(2);
-      s.style.animationDelay = (-i * 1.3) + "s"; s.style.animationDuration = (8 + i % 4) + "s";
-      rig.appendChild(s);
-    });
-  });
+  /* WebGL cam çubuklar: eğik, kenarları ışıyan, yavaş akan dilimler (kendi shader'ımız) */
+  var FRAG = [
+    "precision highp float;",
+    "uniform vec2 R; uniform float T; uniform float F;",
+    "float h(float n){return fract(sin(n*127.1)*43758.5453);}",
+    "void main(){",
+    "  vec2 p=(gl_FragCoord.xy-.5*R)/R.y;",
+    "  float a=-0.62; mat2 m=mat2(cos(a),-sin(a),sin(a),cos(a)); vec2 q=m*p;",
+    "  float per=0.11; float id=floor(q.y/per); float fy=fract(q.y/per);",
+    "  float r=h(id), r2=h(id+31.0);",
+    "  float len=0.28+0.5*r; float c=(r2-.5)*0.55+sin(T*0.22+r*6.28)*0.05; float on=step(0.18,h(id+7.0));",
+    "  float x=(q.x-c)/len;",
+    "  float body=smoothstep(1.0,0.82,abs(x));",
+    "  float th=0.62; float y=(fy-.5)/(th*.5);",
+    "  float slab=smoothstep(1.0,0.86,abs(y));",
+    "  float bev=sqrt(max(0.0,1.0-y*y));",
+    "  vec3 n=normalize(vec3(0.0,y*0.9,bev));",
+    "  vec3 L=normalize(vec3(-0.35+0.25*sin(T*0.3),0.55,0.75));",
+    "  float dif=max(dot(n,L),0.0);",
+    "  float spec=pow(max(dot(reflect(-L,n),vec3(0,0,1)),0.0),28.0);",
+    "  float edge=pow(1.0-bev,3.0);",
+    "  float sweep=exp(-pow((x+0.6-mod(T*0.12+r,2.4))*3.0,2.0));",
+    "  vec3 base=vec3(0.025,0.004,0.003);",
+    "  vec3 hot=vec3(1.0,0.2,0.1);",
+    "  vec3 core=vec3(1.0,0.62,0.5);",
+    "  vec3 col=base+hot*(0.18*dif+1.25*edge)*(0.3+0.7*smoothstep(-1.0,0.4,x))+core*spec*1.2+core*sweep*0.6*edge;",
+    "  float a1=body*slab*on;",
+    "  float fall=smoothstep(0.85,0.08,length(p*vec2(0.8,1.05)));",
+    "  float depth=0.45+0.55*r;",
+    "  gl_FragColor=vec4(col*a1*fall*depth*F,1.0);",
+    "}"
+  ].join("\n");
+  function glass(el) {
+    var cv = document.createElement("canvas"); el.appendChild(cv);
+    var gl = cv.getContext("webgl", { antialias: true });
+    if (!gl) { el.classList.add("fallback"); return null; }
+    function sh(t, s) { var o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); return o; }
+    var pr = gl.createProgram();
+    gl.attachShader(pr, sh(gl.VERTEX_SHADER, "attribute vec2 v;void main(){gl_Position=vec4(v,0,1);}"));
+    gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FRAG));
+    gl.linkProgram(pr);
+    if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) { el.classList.add("fallback"); return null; }
+    gl.useProgram(pr);
+    var b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    var loc = gl.getAttribLocation(pr, "v"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    var uR = gl.getUniformLocation(pr, "R"), uT = gl.getUniformLocation(pr, "T"), uF = gl.getUniformLocation(pr, "F");
+    var state = { fade: 1, t: 4, visible: true };
+    function size() { var d = Math.min(window.devicePixelRatio || 1, 1.75); cv.width = Math.max(1, el.clientWidth * d); cv.height = Math.max(1, el.clientHeight * d); gl.viewport(0, 0, cv.width, cv.height); draw(); }
+    function draw() { gl.uniform2f(uR, cv.width, cv.height); gl.uniform1f(uT, state.t); gl.uniform1f(uF, state.fade); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); }
+    size(); window.addEventListener("resize", size);
+    var last = performance.now();
+    function loop(now) {
+      if (state.visible && !reduce) { state.t += (now - last) / 1000; draw(); }
+      last = now; requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+    if ("IntersectionObserver" in window) new IntersectionObserver(function (es) { state.visible = es[0].isIntersecting; }).observe(el);
+    state.draw = draw;
+    return state;
+  }
+  var gHero = glass(document.getElementById("glassHero"));
+  glass(document.getElementById("glassFinal"));
 
-  // Halkalar (uygulamadaki renkler: normal mavi, tempodan hızlı mor, %90+ kırmızı)
   function tint(p) { return p >= 90 ? "var(--alert)" : p >= 40 ? "var(--tempo)" : "var(--calm)"; }
   document.querySelectorAll(".gauge").forEach(function (g) {
     var p = +g.dataset.p, r = 20, c = 2 * Math.PI * r, arc = c * .75, fill = arc * Math.max(p, 1.2) / 100;
@@ -464,23 +571,33 @@ footer .legal { grid-column: 1 / -1; color: var(--gray); font-size: 12px; max-wi
     g.setAttribute("aria-label", g.dataset.l + " yüzde " + p);
     g._arc = g.querySelector(".arc"); g._full = arc; g._target = arc - fill;
   });
-  function fillRings() {
-    if (reduce) return;
-    document.querySelectorAll(".view.on .gauge").forEach(function (g) {
-      g._arc.style.transition = "none"; g._arc.setAttribute("stroke-dashoffset", g._full);
-      requestAnimationFrame(function () { requestAnimationFrame(function () { g._arc.style.transition = ""; g._arc.setAttribute("stroke-dashoffset", g._target); }); });
+
+  document.querySelectorAll("[data-heat]").forEach(function (el, k) {
+    var seed = 7 + k * 13; function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+    for (var i = 0; i < 91; i++) { var v = rnd(), a = v < .3 ? .06 : v < .55 ? .25 : v < .8 ? .5 : .85; var d = document.createElement("i"); d.style.background = "rgba(" + el.dataset.heat + "," + a + ")"; el.appendChild(d); }
+  });
+
+  var DATA = {
+    claude: [["5 saatlik pencere", "Kısa pencere; dolunca kalan süre ve açılış saati görünür.", 72], ["Haftalık", "Tüm modeller için haftalık sınır.", 44], ["Opus haftalık", "Opus kullandıkça artan ayrı haftalık limit.", 61], ["Sonnet haftalık", "Sonnet için ayrı haftalık limit.", 18], ["Ekstra kullanım", "Planının üstündeki ek kullanım, varsa.", 4], ["Birden çok hesap", "Kişisel ve iş Claude hesapların yan yana.", 0]],
+    codex: [["5 saatlik pencere", "Codex CLI ve uygulamasındaki kısa pencere.", 35], ["Haftalık", "Haftalık Codex sınırı.", 5], ["Code review", "Kod incelemesinin kendi 5 saatlik ve haftalık penceresi.", 12], ["Plan", "Plus, Pro ya da Team; kartta görünür.", 0], ["Etkinlik", "Bu Mac'teki Codex oturumlarından 13 haftalık kullanım.", 0], ["Birden çok hesap", "ChatGPT hesaplarını ayrı ayrı ekle.", 0]],
+    cursor: [["Aylık", "Planındaki aylık kullanım ve yenilenme tarihi.", 22], ["Auto", "Auto modelinin ayrı kotası.", 9], ["Harcama notu", "Kullandığın tutar: \"$15,60 / $20\".", 0], ["Plan", "Free, Pro ya da Business; kartta görünür.", 0], ["Uygulamadan okur", "Cursor uygulamasının oturumu; giriş gerekmez.", 0], ["Birden çok hesap", "Cursor hesaplarını ayrı ayrı ekle.", 0]]
+  };
+  var grid = document.getElementById("lgrid");
+  function renderProv(k, animate) {
+    grid.innerHTML = DATA[k].map(function (d) {
+      var meter = d[2] ? '<span class="meter"><i style="width:' + d[2] + '%;background:' + tint(d[2]) + '"></i></span>' : '';
+      return '<div class="lcard"><div class="top"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="' + LOGO[k] + '"/></svg><h3>' + d[0] + '</h3></div><p>' + d[1] + '</p>' + meter + '</div>';
+    }).join("");
+    if (animate && window.gsap && !reduce) gsap.from(grid.children, { y: 16, opacity: 0, duration: .45, stagger: .04, ease: "power2.out" });
+  }
+  renderProv("claude", false);
+  document.querySelectorAll(".tabbar button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      document.querySelectorAll(".tabbar button").forEach(function (t) { t.setAttribute("aria-selected", t === b ? "true" : "false"); });
+      renderProv(b.dataset.prov, true);
     });
-  }
+  });
 
-  // Isı haritaları (örnek veri, sabit tohumla)
-  function heat(el, rgb) {
-    var seed = 7; function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
-    for (var i = 0; i < 91; i++) { var v = rnd(), a = v < .3 ? .06 : v < .55 ? .25 : v < .8 ? .5 : .85; var d = document.createElement("i"); d.style.background = "rgba(" + rgb + "," + a + ")"; el.appendChild(d); }
-  }
-  heat(document.getElementById("heat"), "143,124,247");
-  heat(document.getElementById("heat2"), "255,106,61");
-
-  // Raf: demo görünümleri
   var captions = [
     "<b>Tek bakışta.</b> Üç sağlayıcı, her biri 5 saatlik ve haftalık penceresiyle; en dolu olan en üstte.",
     "<b>Kartı çevir.</b> Tüm limitler ve 13 haftalık etkinliğin, kartın arka yüzünde.",
@@ -488,47 +605,92 @@ footer .legal { grid-column: 1 / -1; color: var(--gray); font-size: 12px; max-wi
     "<b>Senin tarzın.</b> Menü çubuğunda dört ikon stili; her biri gerçek limitlerinle çizilir."
   ];
   var tabs = document.querySelectorAll(".shelf button"), views = document.querySelectorAll(".view"), cap = document.getElementById("caption");
-  tabs.forEach(function (b) {
-    b.addEventListener("click", function () {
-      var n = +b.dataset.tab;
-      tabs.forEach(function (t) { t.setAttribute("aria-selected", t === b ? "true" : "false"); });
-      views.forEach(function (v) { v.classList.toggle("on", +v.dataset.view === n); });
-      cap.innerHTML = captions[n];
-      if (n === 0) fillRings();
+  var auto = null;
+  function ringIn(scope, delay) {
+    if (!window.gsap || reduce) return;
+    scope.querySelectorAll(".gauge").forEach(function (g, i) {
+      gsap.fromTo(g._arc, { attr: { "stroke-dashoffset": g._full } }, { attr: { "stroke-dashoffset": g._target }, duration: 1.2, delay: (delay || 0) + i * .06, ease: "elastic.out(1, .75)" });
     });
-  });
-  var mac = document.querySelector(".mac"), filled = false;
-  if ("IntersectionObserver" in window) {
-    new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting && !filled) { filled = true; fillRings(); } }); }, { threshold: .35 }).observe(mac);
   }
-
-  // Sağlayıcı sekmeleri
-  var DATA = {
-    claude: [["5 saatlik pencere", "Kısa pencere; dolunca kalan süre ve açılış saati görünür.", 72], ["Haftalık", "Tüm modeller için haftalık sınır.", 44], ["Opus haftalık", "Opus kullandıkça artan ayrı haftalık limit.", 61], ["Sonnet haftalık", "Sonnet için ayrı haftalık limit.", 18], ["Ekstra kullanım", "Planının üstündeki ek kullanım, varsa.", 4], ["Birden çok hesap", "Kişisel ve iş Claude hesapların yan yana.", 0]],
-    codex: [["5 saatlik pencere", "Codex CLI ve uygulamasındaki kısa pencere.", 35], ["Haftalık", "Haftalık Codex sınırı.", 5], ["Code review", "Kod incelemesinin kendi 5 saatlik ve haftalık penceresi.", 12], ["Plan", "Plus, Pro ya da Team; kartta görünür.", 0], ["Etkinlik", "Bu Mac'teki Codex oturumlarından 13 haftalık kullanım.", 0], ["Birden çok hesap", "ChatGPT hesaplarını ayrı ayrı ekle.", 0]],
-    cursor: [["Aylık", "Planındaki aylık kullanım ve yenilenme tarihi.", 22], ["Auto", "Auto modelinin ayrı kotası.", 9], ["Harcama notu", "Kullandığın tutar: \"$15,60 / $20\".", 0], ["Plan", "Free, Pro ya da Business; kartta görünür.", 0], ["Uygulamadan okur", "Cursor uygulamasının oturumu; giriş gerekmez.", 0], ["Birden çok hesap", "Cursor hesaplarını ayrı ayrı ekle.", 0]]
-  };
-  var grid = document.getElementById("lgrid");
-  function renderProv(k) {
-    grid.innerHTML = DATA[k].map(function (d) {
-      var meter = d[2] ? '<span class="meter"><i style="width:' + d[2] + '%;background:' + tint(d[2]) + '"></i></span>' : '';
-      return '<div class="lcard"><div class="top"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="' + LOGO[k] + '"/></svg><h3>' + d[0] + '</h3></div><p>' + d[1] + '</p>' + meter + '</div>';
-    }).join("");
+  function show(n) {
+    tabs.forEach(function (t) { t.setAttribute("aria-selected", +t.dataset.tab === n ? "true" : "false"); });
+    views.forEach(function (v) { v.classList.toggle("on", +v.dataset.view === n); });
+    cap.innerHTML = captions[n];
+    var v = document.querySelector('.view[data-view="' + n + '"]');
+    if (window.gsap && !reduce) {
+      gsap.fromTo(v.firstElementChild, { y: -10, scale: .96, opacity: 0, transformOrigin: "top right" }, { y: 0, scale: 1, opacity: 1, duration: .5, ease: "back.out(1.6)" });
+      gsap.fromTo(v.querySelectorAll(".card,.note,.sty"), { y: 12, opacity: 0 }, { y: 0, opacity: 1, duration: .45, stagger: .06, ease: "power2.out", delay: .08 });
+      gsap.fromTo(v.querySelectorAll(".bar i"), { scaleX: 0 }, { scaleX: 1, duration: .9, stagger: .04, ease: "power3.out", delay: .15 });
+      ringIn(v, .15);
+      gsap.fromTo(cap, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: .35 });
+    }
   }
-  renderProv("claude");
-  document.querySelectorAll(".tabbar button").forEach(function (b) {
-    b.addEventListener("click", function () {
-      document.querySelectorAll(".tabbar button").forEach(function (t) { t.setAttribute("aria-selected", t === b ? "true" : "false"); });
-      renderProv(b.dataset.prov);
-    });
-  });
+  tabs.forEach(function (b) { b.addEventListener("click", function () { if (auto) auto.kill(); auto = null; show(+b.dataset.tab); }); });
 
-  // Kurulum komutunu kopyala
   var btn = document.getElementById("copy"), cmd = document.getElementById("cmd");
   btn.addEventListener("click", function () {
     function done() { btn.textContent = "Kopyalandı"; setTimeout(function () { btn.textContent = "Kopyala"; }, 1800); }
     function select() { var r = document.createRange(); r.selectNodeContents(cmd); var s = getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = "⌘C ile kopyala"; }
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(cmd.textContent).then(done, select); else select();
   });
+
+  /* ---------- GSAP ---------- */
+  if (!window.gsap || reduce) return;
+  gsap.registerPlugin(ScrollTrigger);
+
+  var title = document.getElementById("title");
+  title.innerHTML = title.textContent.split(" ").map(function (w) { return '<span class="w">' + w + '</span>'; }).join(" ");
+  var intro = gsap.timeline({ defaults: { ease: "power3.out" } });
+  intro.from(".navbar", { y: -24, opacity: 0, duration: .8 })
+    .from("#glassHero", { opacity: 0, scale: 1.08, duration: 2.2, ease: "power2.out" }, 0)
+    .from("#title .w", { y: 36, opacity: 0, filter: "blur(10px)", duration: 1, stagger: .08 }, .15)
+    .from("[data-hero]", { y: 20, opacity: 0, duration: .9, stagger: .12 }, .55);
+
+  gsap.to("#glassHero", { yPercent: -16, opacity: .25, ease: "none", scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: true } });
+  gsap.to("#title", { yPercent: -40, opacity: 0, ease: "none", scrollTrigger: { trigger: ".hero", start: "30% top", end: "bottom top", scrub: true } });
+
+  gsap.utils.toArray("[data-reveal]").forEach(function (el) {
+    gsap.from(el, { y: 28, opacity: 0, duration: .9, ease: "power3.out", scrollTrigger: { trigger: el, start: "top 88%" } });
+  });
+
+  gsap.fromTo("#mac", { rotateX: 18, scale: .9, opacity: .4 }, { rotateX: 0, scale: 1, opacity: 1, ease: "none", scrollTrigger: { trigger: "#mac", start: "top 95%", end: "top 35%", scrub: .6 } });
+  ScrollTrigger.create({ trigger: "#mac", start: "top 55%", once: true, onEnter: function () {
+    var v = document.querySelector('.view[data-view="0"]');
+    gsap.fromTo(v.firstElementChild, { y: -14, scale: .94, opacity: 0, transformOrigin: "top right" }, { y: 0, scale: 1, opacity: 1, duration: .7, ease: "back.out(1.5)" });
+    gsap.fromTo(v.querySelectorAll(".card"), { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: .5, stagger: .08, delay: .15, ease: "power2.out" });
+    ringIn(v, .3);
+    var i = 0;
+    auto = gsap.delayedCall(4.5, function step() { i = (i + 1) % 4; show(i); auto = gsap.delayedCall(4.5, step); });
+  } });
+
+  gsap.from("#keys .k", { y: 14, opacity: 0, duration: .5, ease: "power2.out", stagger: { each: .025, from: "random" }, scrollTrigger: { trigger: "#keys", start: "top 80%" } });
+
+  gsap.from("#bento .tile", { y: 48, opacity: 0, duration: .9, ease: "power3.out", stagger: .09, scrollTrigger: { trigger: "#bento", start: "top 82%" } });
+  ScrollTrigger.create({ trigger: "#bento", start: "top 70%", once: true, onEnter: function () {
+    ringIn(document.querySelector("#bento .t-a"), .4);
+    var arc = document.getElementById("bigArc"), num = document.getElementById("bigNum"), eta = document.getElementById("bigEta"), o = { p: 0 };
+    gsap.to(o, { p: 87, duration: 2, delay: .5, ease: "power2.out", onUpdate: function () {
+      var p = Math.round(o.p); arc.setAttribute("stroke-dashoffset", 395.8 - 395.8 * p / 100); num.textContent = p;
+      var mins = Math.max(4, Math.round((100 - p) * 1.7)); eta.textContent = mins >= 60 ? "Bu hızla " + Math.floor(mins / 60) + " saatte dolar" : "Bu hızla " + mins + " dakikada dolar";
+    } });
+    gsap.from("#bento .note", { x: 60, opacity: 0, duration: .8, delay: .6, ease: "back.out(1.4)" });
+    gsap.from("#bento .menu > *", { y: -6, opacity: 0, duration: .3, stagger: .05, delay: .7 });
+    gsap.to("#bento .ck", { y: 3, duration: .12, stagger: .18, delay: 1, ease: "power2.in", yoyo: true, repeat: 1 });
+    gsap.from("#bento .acct .bar i", { scaleX: 0, duration: 1.1, stagger: .15, delay: .8, ease: "power3.out" });
+    gsap.from("#bento .icons span", { scale: .6, opacity: 0, duration: .5, stagger: .08, delay: .9, ease: "back.out(2)" });
+  } });
+
+  gsap.from("#lgrid .lcard", { y: 24, opacity: 0, duration: .6, stagger: .05, ease: "power2.out", scrollTrigger: { trigger: "#lgrid", start: "top 88%" } });
+
+  gsap.fromTo("#window", { y: 60, scale: .95, opacity: 0 }, { y: 0, scale: 1, opacity: 1, ease: "power3.out", duration: 1, scrollTrigger: { trigger: "#window", start: "top 88%" } });
+  ScrollTrigger.create({ trigger: "#window", start: "top 70%", once: true, onEnter: function () {
+    var n = document.getElementById("winNum"), o = { p: 0 };
+    gsap.to(o, { p: 87, duration: 1.6, ease: "power2.out", onUpdate: function () { n.textContent = Math.round(o.p); } });
+    gsap.from("#window .bar i", { scaleX: 0, duration: 1.2, stagger: .1, ease: "power3.out" });
+    gsap.from("#window .heat i", { opacity: 0, scale: .4, duration: .4, stagger: .006, ease: "power2.out" });
+  } });
+
+  gsap.from("#privacy .lcard", { y: 30, opacity: 0, duration: .7, stagger: .1, ease: "power3.out", scrollTrigger: { trigger: "#privacy", start: "top 88%" } });
+  gsap.from("#glassFinal", { opacity: 0, y: 80, ease: "none", scrollTrigger: { trigger: ".final", start: "top 70%", end: "center center", scrub: true } });
 })();
 </script>
