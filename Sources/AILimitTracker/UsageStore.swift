@@ -313,7 +313,12 @@ final class UsageStore: ObservableObject {
     /// Ayarlar'daki önizlemeler de bunu kullanır: halkalarda kısa pencere, "En dolu"da en dolu limit.
     /// Birden çok hesapta popup'ta seçili hesap gösterilir.
     func menuIcon(style: MenuBarStyle) -> NSImage {
-        let entries = enabled.map { id -> MenuIcon.Entry in
+        // Girişi düşmüş sağlayıcının eski verisi ikonda gösterilmez (kart da göstermiyor)
+        let live = enabled.filter { id in
+            let action = usage(of: displayed(id)).issue?.action
+            return action != .login && action != .allowKeychain
+        }
+        let entries = live.map { id -> MenuIcon.Entry in
             let u = usage(of: displayed(id))
             let limit = style == .mostFull ? u.limits.max { $0.percent < $1.percent } : u.frontLimits.first
             let lastUsed = accounts(for: id).flatMap { usage(of: $0).limits }.map { UsageHistory.lastIncrease($0.id) }.max() ?? 0
