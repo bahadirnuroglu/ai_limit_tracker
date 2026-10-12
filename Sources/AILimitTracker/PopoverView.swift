@@ -365,7 +365,17 @@ private struct ProviderCard: View {
                                 Text(subtitle).font(.system(size: 10, weight: .medium))
                             }
                             // Ayrık düzende hesabın adı (Ayarlar'dan değiştirilebilir) adın ve planın altında rozet
-                            if let heading { chipView(Chip(text: heading, color: palette.ink)).padding(.top, 3) }
+                            if let heading {
+                                // Sabit boy: etiketlerdeki gibi yer daralınca küçülmesin (kartlar arasında aynı punto)
+                                Text(heading)
+                                    .font(.system(size: 10.5, weight: .semibold))
+                                    .foregroundStyle(palette.ink)
+                                    .lineLimit(1)
+                                    .fixedSize()
+                                    .padding(.horizontal, 5).padding(.vertical, 3)
+                                    .background(palette.ink.opacity(0.13), in: RoundedRectangle(cornerRadius: 5))
+                                    .padding(.top, 3)
+                            }
                         }
                         .opacity(staticPart)
                     }
