@@ -108,12 +108,12 @@ final class UsageStore: ObservableObject {
         Task { await load(.local(id), allowPrompt: allowPrompt); lastUpdated = Date() }
     }
 
-    /// Aracın kendi girişi (claude auth login / codex login, varsayılan tarayıcıda); bitince yerel hesap yeniden okunur.
-    /// Claude'da yeni kayıt için macOS izin sorabilir: kullanıcı girişi kendisi başlattığı için soruya izin verilir.
+    /// Tek seferlik giriş: aracın girişi varsayılan tarayıcıda (ToolLogin), token'lar uygulamanın kendi kaydına (OwnAuth);
+    /// bitince yerel hesap yeniden okunur. Sonrasında bağlantıyı uygulama kendisi yeniler.
     func toolLogin(_ id: ProviderID) {
         Task {
             guard await ToolLogin.shared.start(id) else { return }
-            await load(.local(id), allowPrompt: id == .claude)
+            await load(.local(id), allowPrompt: false)
             lastUpdated = Date()
         }
     }
@@ -305,7 +305,9 @@ final class UsageStore: ObservableObject {
 
     func perform(_ action: Issue.Action, account: Account) {
         switch action {
-        case .login: login(account)
+        case .login:
+            // Yerel hesapta araç varsa varsayılan tarayıcıda tek seferlik giriş (sonra kalıcı)
+            if account.isLocal && ToolLogin.isAvailable(account.provider) { toolLogin(account.provider) } else { login(account) }
         case .allowKeychain:
             Task { await load(account, allowPrompt: true); lastUpdated = Date() }
         case .openApp(let name):
@@ -376,12 +378,40 @@ final class UsageStore: ObservableObject {
         }
     }
 
+    /// Uygulamanın kendi Claude oturumu; 401'de bir kez zorla yenileyip tekrar dener
+    private func ownClaude() async throws -> WebSession.Result {
+        var token = try await OwnAuth.valid(.claude)
+        var (data, status) = try await ClaudeCodeAuth.usage(token.access)
+        if status == 401 {
+            token = try await OwnAuth.valid(.claude, force: true)
+            (data, status) = try await ClaudeCodeAuth.usage(token.access)
+        }
+        guard status == 200 else { throw status == 401 ? SessionError.needsLogin : SessionError.http(status) }
+        return WebSession.Result(plan: token.plan, limits: Self.parseClaude(data), email: token.email)
+    }
+
+    private func ownCodex() async throws -> WebSession.Result {
+        var token = try await OwnAuth.valid(.codex)
+        let result: (plan: String?, limits: [Limit])
+        do {
+            result = try await CodexProvider.fetch(access: token.access, accountID: token.accountID)
+        } catch SessionError.needsLogin {
+            token = try await OwnAuth.valid(.codex, force: true)
+            result = try await CodexProvider.fetch(access: token.access, accountID: token.accountID)
+        }
+        return WebSession.Result(plan: result.plan, limits: result.limits, email: token.email)
+    }
+
     private func fetch(_ account: Account, allowPrompt: Bool) async throws -> WebSession.Result {
         if !account.isLocal { return try await session(for: account).fetch() }
         let email = AccountList.localEmail(account.provider)
         switch account.provider {
         case .claude:
-            // Önce Claude Code oturumu (giriş gerekmez); yoksa ya da ağ dışı bir hata verirse claude.ai oturumu
+            // Önce uygulamanın kendi oturumu (tek seferlik giriş, kendisi yenilenir), sonra Claude Code oturumu
+            // (giriş gerekmez, yalnızca okunur), en son claude.ai oturumu
+            if OwnAuth.has(.claude) {
+                do { return try await ownClaude() } catch let error as URLError { throw error } catch {}
+            }
             let web = session(for: account)
             if ClaudeCodeAuth.isAvailable {
                 do {
@@ -396,7 +426,10 @@ final class UsageStore: ObservableObject {
             }
             return try await web.fetch()
         case .codex:
-            // Codex CLI girişi varsa o; yoksa (ya da geçersizse) chatgpt.com oturumu
+            // Kendi oturum, sonra Codex CLI girişi (yalnızca okunur), en son chatgpt.com oturumu
+            if OwnAuth.has(.codex) {
+                do { return try await ownCodex() } catch let error as URLError { throw error } catch {}
+            }
             let web = session(for: account)
             guard CodexCLI.isLoggedIn else { return try await web.fetch() }
             do {

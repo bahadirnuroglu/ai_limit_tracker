@@ -37,18 +37,22 @@ enum ClaudeCodeAuth {
     @MainActor
     static func fetchUsage(allowPrompt: Bool) async throws -> (plan: String?, data: Data) {
         let creds = try await credentials(allowPrompt: allowPrompt)
+        let (data, status) = try await usage(creds.token)
+        if status == 401 { cached = nil; throw ProviderError.expired }
+        guard status == 200 else { throw SessionError.http(status) }
+        return (creds.plan, data)
+    }
+
+    /// api.anthropic.com/api/oauth/usage (Claude Code token'ı ya da uygulamanın kendi token'ı, OwnAuth)
+    static func usage(_ token: String) async throws -> (Data, Int) {
         var request = URLRequest(url: URL(string: "https://api.anthropic.com/api/oauth/usage")!)
-        request.setValue("Bearer \(creds.token)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = 20
-
         let (data, response) = try await URLSession.shared.data(for: request)
-        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-        if status == 401 { cached = nil; throw ProviderError.expired }
-        guard status == 200 else { throw SessionError.http(status) }
-        return (creds.plan, data)
+        return (data, (response as? HTTPURLResponse)?.statusCode ?? 0)
     }
 
     @MainActor

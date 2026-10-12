@@ -107,16 +107,16 @@ struct Issue: Equatable {
             case (.expired, .cursor):
                 return Issue(text: "Cursor oturumunun süresi dolmuş. Cursor'u bir kez açman yeterli.", action: .openApp("Cursor"))
             case (.expired, .claude):
-                // Claude Code token'ı uygulama yenilemez (Claude Code'un oturumunu bozabilir); claude.ai girişi kalıcı yedek olur
-                return Issue(text: "Claude Code oturumunun süresi dolmuş. Terminalde bir kez claude çalıştır ya da claude.ai ile giriş yap; giriş yaparsan bir daha kesilmez.", action: .login)
+                // Claude Code'un token'ına dokunulmaz; tek seferlik girişle uygulama kendi oturumunu tutar ve yeniler
+                return Issue(text: "Claude Code oturumunun süresi dolmuş. Bir kez giriş yap; bağlantıyı bundan sonra uygulama kendisi yeniler.", action: .login)
             case (.expired, _):
                 return Issue(text: "\(provider.name) oturumunun süresi dolmuş.", action: .retry)
             }
         }
         if case SessionError.needsLogin = error {
             switch provider {
-            case .claude: return Issue(text: "claude.ai oturumu kapalı.", action: .login)
-            case .codex: return Issue(text: "Codex oturumu yok. chatgpt.com hesabınla giriş yap.", action: .login)
+            case .claude: return Issue(text: "Claude bağlı değil. Bir kez giriş yapman yeterli.", action: .login)
+            case .codex: return Issue(text: "Codex bağlı değil. Bir kez giriş yapman yeterli.", action: .login)
             case .cursor:
                 return CursorProvider.isInstalled
                     ? Issue(text: "Cursor'da oturum açık değil. Cursor'u açıp giriş yap.", action: .openApp("Cursor"))

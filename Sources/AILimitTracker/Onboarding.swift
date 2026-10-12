@@ -622,10 +622,18 @@ private struct ConnectRow: View {
         }
     }
 
-    /// Tarayıcı girişi varken ikinci yol: sitenin girişi uygulama penceresinde (Google/Apple da olur)
+    /// Satırın altındaki ikinci yol. Giriş gerekiyorsa: sitenin girişi uygulama penceresinde (Google/Apple da olur).
+    /// Claude Code oturumundan okunuyorsa: o oturum Claude Code kullanılmayınca saatler içinde eskir; tek seferlik
+    /// girişle uygulama kendi oturumunu tutar ve kesilmez.
     private var windowLink: (String, () -> Void)? {
-        guard enabled, !usage.isConnected, needsLogin, ToolLogin.isAvailable(id), !tool.running.contains(id) else { return nil }
-        return ("Ya da uygulama penceresinde giriş yap", { store.login(.local(id)) })
+        guard enabled, ToolLogin.isAvailable(id), !tool.running.contains(id) else { return nil }
+        if !usage.isConnected && needsLogin {
+            return ("Ya da uygulama penceresinde giriş yap", { store.login(.local(id)) })
+        }
+        if usage.isConnected, id != .cursor, !OwnAuth.has(id) {
+            return ("Kesintisiz bağlantı için bir kez tarayıcıda giriş yap", { store.toolLogin(id) })
+        }
+        return nil
     }
 
     /// Çözüm giriş mi? (ipucu .login istiyor ya da yerel oturum hiç yok)
@@ -635,7 +643,8 @@ private struct ConnectRow: View {
     }
 
     private var hasLocalSession: Bool {
-        (id == .claude && ClaudeCodeAuth.isAvailable) || (id == .codex && CodexCLI.isLoggedIn)
+        (id != .cursor && OwnAuth.has(id))
+            || (id == .claude && ClaudeCodeAuth.isAvailable) || (id == .codex && CodexCLI.isLoggedIn)
             || (id == .cursor && CursorProvider.isInstalled)
     }
 

@@ -2,8 +2,8 @@ import Foundation
 
 /// Sağlayıcının kendi aracıyla giriş: `claude auth login` / `codex login`. Araç varsayılan tarayıcıda (Chrome, Arc…)
 /// kendi OAuth sayfasını açar; orada zaten açık olan Google oturumu ve kayıtlı şifreler kullanılır, "İzin ver"e basınca
-/// araç girişi kendi kaydına yazar (Anahtar Zinciri / ~/.codex/auth.json), uygulama oradan okur.
-/// OAuth'u aracın kendisi yapar; uygulama sadece başlatır, token'a dokunmaz. Terminal gerekmez (stdin boş çalışır).
+/// araç girişi uygulamaya ait geçici klasöre yazar; token'lar OwnAuth'a (uygulamanın kendi kaydı) taşınır, kullanıcının
+/// asıl oturumu değişmez. OAuth onayını aracın kendisi alır. Terminal gerekmez (stdin boş çalışır).
 @MainActor
 final class ToolLogin: ObservableObject {
     static let shared = ToolLogin()
@@ -61,6 +61,14 @@ final class ToolLogin: ObservableObject {
         process.arguments = Self.arguments(id)
         // npm ile kurulan araçlar `env node` ister: Homebrew ve kullanıcı yollarını ekle
         var env = ProcessInfo.processInfo.environment
+        // Giriş uygulamaya ait geçici klasörde: kullanıcının asıl Claude Code / Codex oturumu değişmez, token'lar sonra
+        // OwnAuth'a (uygulamanın kendi kaydı) taşınır
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("ailimit-login-\(id.rawValue)-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true,
+                                                 attributes: [.posixPermissions: 0o700])
+        defer { try? FileManager.default.removeItem(at: dir) }
+        env[id == .claude ? "CLAUDE_CONFIG_DIR" : "CODEX_HOME"] = dir.path
+        let startedAt = Date()
         let extra = ["/opt/homebrew/bin", "/usr/local/bin", "\(Self.home)/.local/bin", "\(Self.home)/.npm-global/bin",
                      "\(Self.home)/.bun/bin"]
         env["PATH"] = (extra + [env["PATH"] ?? "/usr/bin:/bin"]).joined(separator: ":")
@@ -82,9 +90,13 @@ final class ToolLogin: ObservableObject {
         var status: Int32 = -1
         for await code in finished { status = code }
         timeout.cancel()
-        running.remove(id)
-        processes[id] = nil
-        return status == 0
+        defer { running.remove(id); processes[id] = nil }
+        guard status == 0 else { return false }
+        switch id {
+        case .claude: return await OwnAuth.importClaude(configDir: dir, startedAt: startedAt)
+        case .codex: return OwnAuth.importCodex(home: dir)
+        case .cursor: return false
+        }
     }
 
     func cancel(_ id: ProviderID) {

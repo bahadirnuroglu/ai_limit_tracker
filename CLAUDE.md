@@ -83,7 +83,7 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   / `codex login` (ikili bilinen yerlerde aranır: ~/.local/bin, Homebrew, ChatGPT.app içindeki codex-cli). Araç varsayılan tarayıcıda
   OAuth açar (arkadaş isteği: Chrome'daki Google oturumu), kaydına yazar, uygulama okur; stdin boş, terminal gerekmez (codex doğrulandı,
   claude auth login bu Mac'te denenmedi). Altında "Ya da uygulama penceresinde giriş yap" bağlantısı (WebSession). Menu+borderedProminent
-  macOS'ta mavi olmuyor, bu yüzden düğme + bağlantı. Claude Code token'ı yenilenmediği için Claude'da bu yol CLI kullanıldıkça kalıcı.
+  macOS'ta mavi olmuyor, bu yüzden düğme + bağlantı. Token'lar OwnAuth'a taşınır, uygulama yeniler (kalıcı).
 - ClaudeCodeAuth / CursorProvider: yerel oturumdan okuyan sağlayıcılar (bkz. dosya başları).
   Claude: önce Claude Code oturumu (Anahtar Zinciri), yoksa WebSession.
 - Activity.swift: ısı haritası verisi YEREL kayıtlardan (claude.ai web/ChatGPT dahil değil):
@@ -134,9 +134,14 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   "Güncellemeleri Denetle" (UpdateRow; UpdateChecker.shared). "Yenile" sadece limitleri yeniler (kullanıcıyla kararlaştırıldı).
 - Güncelleme doğrulaması (UpdateChecker.verify): paket kimliği + beklenen sürüm + imza bütünlüğü; çalışan uygulama
   sertifikayla imzalıysa yeni sürüm aynı designated requirement'ı karşılamalı. Ad-hoc'ta sadece bütünlük.
-- Claude Code token'ı süresi dolunca (Claude masaüstü uygulamasının Code sekmesi CLI'nin "Claude Code-credentials" kaydını
-  yenilemiyor; kayıt ~8 sa sonra eskir) ipucu eylemi .login: yerel hesap için claude.ai girişi açılır, sonra fetch claude.ai
-  web oturumuna düşer. Token'ı uygulama YENİLEMEZ (refresh token dönerse Claude Code'un oturumu bozulur).
+- Tek seferlik giriş (kullanıcı şartı: "kurdu, default browser'dan bir kez giriş yaptı, bir daha gerek kalmayacak"): OwnAuth.swift.
+  ToolLogin aracın girişini GEÇİCİ klasörde (CLAUDE_CONFIG_DIR / CODEX_HOME) çalıştırır; token'lar uygulamanın kendi Anahtar Zinciri
+  kaydına ("ailimit-oauth", hesap = sağlayıcı) taşınır (Claude: klasördeki .credentials.json ya da "Claude Code-credentials-<özet>"
+  kaydı, /usr/bin/security ile okunup silinir; Codex: auth.json). Uygulama süresi dolunca kendisi yeniler (Claude
+  platform.claude.com/v1/oauth/token, Codex auth.openai.com/oauth/token), reddedilirse kaydı siler → "Giriş Yap". Sıra: kendi
+  oturum > Claude Code / Codex CLI (YALNIZCA okunur; asıl kayıtlara YAZILMAZ, auto-mode sınıflandırıcısı da engelliyor) > web.
+  Kartta "Giriş yap" yerel hesapta araç varsa tarayıcı girişini başlatır. Claude Code ile bağlıyken satırda "Kesintisiz bağlantı
+  için bir kez tarayıcıda giriş yap" bağlantısı. Gerçek girişle uçtan uca TEST EDİLMEDİ (kullanıcı/arkadaş test edecek).
 - Claude Code Anahtar Zinciri: okuma ana iş parçacığı DIŞINDA; sormadan okumada SecKeychainSetUserInteractionAllowed(false)
   (eski tip giriş anahtar zinciri kSecUseAuthenticationUIFail'i yok sayıp izin penceresi açıyor ve popup'ı donduruyordu).
 - Yerel Codex/Cursor: CLI girişi / Cursor uygulaması yoksa ya da oturumu düşmüşse varsayılan çerez kutusunda

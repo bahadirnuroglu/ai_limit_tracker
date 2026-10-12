@@ -12,10 +12,14 @@ enum CodexProvider {
               let tokens = auth["tokens"] as? [String: Any],
               let access = tokens["access_token"] as? String
         else { throw SessionError.needsLogin }
+        return try await fetch(access: access, accountID: tokens["account_id"] as? String)
+    }
 
+    /// wham/usage verilen token'la (Codex CLI'nin ya da uygulamanın kendi token'ı, OwnAuth)
+    static func fetch(access: String, accountID: String?) async throws -> (plan: String?, limits: [Limit]) {
         var request = URLRequest(url: URL(string: "https://chatgpt.com/backend-api/wham/usage")!)
         request.setValue("Bearer \(access)", forHTTPHeaderField: "Authorization")
-        if let account = tokens["account_id"] as? String {
+        if let account = accountID {
             request.setValue(account, forHTTPHeaderField: "ChatGPT-Account-Id")
         }
 
