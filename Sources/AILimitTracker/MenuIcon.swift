@@ -40,13 +40,15 @@ enum MenuIcon {
     static func image(_ entries: [Entry], style: MenuBarStyle = .recentTwo) -> NSImage {
         switch style {
         case _ where entries.count <= 1:
-            return stacked(outer: entries.first?.percent, inner: nil, hasInner: false)
+            return stacked(outer: entries.first, inner: nil)
         case .recentTwo:
             // En son kullanılan önce; dış halka o
-            let two = entries.enumerated().sorted { a, b in
+            let sorted = entries.enumerated().sorted { a, b in
                 a.element.lastUsed != b.element.lastUsed ? a.element.lastUsed > b.element.lastUsed : a.offset < b.offset
-            }.prefix(2).map(\.element)
-            return stacked(outer: two.first?.percent, inner: two.dropFirst().first?.percent, hasInner: two.count > 1)
+            }.map(\.element)
+            // Hiç kullanılmamış ve boş sağlayıcı (ör. %0 Cursor) iç halkayı boş yere doldurmasın
+            let inner = sorted.dropFirst().first.flatMap { $0.lastUsed > 0 || ($0.percent ?? 0) > 0 ? $0 : nil }
+            return stacked(outer: sorted.first, inner: inner)
         case .mostFull:
             let top = entries.max { ($0.percent ?? -1) < ($1.percent ?? -1) }!
             return focused(top)
@@ -105,16 +107,20 @@ enum MenuIcon {
     static let claudeOrange = NSColor(red: 0.93, green: 0.52, blue: 0.36, alpha: 1)
     static let critical = NSColor(red: 0.94, green: 0.33, blue: 0.29, alpha: 1)
 
-    private static func stacked(outer: Double?, inner: Double?, hasInner: Bool) -> NSImage {
+    /// İç içe halkalar; her halka kendi sağlayıcısının renginde (%90+ kırmızı)
+    private static func stacked(outer: Entry?, inner: Entry?) -> NSImage {
+        let hasInner = inner != nil
+        func fill(_ e: Entry?) -> NSColor { (e?.percent ?? 0) >= 90 ? critical : (e?.tint ?? .labelColor) }
         let size: CGFloat = 22
         let image = NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in
             guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
             let center = CGPoint(x: rect.midX, y: rect.midY - 0.3)
             let label = NSColor.labelColor
-            ring(ctx, center: center, radius: hasInner ? 9.2 : 8.6, value: outer,
-                 track: label.withAlphaComponent(0.22), fill: claudeOrange)
+            ring(ctx, center: center, radius: hasInner ? 9.2 : 8.6, value: outer?.percent,
+                 track: label.withAlphaComponent(0.22), fill: fill(outer))
             if hasInner {
-                ring(ctx, center: center, radius: 4.8, value: inner, track: label.withAlphaComponent(0.22), fill: label, width: 2.6)
+                ring(ctx, center: center, radius: 4.8, value: inner?.percent, track: label.withAlphaComponent(0.22),
+                     fill: fill(inner), width: 2.6)
             }
             return true
         }
