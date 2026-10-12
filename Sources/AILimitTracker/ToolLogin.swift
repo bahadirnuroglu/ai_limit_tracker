@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 
 /// Sağlayıcının kendi aracıyla giriş: `claude auth login` / `codex login`. Araç varsayılan tarayıcıda (Chrome, Arc…)
 /// kendi OAuth sayfasını açar; orada zaten açık olan Google oturumu ve kayıtlı şifreler kullanılır, "İzin ver"e basınca
@@ -7,7 +7,12 @@ import Foundation
 @MainActor
 final class ToolLogin: ObservableObject {
     static let shared = ToolLogin()
-    private init() {}
+    private init() {
+        // Uygulama kapanırken (çıkış, güncelleme) bekleyen giriş arkada sahipsiz kalmasın
+        NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated { ToolLogin.shared.processes.values.forEach { $0.terminate() } }
+        }
+    }
 
     @Published private(set) var running: Set<ProviderID> = []
     private var processes: [ProviderID: Process] = [:]
