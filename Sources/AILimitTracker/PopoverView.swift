@@ -473,7 +473,7 @@ private struct ProviderCard: View {
             return usage.note.map { Chip(text: $0, color: palette.ink) }
         }
         let color = limit.percent >= 90 ? palette.alert : palette.notice
-        return Chip(text: "≈ \(Countdown.short(seconds: eta)) sonra dolar", color: color)
+        return Chip(text: "Bu hızla \(Countdown.within(seconds: eta)) dolar", color: color)
     }
 
     private func chipView(_ chip: Chip) -> some View {
@@ -1018,7 +1018,7 @@ struct CardPalette {
     let hintText: Color
     let hologramBlend: BlendMode
     let hologramStrength: Double
-    let notice: Color         // "≈ 12 sa sonra dolar"
+    let notice: Color         // "Bu hızla 2 saatte dolar"
     let alert: Color          // %90+ ve "Doldu"
 
     static let silver = CardPalette(

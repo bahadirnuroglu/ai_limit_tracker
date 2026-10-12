@@ -44,7 +44,7 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
 - CodexProvider.swift: ~/.codex/auth.json token'ı ile GET chatgpt.com/backend-api/wham/usage
   (rate_limit.primary_window / secondary_window: used_percent, limit_window_seconds, reset_at)
 - PopoverView.swift: popup. Her sağlayıcı yatay halka satırı (ProviderCard): logo + ad + plan + etiket
-  (öncelik: Doldu > ≈ X sonra dolar > Cursor $ notu), sağda en fazla iki 270° halka (RingGauge).
+  (öncelik: Doldu > "Bu hızla 2 saatte dolar" > Cursor $ notu), sağda en fazla iki 270° halka (RingGauge).
   Karta tıklayınca döner (y ekseni, 90°'de yüz değişir); kartlar BAĞIMSIZ döner (birden çoğu aynı anda).
   Arka yüz sekmeleri: Limitler (tüm kovalar, MiniLimitRow) / Etkinlik (13 haftalık ısı haritası; Claude turuncu,
   Codex mor). Kart alanı içerik boyunda ScrollView; tavan ekranın %80'i. WindowFader'ın NSView'u hitTest nil

@@ -52,6 +52,14 @@ enum Countdown {
         if total >= 3600 { return "\(total / 3600) sa" }
         return "\(max(total / 60, 1)) dk"
     }
+
+    /// "2 saatte", "40 dakikada", "3 günde" (kart etiketi: "Bu hızla 2 saatte dolar")
+    static func within(seconds: TimeInterval) -> String {
+        let total = max(Int(seconds), 0)
+        if total >= 86_400 { return "\(total / 86_400) günde" }
+        if total >= 3600 { return "\(total / 3600) saatte" }
+        return "\(max(total / 60, 1)) dakikada"
+    }
 }
 
 enum ProviderState: Equatable { case loading, ok, needsLogin, error(String) }
