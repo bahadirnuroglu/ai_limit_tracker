@@ -108,7 +108,7 @@ struct Issue: Equatable {
                 return Issue(text: "Cursor oturumunun süresi dolmuş. Cursor'u bir kez açman yeterli.", action: .openApp("Cursor"))
             case (.expired, .claude):
                 // Claude Code'un token'ına dokunulmaz; tek seferlik girişle uygulama kendi oturumunu tutar ve yeniler
-                return Issue(text: "Claude Code oturumunun süresi dolmuş. Bir kez giriş yap; bağlantıyı bundan sonra uygulama kendisi yeniler.", action: .login)
+                return Issue(text: "Claude Code oturumunun süresi dolmuş. Bir kez giriş yap (tarayıcıda Pro ya da Max hesabın açık olsun); bağlantıyı bundan sonra uygulama kendisi yeniler.", action: .login)
             case (.expired, _):
                 return Issue(text: "\(provider.name) oturumunun süresi dolmuş.", action: .retry)
             }

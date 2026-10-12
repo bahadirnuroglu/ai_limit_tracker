@@ -588,7 +588,7 @@ private struct ConnectRow: View {
         case .claude:
             return ClaudeCodeAuth.isAvailable
                 ? "Claude Code oturumu kullanılır. macOS bir kez Mac parolanı isteyecek; Her Zaman İzin Ver'i seç."
-                : ToolLogin.isAvailable(.claude) ? "Giriş Yap tarayıcında açılır; oradaki Google oturumun kullanılır."
+                : ToolLogin.isAvailable(.claude) ? "Giriş Yap tarayıcında açılır (Pro ya da Max hesabı). Ücretsiz hesapta uygulama penceresinden gir."
                 : "Claude Code girişliyse kendiliğinden okunur; yoksa claude.ai ile bir kez giriş yap."
         case .codex:
             return CodexCLI.isLoggedIn ? "Codex CLI girişi kullanılır, şifre gerekmez."

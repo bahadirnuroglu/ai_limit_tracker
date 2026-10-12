@@ -55,7 +55,12 @@ final class ToolLogin: ObservableObject {
     /// Girişi başlatır; araç bitince true (başarılı) / false döner. Kullanıcı tarayıcıda vazgeçerse araç beklemeye
     /// devam eder: 10 dk sonra ya da cancel ile kapatılır.
     func start(_ id: ProviderID) async -> Bool {
-        guard !running.contains(id), let path = Self.executable(id) else { return false }
+        guard let path = Self.executable(id) else { return false }
+        // Önceki giriş hâlâ bekliyorsa (ör. tarayıcıda yanlış hesap açıktı) kapatıp baştan başla
+        if running.contains(id) {
+            processes[id]?.terminate()
+            while running.contains(id) { try? await Task.sleep(for: .milliseconds(100)) }
+        }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: path)
         process.arguments = Self.arguments(id)
