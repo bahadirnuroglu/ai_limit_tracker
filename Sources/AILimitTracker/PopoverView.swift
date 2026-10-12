@@ -8,7 +8,7 @@ struct PopoverView: View {
     @ObservedObject var updater: UpdateChecker
     @State private var shown = false
     @State private var opens = 0
-    @State private var flipped: Set<ProviderID> = []   // birden çok kart aynı anda dönük olabilir
+    @State private var flipped: Set<String> = []   // kart anahtarları; birden çok kart aynı anda dönük olabilir
     @Environment(\.colorScheme) private var systemScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var palette: CardPalette { systemScheme == .dark ? .graphite : .silver }
@@ -22,24 +22,28 @@ struct PopoverView: View {
             // alt şerit sabit kalır
             ScrollView(.vertical) {
                 VStack(spacing: 6) {
-                    // Limite en yakın sağlayıcı en üstte; her kart kendi başına döner
-                    ForEach(Array(store.ordered.enumerated()), id: \.element) { index, id in
-                        let account = store.displayed(id)
+                    // Limite en yakın sağlayıcı en üstte; her kart kendi başına döner. Tek sağlayıcı bağlıyken
+                    // hesapları ayrı kart (store.splitProvider)
+                    ForEach(Array(cards.enumerated()), id: \.element.key) { index, card in
+                        let id = card.provider
+                        let account = card.account ?? store.displayed(id)
+                        let key = card.key
                         ProviderCard(
-                            id: id, usage: store[id], shown: shown, order: index, flipped: flipped.contains(id),
-                            accounts: chips(id), selected: account.id, title: store.title(account),
-                            onTap: { if flipped.contains(id) { flipped.remove(id) } else { flipped.insert(id) } },
+                            id: id, usage: store.usage(of: account), shown: shown, order: index, flipped: flipped.contains(key),
+                            accounts: card.account == nil ? chips(id) : [], selected: account.id, title: store.title(account),
+                            heading: card.account.map { store.label($0) },
+                            onTap: { if flipped.contains(key) { flipped.remove(key) } else { flipped.insert(key) } },
                             onSelect: { key in
                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { store.selection[id] = key }
                             },
-                            onAction: { store.perform($0, for: id) },
+                            onAction: { store.perform($0, account: account) },
                             onManageAccounts: {
                                 UserDefaults.standard.set(0, forKey: "settingsTab")
                                 Onboarding.show(store: store, loginItem: loginItem, settings: true)
                             }
                         )
                     }
-                    .animation(.spring(response: 0.45, dampingFraction: 0.8), value: store.ordered)
+                    .animation(.spring(response: 0.45, dampingFraction: 0.8), value: cards.map(\.key))
                 }
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { cardsHeight = $0 }
             }
@@ -69,6 +73,19 @@ struct PopoverView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { shown = true }
         }
         .onDisappear { shown = false; flipped = [] }
+    }
+
+    private struct CardItem {
+        let provider: ProviderID
+        let account: Account?   // dolu: ayrık düzende tek hesabın kartı
+        var key: String { account?.id ?? provider.rawValue }
+    }
+
+    private var cards: [CardItem] {
+        if let split = store.splitProvider {
+            return store.visibleAccounts(split).map { CardItem(provider: split, account: $0) }
+        }
+        return store.ordered.map { CardItem(provider: $0, account: nil) }
     }
 
     /// Birden çok hesap varsa kartın çipleri (tek hesapta boş: kart bugünküyle aynı)
@@ -222,6 +239,7 @@ private struct ProviderCard: View {
     let accounts: [AccountChip]   // birden çok hesapta çipler; tek hesapta boş
     let selected: String
     let title: String             // "Claude" ya da "Claude · İş" (hatırlatma bildirimi)
+    var heading: String? = nil    // ayrık düzende hesabın adı, ad yanında
     let onTap: () -> Void
     let onSelect: (String) -> Void
     let onAction: (Issue.Action) -> Void
@@ -342,8 +360,9 @@ private struct ProviderCard: View {
                     HStack(alignment: .center, spacing: 9) {
                         BrandLogoShape(logo: id.logo).fill(palette.ink).frame(width: 24, height: 24)
                         VStack(alignment: .leading, spacing: 1) {
-                            HStack(spacing: 5) {
+                            HStack(alignment: .firstTextBaseline, spacing: 5) {
                                 Text(id.name).font(.system(size: 15, weight: .bold))
+                                if let heading { Text(heading).font(.system(size: 12, weight: .medium)).lineLimit(1) }
                             }
                             if !subtitle.isEmpty {
                                 Text(subtitle).font(.system(size: 10, weight: .medium))
@@ -395,7 +414,7 @@ private struct ProviderCard: View {
     }
 
     private var accessibilitySummary: String {
-        var parts = [accounts.isEmpty ? id.name : title]
+        var parts = [accounts.isEmpty && heading == nil ? id.name : title]
         if let plan = usage.plan { parts.append("\(plan) planı") }
         for limit in showBack ? usage.limits : front {
             var text = "\(limit.label) yüzde \(Int(limit.percent.rounded()))"
@@ -520,7 +539,7 @@ private struct ProviderCard: View {
             HStack(spacing: 8) {
                 BrandLogoShape(logo: id.logo).fill(palette.ink).frame(width: 20, height: 20).opacity(staticPart)
                 Text(id.name).font(.system(size: 15, weight: .bold)).opacity(staticPart)
-                if let name = accounts.first(where: { $0.id == selected })?.longName {
+                if let name = heading ?? accounts.first(where: { $0.id == selected })?.longName {
                     Text(name).font(.system(size: 11, weight: .medium)).lineLimit(1).opacity(staticPart)
                 }
                 Spacer()

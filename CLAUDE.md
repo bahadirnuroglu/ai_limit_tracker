@@ -71,6 +71,9 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   (karta sağ tık → "Hesapları Adlandır…"). Google/Apple girişi için WebSession açılır pencereye (WKUIDelegate) izin verir. Seçilen hesap KALICI (UserDefaults "selectedAccounts"; kullanıcı popup kapanınca sıfırlanmasını
   hata saydı) ve menü çubuğu ikonu seçili hesabı gösterir; seçim yoksa en boş hesap (best). Kart sırası best'e göre
   (çipe basınca kartlar yer değiştirmesin). Ek hesap varken bağlı olmayan yerel hesap çipte gizlenir.
+  AYRIK DÜZEN (kullanıcı isteği): yalnızca TEK sağlayıcı bağlıysa (verisi olan) ve onda birden çok hesap varsa her hesap ayrı
+  kart (store.splitProvider; çip yok, ad yanında hesap adı "Claude bireysel"), menü ikonu da hesap başına halka. İkinci bir
+  sağlayıcı bağlanınca tek kart + çipler. PopoverView.cards / CardItem (anahtar: hesap id ya da sağlayıcı adı).
   Ek hesap web girişleri gerçek hesapla test EDİLMEDİ (claude.ai /api/account e-posta alanı tahmini).
 - Kestirmeler/Siri (URL şeması + hazır kestirme) denendi, kullanıcı isteğiyle KALDIRILDI.
 - Onboarding.swift: Apple kurulum asistanı tarzı pencere (şeffaf başlık çubuğu, sistem Form/Toggle/borderedProminent,

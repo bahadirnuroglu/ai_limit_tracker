@@ -131,6 +131,14 @@ final class UsageStore: ObservableObject {
     /// Hesabın OwnAuth anahtarı: yerel hesapta sağlayıcı adı (eski kayıtlarla uyumlu), ek hesapta UUID
     private func ownKey(_ account: Account) -> String { account.isLocal ? account.provider.rawValue : account.id }
 
+    /// Tek sağlayıcı bağlı ve onda birden çok hesap varsa her hesap ayrı kart (çip yok); ikinci bir sağlayıcı bağlanınca
+    /// hesaplar yine tek kartta çiplerle. Bağlı = görünen hesaplarından birinin verisi var.
+    var splitProvider: ProviderID? {
+        let connected = enabled.filter { id in visibleAccounts(id).contains { !usage(of: $0).limits.isEmpty } }
+        guard connected.count == 1, let only = connected.first, visibleAccounts(only).count > 1 else { return nil }
+        return only
+    }
+
     /// Popup sırası: limite en yakın en üstte; verisi olmayanlar sona. Çip seçimi sırayı değiştirmez.
     var ordered: [ProviderID] {
         enabled.sorted { usage(of: best($0)).worst > usage(of: best($1)).worst }
@@ -329,6 +337,16 @@ final class UsageStore: ObservableObject {
             return !u.limits.isEmpty && action != .login && action != .allowKeychain
         }
         let live = withData.isEmpty ? enabled : withData
+        if let split = splitProvider {
+            let entries = visibleAccounts(split).filter { !usage(of: $0).limits.isEmpty }.map { account -> MenuIcon.Entry in
+                let u = usage(of: account)
+                let limit = style == .mostFull ? u.limits.max { $0.percent < $1.percent } : u.frontLimits.first
+                let lastUsed = u.limits.map { UsageHistory.lastIncrease($0.id) }.max() ?? 0
+                return MenuIcon.Entry(logo: split.logo, percent: limit?.percent, resetsAt: limit?.resetsAt,
+                                      tint: split.menuTint, lastUsed: lastUsed)
+            }
+            return MenuIcon.image(entries, style: style)
+        }
         let entries = live.map { id -> MenuIcon.Entry in
             let u = usage(of: displayed(id))
             let limit = style == .mostFull ? u.limits.max { $0.percent < $1.percent } : u.frontLimits.first
