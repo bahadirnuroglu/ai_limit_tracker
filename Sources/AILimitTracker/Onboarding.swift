@@ -519,6 +519,10 @@ private struct SettingsView: View {
             }
         }
         lines.append("Claude Code oturumu: \(ClaudeCodeAuth.isAvailable) · Codex girişi: \(CodexCLI.isLoggedIn)")
+        // Kaynak ve kendi oturum var mı (token yazılmaz)
+        lines.append("Kendi oturum: " + [ProviderID.claude, .codex].map { id in
+            "\(id.rawValue)=\(OwnAuth.has(id) ? "var" : "yok") kaynak=\(store.source[id].map { "\($0)" } ?? "-") araç=\(ToolLogin.isAvailable(id))"
+        }.joined(separator: " · "))
         lines.append("Bildirimler: " + NotificationPrefs.Kind.allCases.map { "\($0.rawValue)=\(NotificationPrefs.isOn($0))" }.joined(separator: " "))
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(lines.joined(separator: "\n"), forType: .string)

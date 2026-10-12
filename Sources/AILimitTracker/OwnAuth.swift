@@ -214,7 +214,9 @@ enum OwnAuth {
             var out: CFTypeRef?
             if SecItemCopyMatching(read as CFDictionary, &out) == errSecSuccess { data = out as? Data }
         }
-        if data != nil { _ = security(["delete-generic-password", "-s", svc]) }
+        // Yalnızca tek aday varsa sil: kullanıcının başka bir Claude Code yapılandırma klasörü aynı anda değiştiyse
+        // onun kaydına dokunulmasın (silinmeyen geçici kayıt zararsızdır)
+        if data != nil, candidates.count == 1 { _ = security(["delete-generic-password", "-s", svc]) }
         return data
     }
 
