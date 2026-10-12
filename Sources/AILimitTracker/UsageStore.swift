@@ -108,6 +108,16 @@ final class UsageStore: ObservableObject {
         Task { await load(.local(id), allowPrompt: allowPrompt); lastUpdated = Date() }
     }
 
+    /// Aracın kendi girişi (claude auth login / codex login, varsayılan tarayıcıda); bitince yerel hesap yeniden okunur.
+    /// Claude'da yeni kayıt için macOS izin sorabilir: kullanıcı girişi kendisi başlattığı için soruya izin verilir.
+    func toolLogin(_ id: ProviderID) {
+        Task {
+            guard await ToolLogin.shared.start(id) else { return }
+            await load(.local(id), allowPrompt: id == .claude)
+            lastUpdated = Date()
+        }
+    }
+
     /// Popup sırası: limite en yakın en üstte; verisi olmayanlar sona. Çip seçimi sırayı değiştirmez.
     var ordered: [ProviderID] {
         enabled.sorted { usage(of: best($0)).worst > usage(of: best($1)).worst }

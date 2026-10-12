@@ -563,13 +563,14 @@ private struct ConnectRow: View {
     var toggle: Binding<Bool>? = nil
 
     @State private var busy = false
+    @ObservedObject private var tool = ToolLogin.shared
 
     private var usage: ProviderUsage { store.local(id) }
     private var enabled: Bool { toggle?.wrappedValue ?? true }
 
     var body: some View {
         HStack(spacing: 10) {
-            ProviderLabel(id: id, detail: detail)
+            ProviderLabel(id: id, detail: detail, link: windowLink)
             Spacer(minLength: 8)
             if enabled { trailing }
             if let toggle { Toggle("", isOn: toggle).toggleStyle(.switch).labelsHidden() }
@@ -587,9 +588,11 @@ private struct ConnectRow: View {
         case .claude:
             return ClaudeCodeAuth.isAvailable
                 ? "Claude Code oturumu kullanılır. macOS bir kez Mac parolanı isteyecek; Her Zaman İzin Ver'i seç."
+                : ToolLogin.isAvailable(.claude) ? "Giriş Yap tarayıcında açılır; oradaki Google oturumun kullanılır."
                 : "Claude Code girişliyse kendiliğinden okunur; yoksa claude.ai ile bir kez giriş yap."
         case .codex:
             return CodexCLI.isLoggedIn ? "Codex CLI girişi kullanılır, şifre gerekmez."
+                : ToolLogin.isAvailable(.codex) ? "Giriş Yap tarayıcında açılır; oradaki Google oturumun kullanılır."
                 : "Codex CLI girişliyse kendiliğinden okunur; yoksa chatgpt.com ile bir kez giriş yap."
         case .cursor:
             return CursorProvider.isInstalled ? "Cursor'daki oturum kullanılır, şifre gerekmez."
@@ -601,11 +604,39 @@ private struct ConnectRow: View {
         if usage.isConnected {
             Label("Bağlı", systemImage: "checkmark.circle.fill")
                 .labelStyle(.titleAndIcon).foregroundStyle(.green).font(.callout.weight(.medium))
+        } else if tool.running.contains(id) {
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text("Tarayıcıda devam et").font(.callout).foregroundStyle(.secondary)
+                Button("Vazgeç") { tool.cancel(id) }.controlSize(.small)
+            }
         } else if busy || (usage.state == .loading && usage.issue == nil && store.isRefreshing) {
             ProgressView().controlSize(.small)
+        } else if needsLogin && ToolLogin.isAvailable(id) {
+            // Aracın kendi girişi varsayılan tarayıcıda (Chrome'daki Google oturumu); uygulama penceresi altta bağlantı
+            Button("Giriş Yap") { store.toolLogin(id) }
+                .buttonStyle(.borderedProminent).controlSize(.small)
+                .help("Varsayılan tarayıcında \(ToolLogin.toolName(id)) girişi açılır; oradaki Google oturumun ve kayıtlı şifrelerin kullanılır.")
         } else if let (title, action) = primaryAction {
             Button(title, action: action).buttonStyle(.borderedProminent).controlSize(.small)
         }
+    }
+
+    /// Tarayıcı girişi varken ikinci yol: sitenin girişi uygulama penceresinde (Google/Apple da olur)
+    private var windowLink: (String, () -> Void)? {
+        guard enabled, !usage.isConnected, needsLogin, ToolLogin.isAvailable(id), !tool.running.contains(id) else { return nil }
+        return ("Ya da uygulama penceresinde giriş yap", { store.login(.local(id)) })
+    }
+
+    /// Çözüm giriş mi? (ipucu .login istiyor ya da yerel oturum hiç yok)
+    private var needsLogin: Bool {
+        if let action = usage.issue?.action, action != .retry { return action == .login }
+        return !hasLocalSession
+    }
+
+    private var hasLocalSession: Bool {
+        (id == .claude && ClaudeCodeAuth.isAvailable) || (id == .codex && CodexCLI.isLoggedIn)
+            || (id == .cursor && CursorProvider.isInstalled)
     }
 
     private var primaryAction: (String, () -> Void)? {
@@ -613,12 +644,10 @@ private struct ConnectRow: View {
         if let issue = usage.issue, let title = issue.actionTitle, let action = issue.action, action != .retry {
             return (title, { run { store.perform(action, account: .local(id)) } })
         }
-        let local = (id == .claude && ClaudeCodeAuth.isAvailable) || (id == .codex && CodexCLI.isLoggedIn)
-            || (id == .cursor && CursorProvider.isInstalled)
         if id == .claude && ClaudeCodeAuth.isAvailable {
             return ("İzin Ver", { run { store.reload(.claude, allowPrompt: true) } })
         }
-        if local { return ("Tekrar Dene", { run { store.reload(id) } }) }
+        if hasLocalSession { return ("Tekrar Dene", { run { store.reload(id) } }) }
         // Yerel oturum yoksa sitenin girişi (Google/Apple dahil); pencere kapanınca veri gelir
         return ("Giriş Yap", { store.login(.local(id)) })
     }
@@ -827,6 +856,7 @@ private struct AccountRow: View {
 private struct ProviderLabel: View {
     let id: ProviderID
     let detail: String
+    var link: (String, () -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 10) {
@@ -838,6 +868,9 @@ private struct ProviderLabel: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(id.name).font(.system(size: 13, weight: .semibold))
                 Text(detail).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                if let (title, action) = link {
+                    Button(title, action: action).buttonStyle(.link).font(.callout)
+                }
             }
         }
     }

@@ -79,6 +79,11 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   UserDefaults: "enabledProviders", "onboardingDone", bildirim türleri "notify.75/.90/.reset" (NotificationPrefs).
   Bildirim izni kurulumun Bildirimler adımında istenir (kurulum bitmişse açılışta).
   Görsel kontrol: Form/Toggle ekran dışı çizilmez; uygulama içinden cacheDisplay ile anlık görüntü alınır.
+- ToolLogin.swift: "Giriş Yap" (ConnectRow, yerel oturum yok/düşmüşse) aracın kendi girişini başlatır: `claude auth login --claudeai`
+  / `codex login` (ikili bilinen yerlerde aranır: ~/.local/bin, Homebrew, ChatGPT.app içindeki codex-cli). Araç varsayılan tarayıcıda
+  OAuth açar (arkadaş isteği: Chrome'daki Google oturumu), kaydına yazar, uygulama okur; stdin boş, terminal gerekmez (codex doğrulandı,
+  claude auth login bu Mac'te denenmedi). Altında "Ya da uygulama penceresinde giriş yap" bağlantısı (WebSession). Menu+borderedProminent
+  macOS'ta mavi olmuyor, bu yüzden düğme + bağlantı. Claude Code token'ı yenilenmediği için Claude'da bu yol CLI kullanıldıkça kalıcı.
 - ClaudeCodeAuth / CursorProvider: yerel oturumdan okuyan sağlayıcılar (bkz. dosya başları).
   Claude: önce Claude Code oturumu (Anahtar Zinciri), yoksa WebSession.
 - Activity.swift: ısı haritası verisi YEREL kayıtlardan (claude.ai web/ChatGPT dahil değil):
