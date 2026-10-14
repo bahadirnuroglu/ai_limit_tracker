@@ -1,489 +1,362 @@
 <meta charset="utf-8">
 <title>AI Limit Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Claude, Codex ve Cursor kullanım limitlerin Mac menü çubuğunda. Dolmadan önce haber verir.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <style>
-/* Düzen: apple.com ürün sayfası — sabit yerel gezinme, siyah tam genişlik video giriş, açık bölümler (beyaz / #f5f5f7),
-   dev ortalı başlıklar, kayan "öne çıkanlar" galerisi, iOS bileşenli bento, karşılaştırma sütunları, ince alt bilgi.
-   Yazı: Mac'te SF Pro (sistem), diğerlerinde Inter. */
+/* Kimlik uygulamanın kendisinden: gümüş/grafit metal kartlar (4 pt içeride ince çerçeve), üstte hologram,
+   270° halka motifi, SF Pro + yuvarlak rakamlar, siyah sinematik zemin. Apple bileşeni kopyası yok. */
 :root {
-  color-scheme: light;
-  --bg: #ffffff;
-  --alt: #f5f5f7;
-  --ink: #1d1d1f;
-  --ink-2: #6e6e73;
-  --ink-3: #86868b;
-  --line: #d2d2d7;
-  --blue: #0071e3;
-  --link: #0066cc;
-  --tempo: #6e5ce7;
-  --calm: #3a86f7;
-  --alert: #ff3b30;
-  --ok: #34c759;
-  --orange: #ff6a3d;
+  color-scheme: dark;
+  --bg: #08080a;
+  --ink: #f2f2f4;
+  --ink-2: #9a9aa2;
+  --ink-3: #6b6b73;
+  --metal-hi: #3e3e43;
+  --metal-lo: #26262a;
+  --edge: rgba(255, 255, 255, .09);
+  --silver-hi: #f1f1f3;
+  --silver-lo: #c9c9cf;
+  --blue: #5b9bff;
+  --purple: #8b6cff;
+  --red: #ff5a3c;
   --sf: "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue", sans-serif;
-  --sf-round: ui-rounded, "SF Pro Rounded", -apple-system, "Inter", sans-serif;
+  --round: ui-rounded, "SF Pro Rounded", -apple-system, "Inter", sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --holo: linear-gradient(115deg, transparent 20%, rgba(255,130,120,.55) 30%, rgba(255,210,120,.55) 38%, rgba(240,250,150,.5) 45%, rgba(140,235,170,.55) 53%, rgba(120,190,255,.6) 62%, rgba(185,140,255,.6) 71%, transparent 82%);
 }
 * { box-sizing: border-box }
-html { background: var(--bg) }
-body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sf); font-size: 17px; line-height: 1.47; letter-spacing: -.022em; -webkit-font-smoothing: antialiased; overflow-x: hidden }
-a { color: var(--link); text-decoration: none }
-a:hover { text-decoration: underline }
-h1, h2, h3, h4, p { margin: 0 }
+html { background: var(--bg); scroll-behavior: smooth }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sf); font-size: 17px; line-height: 1.5; letter-spacing: -.016em; -webkit-font-smoothing: antialiased; overflow-x: hidden }
+a { color: inherit; text-decoration: none }
+h1, h2, h3, p { margin: 0 }
 h1, h2, h3 { text-wrap: balance }
-:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 6px }
-.wrap { max-width: 980px; margin-inline: auto; padding-inline: 22px }
-.wide { max-width: 1260px; margin-inline: auto; padding-inline: 22px }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 8px }
+.wrap { max-width: 1180px; margin-inline: auto; padding-inline: 24px }
+.round { font-family: var(--round); letter-spacing: -.02em }
 
-/* Apple düğmeleri */
-.pill { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 12px 22px; border-radius: 980px; background: var(--blue); color: #fff; font-size: 17px; font-weight: 400; letter-spacing: -.022em; line-height: 1 }
-.pill:hover { background: #0077ed; text-decoration: none }
-.pill.small { min-height: 28px; padding: 4px 12px; font-size: 12px }
-.more { font-size: 17px }
-.more::after { content: " ›" }
-.on-dark .more { color: #2997ff }
+/* Metal yüzey: uygulamadaki kartın koyu teması — grafit degrade, 5 px içeride ince çerçeve, üstte hologram */
+.metal { position: relative; isolation: isolate; border-radius: 24px; background: linear-gradient(160deg, var(--metal-hi), var(--metal-lo)); overflow: hidden }
+.metal::before { content: ""; position: absolute; inset: 5px; border-radius: 19px; border: 1px solid var(--edge); pointer-events: none; z-index: 2 }
+.metal::after { content: ""; position: absolute; inset: -40%; background: var(--holo); filter: blur(28px); mix-blend-mode: screen; opacity: .1; pointer-events: none; z-index: 1;
+  transform: translate(calc(var(--mx, .5) * 30% - 15%), calc(var(--my, .5) * 20% - 10%)) rotate(var(--rot, 0deg)); transition: opacity .5s }
+.metal:hover::after { opacity: .24 }
+.metal > * { position: relative; z-index: 3 }
 
-/* Yerel gezinme (Apple ürün çubuğu) */
-.localnav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; height: 52px; background: rgba(251, 251, 253, .8); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid rgba(0, 0, 0, .16) }
-.localnav .wide { height: 100%; display: flex; align-items: center; gap: 24px }
-.localnav .title { font-size: 21px; font-weight: 600; letter-spacing: .011em; color: var(--ink); display: flex; align-items: center; gap: 8px }
-.localnav .title:hover { text-decoration: none }
-.localnav nav { margin-left: auto; display: flex; align-items: center; gap: 24px; font-size: 12px; letter-spacing: -.01em }
-.localnav nav a { color: var(--ink); opacity: .8 }
-.localnav nav a.cur { opacity: .5; pointer-events: none }
+/* Gümüş düğme: uygulamanın açık temalı kartı (#ddd zemin, içeride #bbb çizgi, #555 yazı) */
+.silver { position: relative; isolation: isolate; display: inline-flex; align-items: center; gap: 10px; min-height: 50px; padding: 0 24px; border-radius: 14px; background: linear-gradient(180deg, var(--silver-hi), var(--silver-lo)); color: #3a3a3e; font-weight: 600; font-size: 16px; letter-spacing: -.01em; overflow: hidden; box-shadow: 0 1px 0 rgba(255,255,255,.6) inset, 0 12px 30px rgba(0,0,0,.35) }
+.silver::before { content: ""; position: absolute; inset: 3px; border-radius: 11px; border: 1px solid rgba(0,0,0,.14); pointer-events: none }
+.silver::after { content: ""; position: absolute; inset: -60%; background: var(--holo); filter: blur(14px); mix-blend-mode: overlay; opacity: .55; transform: translateX(-40%); transition: transform .9s cubic-bezier(.2,.8,.2,1); pointer-events: none }
+.silver:hover::after { transform: translateX(40%) }
+.silver svg { width: 18px; height: 18px }
+.silver.sm { min-height: 36px; padding: 0 14px; border-radius: 10px; font-size: 13px }
+.silver.sm::before { inset: 2px; border-radius: 8px }
+.link { display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2); font-weight: 500; font-size: 16px; transition: color .2s }
+.link:hover { color: var(--ink) }
+.link svg { width: 18px; height: 18px }
 
-/* Giriş: siyah tam genişlik, ekran kaydı */
-.hero { background: #000; color: #f5f5f7; text-align: center; padding-top: 72px; overflow: hidden; position: relative }
-.hero .eyebrow { font-size: 21px; font-weight: 600; letter-spacing: .011em; color: #f5f5f7; display: inline-flex; align-items: center; gap: 8px }
-.hero h1 { margin-top: 10px; font-size: clamp(48px, 8vw, 96px); line-height: 1.04; font-weight: 600; letter-spacing: -.015em; background: linear-gradient(180deg, #fff 35%, #b9b9c0); -webkit-background-clip: text; background-clip: text; color: transparent }
-.hero .lede { margin: 18px auto 0; max-width: 30ch; font-size: clamp(19px, 2vw, 24px); line-height: 1.33; color: #a1a1a6; letter-spacing: .009em }
-.hero .ctas { margin-top: 28px; display: flex; gap: 28px; align-items: center; justify-content: center; flex-wrap: wrap }
-.stage { position: relative; margin: 48px auto 0; width: min(100%, 1080px); padding-bottom: 72px }
-.stage::before { content: ""; position: absolute; left: 50%; top: 45%; width: 120%; height: 120%; transform: translate(-50%, -50%); background: radial-gradient(40% 40% at 50% 50%, rgba(110, 92, 231, .35), rgba(255, 106, 61, .12) 50%, transparent 72%); pointer-events: none }
-.video-frame { position: relative; width: 100%; margin-inline: auto; overflow: hidden; border-radius: 22px; background: #000; aspect-ratio: 16 / 9; box-shadow: 0 0 0 1px rgba(255, 255, 255, .08), 0 40px 120px rgba(0, 0, 0, .6) }
-.video-frame video { display: block; width: 100%; height: 100%; object-fit: cover }
-.vctl { position: absolute; right: 18px; bottom: 90px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(66, 66, 69, .72); backdrop-filter: blur(10px); color: #f5f5f7; display: grid; place-items: center; cursor: pointer }
-.vctl:hover { background: rgba(86, 86, 89, .8) }
-.vctl svg { width: 14px; height: 14px }
-.hero .note { padding-bottom: 64px; font-size: 14px; color: #86868b; letter-spacing: -.016em }
+/* Üst çubuk: yüzen grafit kapsül */
+.bar { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 50; width: min(calc(100% - 32px), 760px); height: 58px; border-radius: 18px; display: flex; align-items: center; gap: 22px; padding: 0 8px 0 18px;
+  background: rgba(32, 32, 36, .72); backdrop-filter: blur(22px) saturate(160%); -webkit-backdrop-filter: blur(22px) saturate(160%); box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 20px 50px rgba(0,0,0,.4) }
+.bar .name { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; letter-spacing: -.01em; white-space: nowrap }
+.bar nav { margin-left: auto; display: flex; align-items: center; gap: 22px; font-size: 14px; color: var(--ink-2) }
+.bar nav a:hover { color: var(--ink) }
 
-/* Bölüm başlıkları */
-.section { padding-block: 120px }
-.section.alt { background: var(--alt) }
-.headline { text-align: center }
-.headline .eyebrow { font-size: 21px; font-weight: 600; letter-spacing: .011em; color: var(--ink) }
-.headline h2 { margin-top: 8px; font-size: clamp(40px, 6.4vw, 80px); line-height: 1.05; font-weight: 600; letter-spacing: -.015em }
-.headline p.copy { margin: 24px auto 0; max-width: 34em; font-size: clamp(17px, 1.6vw, 21px); line-height: 1.38; color: var(--ink-2); letter-spacing: .011em }
-.headline p.copy b { color: var(--ink); font-weight: 600 }
-.grad { background: linear-gradient(90deg, #6e5ce7, #ff3b30 60%, #ff9500); -webkit-background-clip: text; background-clip: text; color: transparent }
+/* Giriş */
+.hero { position: relative; padding: 168px 0 90px; text-align: center; overflow: hidden }
+.hero::before { content: ""; position: absolute; left: 50%; top: -260px; width: 1300px; height: 900px; transform: translateX(-50%); background: radial-gradient(50% 50% at 50% 50%, rgba(255,255,255,.07), transparent 70%); pointer-events: none }
+.ring-mark { display: block; margin: 0 auto 28px; width: 76px; height: 76px }
+.hero h1 { font-size: clamp(50px, 8.4vw, 108px); line-height: .98; font-weight: 700; letter-spacing: -.045em; background: linear-gradient(180deg, #fff 30%, #a9a9b2); -webkit-background-clip: text; background-clip: text; color: transparent }
+.hero .lede { margin: 26px auto 0; max-width: 31ch; font-size: clamp(19px, 2vw, 23px); line-height: 1.4; color: var(--ink-2); letter-spacing: -.01em }
+.hero .ctas { margin-top: 36px; display: flex; gap: 26px; align-items: center; justify-content: center; flex-wrap: wrap }
+.frame { margin: 76px auto 0; width: min(100%, 1120px); padding: 10px; border-radius: 30px }
+.frame::before { inset: 5px; border-radius: 25px }
+.frame .screen { position: relative; border-radius: 21px; overflow: hidden; background: #000; aspect-ratio: 16 / 9 }
+.frame video { display: block; width: 100%; height: 100%; object-fit: cover }
+.vbtn { position: absolute; right: 18px; bottom: 18px; z-index: 4; width: 42px; height: 42px; border-radius: 12px; border: 0; display: grid; place-items: center; cursor: pointer; color: #3a3a3e; background: linear-gradient(180deg, var(--silver-hi), var(--silver-lo)); box-shadow: 0 6px 16px rgba(0,0,0,.4) }
+.vbtn svg { width: 13px; height: 13px }
+.meta { margin-top: 22px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; font-size: 13px; color: var(--ink-3) }
+.meta span { padding: 6px 12px; border-radius: 9px; background: rgba(255,255,255,.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06) }
 
-/* Prototip: Mac ekranı */
-.proto { margin-top: 64px; position: relative; width: 100%; aspect-ratio: 16 / 9.6; border-radius: 18px; overflow: hidden; box-shadow: 0 0 0 10px #1d1d1f, 0 0 0 11px #3a3a3c, 0 50px 100px rgba(0, 0, 0, .25); background: radial-gradient(70% 90% at 85% 0%, #ff9a6b, transparent 55%), radial-gradient(80% 90% at 10% 100%, #7b5cf0, transparent 60%), linear-gradient(160deg, #4b3a9e, #c2508a 55%, #ff8c5a); text-align: left; letter-spacing: 0 }
-.mac-bar { display: flex; align-items: center; gap: 16px; height: 26px; padding-inline: 14px; background: rgba(255, 255, 255, .28); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-size: 12px; color: #1d1d1f; white-space: nowrap; overflow: hidden }
-.mac-bar b { font-weight: 700 }
-.mac-bar .r { margin-left: auto; display: flex; align-items: center; gap: 14px }
-.ring-btn { display: grid; place-items: center; width: 30px; height: 20px; border-radius: 5px; transition: background .2s }
-.ring-btn.on { background: rgba(0, 0, 0, .14) }
-.term-win { position: absolute; left: 5%; top: 14%; width: 48%; height: 68%; border-radius: 12px; background: rgba(28, 28, 30, .94); border: 1px solid rgba(255, 255, 255, .12); box-shadow: 0 30px 80px rgba(0, 0, 0, .35); overflow: hidden; font-family: var(--mono); font-size: clamp(9px, 1vw, 12.5px); color: #d1d1d6 }
-.term-win .tb { height: 28px; display: flex; align-items: center; gap: 7px; padding-inline: 12px; background: rgba(255, 255, 255, .05); color: rgba(255, 255, 255, .5); font-family: var(--sf); font-size: 12px }
-.term-win .tb i { width: 11px; height: 11px; border-radius: 50%; display: block }
-.term-win .tb span { margin-inline: auto; transform: translateX(-22px) }
-.term-win .body { padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; line-height: 1.5 }
-.term-win .ln { white-space: nowrap; overflow: hidden }
-.term-win .p { color: #ff9f6b }
-.term-win .d { color: #8e8e93 }
-.term-win .okc { color: #30d158 }
-/* Popup: uygulamanın açık teması (gümüş kart, #666 yazı, 4 pt içeride ince çerçeve) */
-.popup { position: absolute; top: 8px; right: 3.5%; width: 340px; padding: 6px; border-radius: 16px; background: rgba(240, 240, 243, .82); backdrop-filter: blur(30px) saturate(180%); -webkit-backdrop-filter: blur(30px) saturate(180%); border: 1px solid rgba(255, 255, 255, .6); box-shadow: 0 0 0 .5px rgba(0, 0, 0, .18), 0 24px 60px rgba(0, 0, 0, .3); display: flex; flex-direction: column; gap: 6px; transform-origin: top right }
-.card { position: relative; border-radius: 12px; padding: 13px; background: #dddddf; color: #666; overflow: hidden; display: flex; gap: 10px; justify-content: space-between; min-height: 104px }
-.card::before { content: ""; position: absolute; inset: 4px; border: 1px solid #bbb; border-radius: 9px; pointer-events: none }
-.card::after { content: ""; position: absolute; inset: -40%; background: conic-gradient(from 0deg, transparent 0 20%, rgba(120, 200, 255, .5), rgba(190, 140, 255, .5), rgba(150, 230, 170, .4), transparent 55% 100%); filter: blur(22px); mix-blend-mode: overlay; opacity: .5; animation: holo 14s linear infinite; pointer-events: none }
-@keyframes holo { to { transform: rotate(360deg) } }
-.cl { display: flex; flex-direction: column; gap: 7px; min-width: 0; position: relative; z-index: 1 }
-.ch { display: flex; align-items: center; gap: 9px }
-.ch svg { width: 22px; height: 22px; fill: #666; flex: none }
-.cn { font-size: 15px; font-weight: 700; line-height: 1.1 }
-.cp { font-size: 10px; font-weight: 500 }
-.chip { font-size: 10.5px; font-weight: 600; padding: 3px 6px; border-radius: 5px; width: max-content; color: #4b3ccf; background: rgba(110, 92, 231, .16) }
-.chip.hot { color: #d70015; background: rgba(255, 59, 48, .14) }
-.chips { display: flex; gap: 2px; padding: 2px; border-radius: 7px; background: rgba(0, 0, 0, .07); width: max-content; margin-top: auto }
-.chips span { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 5px; transition: background .25s }
-.chips span.on { background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .12) }
-.rings { display: flex; gap: 6px; position: relative; z-index: 1 }
-.gauge { width: 60px; display: flex; flex-direction: column; align-items: center; gap: 1px }
-.gauge svg { width: 46px; height: 46px; overflow: visible }
-.gauge .pct { font-family: var(--sf-round); font-size: 12px; font-weight: 600; fill: #666 }
-.gauge .l { font-size: 10.5px; font-weight: 500 }
-.gauge .r { font-size: 10px; color: #888; font-variant-numeric: tabular-nums }
-.foot { display: flex; align-items: center; gap: 6px; padding: 4px 4px 2px; font-size: 11px; color: #6e6e73 }
-.foot .sp { margin-right: auto }
-.foot .gb { padding: 4px 10px; border-radius: 999px; background: rgba(0, 0, 0, .06); color: #3a3a3c }
-/* macOS bildirimi */
-.nbanner { position: absolute; top: 12px; right: 3.5%; width: 340px; display: flex; gap: 11px; align-items: flex-start; padding: 12px 14px; border-radius: 18px; background: rgba(246, 246, 248, .86); backdrop-filter: blur(30px) saturate(180%); -webkit-backdrop-filter: blur(30px) saturate(180%); box-shadow: 0 0 0 .5px rgba(0, 0, 0, .15), 0 16px 40px rgba(0, 0, 0, .25); z-index: 4; color: #1d1d1f }
-.appicon { width: 34px; height: 34px; border-radius: 8px; flex: none; background: linear-gradient(160deg, #f2f2f4, #cfcfd4); box-shadow: inset 0 0 0 .5px rgba(0,0,0,.15); display: grid; place-items: center }
-.nbanner b { font-size: 13px; display: block; font-weight: 600 }
-.nbanner span { font-size: 13px; color: #3a3a3c }
-.nbanner time { margin-left: auto; font-size: 12px; color: #8e8e93 }
-.cursor { position: absolute; left: 0; top: 0; width: 22px; height: 22px; z-index: 6; pointer-events: none; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .4)) }
-.click { position: absolute; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .9); z-index: 5; opacity: 0; pointer-events: none }
-.steps { list-style: none; margin: 40px 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px }
-.steps li { position: relative; padding-top: 16px; font-size: 14px; color: var(--ink-2); letter-spacing: -.016em }
-.steps li::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; border-radius: 2px; background: var(--line) }
-.steps li .fill { position: absolute; left: 0; top: 0; height: 3px; width: 0; border-radius: 2px; background: var(--ink) }
-.steps li b { display: block; color: var(--ink); font-weight: 600; font-size: 17px; letter-spacing: -.022em; margin-bottom: 2px; opacity: .45; transition: opacity .3s }
-.steps li.on b { opacity: 1 }
+/* Bölüm başlığı: solda, halka işaretli */
+.section { padding: 130px 0; scroll-margin-top: 30px }
+.head { display: grid; grid-template-columns: auto 1fr; gap: 0 18px; align-items: start; max-width: 760px }
+.head .tag { grid-row: span 2; width: 34px; height: 34px; margin-top: 10px }
+.head h2 { font-size: clamp(36px, 5vw, 62px); line-height: 1.02; font-weight: 700; letter-spacing: -.04em }
+.head h2 .dim { color: var(--ink-3) }
+.head p { margin-top: 16px; font-size: 19px; color: var(--ink-2); max-width: 36em }
 
-/* Öne çıkanlar galerisi (Apple "Get the highlights") */
-.gallery { margin-top: 56px; display: flex; gap: 20px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; padding: 0 max(22px, calc((100vw - 1260px) / 2 + 22px)) 8px; scrollbar-width: none }
-.gallery::-webkit-scrollbar { display: none }
-.gitem { flex: none; width: min(86vw, 980px); aspect-ratio: 16 / 9.2; scroll-snap-align: center; border-radius: 28px; background: var(--bg); overflow: hidden; position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 44px; text-align: center }
-.gitem .cap { font-size: clamp(19px, 2vw, 24px); font-weight: 600; line-height: 1.17; letter-spacing: .009em; max-width: 26ch }
-.gitem .cap span { color: var(--ink-2); font-weight: 600 }
-.gitem .art { flex: 1; width: 100%; display: grid; place-items: center; padding: 20px }
-.gitem.film { aspect-ratio: 16 / 9; padding: 0; background: #000; box-shadow: 0 30px 60px rgba(0, 0, 0, .12) }
-.gitem.film video { display: block; width: 100%; height: 100%; object-fit: cover }
-.gctl { margin-top: 28px; display: flex; justify-content: center; align-items: center; gap: 14px }
-.dots { display: flex; gap: 12px; padding: 18px 24px; border-radius: 999px; background: rgba(232, 232, 237, .8); backdrop-filter: blur(20px) }
-.dots button { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 99px; background: rgba(0, 0, 0, .42); cursor: pointer; transition: width .4s, background .4s }
-.dots button.on { width: 48px; background: rgba(0, 0, 0, .8) }
-.round { width: 56px; height: 56px; border-radius: 50%; border: 0; background: rgba(232, 232, 237, .8); color: var(--ink); display: grid; place-items: center; cursor: pointer }
-.round svg { width: 16px; height: 16px }
+/* Filmler: solda halka ilerlemeli adımlar, sağda yapışkan metal çerçeve */
+.reel { margin-top: 70px; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 56px; align-items: start }
+.steps { list-style: none; margin: 0; padding: 0 }
+.step { display: grid; grid-template-columns: 40px 1fr; gap: 16px; padding: 30px 0; min-height: 34vh; align-content: center; cursor: pointer; border-top: 1px solid rgba(255,255,255,.06) }
+.step:first-child { border-top: 0 }
+.step .pr { width: 40px; height: 40px; margin-top: 2px }
+.step .pr .trk { stroke: rgba(255,255,255,.1) }
+.step .pr .val { stroke: var(--ink-3); transition: stroke .4s }
+.step b { display: block; font-size: 24px; font-weight: 650; letter-spacing: -.025em; color: var(--ink-3); transition: color .4s }
+.step span { display: block; margin-top: 6px; font-size: 17px; color: var(--ink-3); transition: color .4s; max-width: 30ch }
+.step.on b { color: var(--ink) }
+.step.on span { color: var(--ink-2) }
+.step.on .pr .val { stroke: url(#ringGrad) }
+.stick { position: sticky; top: 110px }
+.stick .frame { margin: 0; width: 100% }
+.stick video { transition: opacity .3s }
 
-/* iOS bileşenleri */
-.ios-widget { width: 170px; height: 170px; border-radius: 26px; background: #fff; box-shadow: 0 10px 30px rgba(0, 0, 0, .08), 0 0 0 .5px rgba(0, 0, 0, .06); padding: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; align-content: center; justify-items: center }
-.ios-widget.dark { background: #1c1c1e; box-shadow: 0 10px 30px rgba(0, 0, 0, .25) }
-.wring { position: relative; width: 58px; height: 58px }
-.wring svg { width: 100%; height: 100%; transform: rotate(-90deg) }
-.wring .lg { position: absolute; inset: 0; display: grid; place-items: center }
-.wring .lg svg { width: 22px; height: 22px; transform: none; fill: #1d1d1f }
-.ios-widget.dark .wring .lg svg { fill: #fff }
-.wpct { font-family: var(--sf-round); font-size: 13px; font-weight: 600; text-align: center; margin-top: -2px; letter-spacing: 0 }
-.ios-widget.dark .wpct { color: #fff }
-.ios-note { width: min(100%, 360px); display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 22px; background: rgba(255, 255, 255, .78); backdrop-filter: blur(30px) saturate(180%); -webkit-backdrop-filter: blur(30px) saturate(180%); box-shadow: 0 10px 30px rgba(0, 0, 0, .1), 0 0 0 .5px rgba(0, 0, 0, .06); text-align: left; letter-spacing: -.01em }
-.ios-note + .ios-note { margin-top: -4px; transform: scale(.95); opacity: .7 }
-.ios-note b { font-size: 15px; font-weight: 600; display: block }
-.ios-note span { font-size: 15px; color: #3a3a3c; line-height: 1.3 }
-.ios-note time { margin-left: auto; font-size: 13px; color: #8e8e93; white-space: nowrap }
-.ios-list { width: min(100%, 340px); border-radius: 12px; background: #fff; overflow: hidden; text-align: left; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .06) }
-.ios-list .row { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 16px; font-size: 17px; letter-spacing: -.022em; position: relative }
-.ios-list .row + .row::before { content: ""; position: absolute; top: 0; left: 58px; right: 0; height: .5px; background: #c6c6c8 }
-.ios-list .ic { width: 29px; height: 29px; border-radius: 7px; display: grid; place-items: center; color: #fff; flex: none }
-.ios-list .ic svg { width: 17px; height: 17px }
-.ios-list .lb { flex: 1 }
-.ios-list .val { color: #8e8e93; font-size: 17px }
-.tog { width: 51px; height: 31px; border-radius: 99px; background: #e9e9eb; position: relative; flex: none; transition: background .25s }
-.tog::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 3px 8px rgba(0, 0, 0, .15), 0 3px 1px rgba(0, 0, 0, .06); transition: transform .25s }
-.tog.on { background: var(--ok) }
-.tog.on::after { transform: translateX(20px) }
-.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; padding: 2px; border-radius: 9px; background: rgba(118, 118, 128, .12); width: min(100%, 300px); position: relative; font-size: 13px; font-weight: 500; letter-spacing: -.01em }
-.seg span { position: relative; z-index: 1; text-align: center; padding: 6px 0 }
-.seg .thumb { position: absolute; z-index: 0; top: 2px; bottom: 2px; left: 2px; width: calc(50% - 2px); border-radius: 7px; background: #fff; box-shadow: 0 3px 8px rgba(0, 0, 0, .12), 0 3px 1px rgba(0, 0, 0, .04) }
-.island { display: inline-flex; align-items: center; gap: 12px; padding: 10px 18px 10px 12px; border-radius: 999px; background: #000; color: #fff; letter-spacing: -.01em; box-shadow: 0 12px 30px rgba(0, 0, 0, .25) }
-.island .mini { width: 26px; height: 26px }
-.island b { font-size: 15px; font-weight: 600 }
-.island span { font-size: 15px; color: #c7a8ff }
-.ctx { width: 300px; border-radius: 14px; background: rgba(250, 250, 252, .86); backdrop-filter: blur(30px) saturate(180%); box-shadow: 0 20px 50px rgba(0, 0, 0, .18), 0 0 0 .5px rgba(0, 0, 0, .1); overflow: hidden; text-align: left; letter-spacing: -.022em }
-.ctx div { display: flex; align-items: center; justify-content: space-between; padding: 11px 16px; font-size: 17px; position: relative }
-.ctx div + div::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: .5px; background: rgba(60, 60, 67, .29) }
-.ctx div.sep::before { height: 8px; top: -8px; background: rgba(0, 0, 0, .06) }
-.ctx div.sep { margin-top: 8px }
-.ctx div svg { width: 19px; height: 19px; color: #1d1d1f }
-.ctx div.blue { color: var(--blue) }
-.ctx div.blue svg { color: var(--blue) }
+/* Özellikler: grafit metal kutular, büyük yuvarlak rakamlar */
+.grid { margin-top: 70px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px }
+.tile { padding: 30px; min-height: 300px; display: flex; flex-direction: column; transform-style: preserve-3d; transition: transform .5s cubic-bezier(.2,.8,.2,1) }
+.tile.w2 { grid-column: span 2 }
+.tile .big { font-family: var(--round); font-size: 74px; line-height: 1; font-weight: 700; letter-spacing: -.04em; background: linear-gradient(180deg, #fff 35%, #9d9da6); -webkit-background-clip: text; background-clip: text; color: transparent }
+.tile .big small { font-size: .5em; letter-spacing: -.02em }
+.tile h3 { margin-top: auto; padding-top: 26px; font-size: 20px; font-weight: 650; letter-spacing: -.02em }
+.tile p { margin-top: 6px; color: var(--ink-2); font-size: 16px; line-height: 1.45 }
+.tile .vis { margin-top: 22px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap }
+.chip { display: inline-flex; align-items: center; padding: 6px 11px; border-radius: 9px; font-size: 14px; font-weight: 600; letter-spacing: -.01em }
+.chip.hot { color: #ff7a66; background: rgba(255,90,60,.16) }
+.chip.ok { color: #5fe07f; background: rgba(52,199,89,.16) }
+.chip.pu { color: #c3b6ff; background: rgba(139,108,255,.2) }
+.gauge { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; color: var(--ink-2) }
+.gauge svg { width: 58px; height: 58px; overflow: visible }
+.gauge text { font-family: var(--round); font-size: 12.5px; font-weight: 650; fill: var(--ink) }
 .keys { display: flex; gap: 10px; align-items: center; color: var(--ink-3); font-size: 22px }
-.key { min-width: 76px; height: 76px; padding: 10px; border-radius: 14px; background: #fff; box-shadow: 0 1px 0 #fff inset, 0 4px 0 #d2d2d7, 0 6px 14px rgba(0, 0, 0, .08); display: flex; flex-direction: column; justify-content: space-between; align-items: center; color: var(--ink); font-size: 12px; letter-spacing: 0 }
-.key b { font-size: 22px; font-weight: 500 }
+.key { width: 62px; height: 62px; border-radius: 14px; display: grid; place-items: center; font-size: 26px; font-weight: 500; color: #3a3a3e; background: linear-gradient(180deg, var(--silver-hi), var(--silver-lo)); box-shadow: 0 1px 0 rgba(255,255,255,.7) inset, 0 4px 0 #8e8e95, 0 10px 20px rgba(0,0,0,.4) }
+.heat { display: grid; grid-template-columns: repeat(13, 16px); grid-auto-rows: 16px; gap: 4px }
+.heat i { border-radius: 4px; background: rgba(255,255,255,.07) }
+.icons { display: flex; gap: 12px; flex-wrap: wrap }
+.icons span { height: 40px; min-width: 64px; padding: 0 12px; border-radius: 10px; display: grid; place-items: center; background: rgba(0,0,0,.28); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06) }
+.flow { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--ink-2); flex-wrap: wrap }
+.flow .node { padding: 9px 13px; border-radius: 10px; background: rgba(0,0,0,.28); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); color: var(--ink) }
+.flow svg { width: 18px; height: 18px; color: var(--ink-3) }
 
-/* Bento */
-.bento { margin-top: 64px; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 20px }
-.tile { grid-column: span 2; border-radius: 28px; background: var(--bg); padding: 32px; display: flex; flex-direction: column; gap: 10px; min-height: 380px; overflow: hidden; position: relative }
-.tile.span3 { grid-column: span 3 }
-.tile.span4 { grid-column: span 4 }
-.tile.dark { background: #000; color: #f5f5f7 }
-.tile .kick { font-size: 14px; font-weight: 600; letter-spacing: -.016em }
-.tile h3 { font-size: clamp(24px, 2.4vw, 32px); line-height: 1.12; font-weight: 600; letter-spacing: .004em }
-.tile p { font-size: 17px; color: var(--ink-2); line-height: 1.47 }
-.tile.dark p { color: #a1a1a6 }
-.tile .art { flex: 1; display: grid; place-items: center; padding-top: 18px }
-.k-orange { color: #ff6a3d }
-.k-purple { color: #8e5cf7 }
-.k-blue { color: #0071e3 }
-.k-green { color: #28a745 }
-.k-red { color: #ff3b30 }
-.k-gray { color: #86868b }
+/* Sağlayıcılar: metal kart başına satırlar */
+.prov { margin-top: 70px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px }
+.pcard { padding: 30px 28px 18px }
+.pcard .top { display: flex; align-items: center; gap: 14px }
+.pcard .lg { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; background: rgba(0,0,0,.3); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07) }
+.pcard .lg svg { width: 26px; height: 26px; fill: var(--ink) }
+.pcard h3 { font-size: 24px; font-weight: 700; letter-spacing: -.03em }
+.pcard .plan { font-size: 13px; color: var(--ink-3); margin-top: 1px }
+.pcard ul { list-style: none; margin: 22px 0 0; padding: 0 }
+.pcard li { display: grid; grid-template-columns: 22px 1fr; gap: 12px; padding: 14px 0; border-top: 1px solid rgba(255,255,255,.06); font-size: 16px }
+.pcard li svg { width: 20px; height: 20px; margin-top: 2px }
+.pcard li small { display: block; color: var(--ink-3); font-size: 14px; margin-top: 1px }
 
-/* Karşılaştırma (Apple compare) */
-.compare { margin-top: 64px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--line) }
-.col { padding: 40px 28px 0; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px }
-.col + .col { border-left: 1px solid var(--line) }
-.col .logo { width: 56px; height: 56px; border-radius: 14px; background: var(--alt); display: grid; place-items: center; margin-bottom: 12px }
-.col .logo svg { width: 30px; height: 30px; fill: var(--ink) }
-.col h3 { font-size: 28px; font-weight: 600; letter-spacing: .007em }
-.col .src { font-size: 14px; color: var(--ink-2) }
-.col ul { list-style: none; margin: 24px 0 0; padding: 0; width: 100%; display: flex; flex-direction: column }
-.col li { padding: 16px 0; border-top: 1px solid var(--line); font-size: 17px }
-.col li small { display: block; color: var(--ink-2); font-size: 14px; margin-top: 2px }
-
-/* Gizlilik */
-.privacy { margin-top: 64px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px }
-.privacy .ic { width: 44px; height: 44px; color: var(--ink) }
-.privacy h3 { margin-top: 14px; font-size: 21px; font-weight: 600; letter-spacing: .011em }
-.privacy p { margin-top: 8px; color: var(--ink-2); font-size: 17px }
+/* Gizlilik: üç satır, halka ikonlu */
+.priv { margin-top: 64px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px }
+.priv .metal { padding: 30px }
+.priv svg { width: 34px; height: 34px; color: var(--ink) }
+.priv h3 { margin-top: 22px; font-size: 20px; font-weight: 650; letter-spacing: -.02em }
+.priv p { margin-top: 8px; color: var(--ink-2); font-size: 16px }
 
 /* Kurulum */
 .install { text-align: center }
-.code { margin: 36px auto 0; max-width: 760px; display: flex; align-items: center; gap: 12px; padding: 14px 14px 14px 20px; border-radius: 14px; background: var(--alt); text-align: left }
-.code code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font-family: var(--mono); font-size: 14px; color: var(--ink); letter-spacing: 0; scrollbar-width: none }
-.code button { flex: none; min-height: 32px; padding: 0 14px; border-radius: 980px; border: 0; background: #e8e8ed; color: var(--ink); font: 400 14px var(--sf); cursor: pointer }
-.code button:hover { background: #dcdce1 }
-.fine-print { margin-top: 18px; font-size: 14px; color: var(--ink-2) }
+.install .ring-mark { width: 64px; height: 64px }
+.install h2 { font-size: clamp(40px, 6vw, 76px); line-height: 1; font-weight: 700; letter-spacing: -.045em }
+.install .sub { margin-top: 16px; color: var(--ink-2); font-size: 19px }
+.install .ctas { margin-top: 34px; display: flex; justify-content: center }
+.term { margin: 30px auto 0; max-width: 820px; padding: 8px; border-radius: 20px; text-align: left }
+.term::before { border-radius: 15px }
+.term .in { display: flex; align-items: center; gap: 14px; padding: 14px 14px 14px 20px; border-radius: 13px; background: rgba(0,0,0,.42) }
+.term code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font: 14px var(--mono); color: #e5e5ea; scrollbar-width: none }
+.term code b { color: #ff9f6b; font-weight: 400 }
+.fine { margin-top: 16px; font-size: 14px; color: var(--ink-3) }
 
-footer { background: var(--alt); padding-block: 22px 40px; font-size: 12px; color: var(--ink-2); letter-spacing: -.01em; line-height: 1.33 }
-footer .wrap > * + * { margin-top: 10px }
-footer hr { border: 0; border-top: 1px solid var(--line); margin: 14px 0 }
-footer a { color: #424245 }
-footer .links { display: flex; gap: 8px 22px; flex-wrap: wrap }
+footer { padding: 46px 0 60px; border-top: 1px solid rgba(255,255,255,.06); font-size: 13px; color: var(--ink-3); line-height: 1.5 }
+footer .row { display: flex; gap: 18px 28px; align-items: center; flex-wrap: wrap }
+footer .row .name { display: flex; align-items: center; gap: 9px; color: var(--ink-2); font-weight: 600; margin-right: auto }
+footer a:hover { color: var(--ink) }
+footer p { margin-top: 18px; max-width: 72em }
 
-@media (max-width: 1000px) {
-  .tile, .tile.span3, .tile.span4 { grid-column: span 3 }
+@media (max-width: 980px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  .prov, .priv { grid-template-columns: minmax(0, 1fr) }
 }
-@media (max-width: 760px) {
-  .localnav nav a:not(.pill) { display: none }
-  .bento { grid-template-columns: minmax(0, 1fr) }
-  .tile, .tile.span3, .tile.span4 { grid-column: auto; min-height: 340px }
-  .compare, .privacy { grid-template-columns: minmax(0, 1fr) }
-  .col + .col { border-left: 0 }
-  .steps { grid-template-columns: repeat(2, minmax(0, 1fr)) }
-  .proto { aspect-ratio: auto; height: 560px }
-  .term-win { left: 4%; top: 54%; width: 92%; height: 40% }
-  .popup, .nbanner { width: min(340px, 92%) }
-  .gitem { aspect-ratio: auto; min-height: 460px }
-  .gitem.film { aspect-ratio: 16 / 9; min-height: 0; border-radius: 18px }
-  .section { padding-block: 80px }
+@media (max-width: 860px) {
+  .reel { grid-template-columns: minmax(0, 1fr); gap: 0 }
+  .stick { top: 82px; order: -1; z-index: 5; padding-bottom: 8px; background: linear-gradient(var(--bg) 85%, transparent) }
+  .step { min-height: 0; padding: 24px 0 }
+}
+@media (max-width: 640px) {
+  .bar nav a:not(.silver) { display: none }
+  .grid { grid-template-columns: minmax(0, 1fr) }
+  .tile.w2 { grid-column: auto }
+  .section { padding: 90px 0 }
+  .hero { padding-top: 130px }
+  .frame { padding: 6px; border-radius: 22px }
+  .frame::before { inset: 3px; border-radius: 19px }
+  .frame .screen { border-radius: 16px }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto }
-  .card::after { animation: none }
-  .gallery { scroll-behavior: auto }
+  .silver::after, .tile { transition: none }
 }
 </style>
 
-<header class="localnav">
-  <div class="wide">
-    <a class="title" href="#top"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(128,128,128,.35)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="#ff6a3d" stroke-width="3" stroke-linecap="round" stroke-dasharray="28.8 27.7" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="rgba(128,128,128,.35)" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="20.7 6.9" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="7.0 20.6" transform="rotate(135 12 12)"/></svg>AI Limit Tracker</a>
-    <nav aria-label="Sayfa">
-      <a class="cur" href="#top">Genel Bakış</a>
-      <a href="#nasil">Nasıl Çalışır</a>
-      <a href="#ozellikler">Özellikler</a>
-      <a href="#gizlilik">Gizlilik</a>
-      <a class="pill small" href="#kur">İndir</a>
-    </nav>
-  </div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="ringGrad" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#ff9f0a"/><stop offset=".55" stop-color="#ff4d3a"/><stop offset="1" stop-color="#8b6cff"/></linearGradient>
+  <linearGradient id="gBlue" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#8fbcff"/><stop offset="1" stop-color="#3b7cf3"/></linearGradient>
+  <linearGradient id="gPurple" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#b19bff"/><stop offset="1" stop-color="#6544ea"/></linearGradient>
+  <linearGradient id="gRed" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#ffb02e"/><stop offset="1" stop-color="#ff3b26"/></linearGradient>
+  <symbol id="mark" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="#ff6a3d" stroke-width="3" stroke-linecap="round" stroke-dasharray="28.8 27.7" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="20.7 6.9" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="#f2f2f4" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="7.0 20.6" transform="rotate(135 12 12)"/></symbol>
+  <symbol id="tag" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="url(#ringGrad)" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="30 26.5" transform="rotate(135 12 12)"/></symbol>
+  <symbol id="arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="down" viewBox="0 0 24 24"><path d="M12 4v12M6 11l6 6 6-6M5 20h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</defs></svg>
+
+<header class="bar">
+  <a class="name" href="#top"><svg width="24" height="24"><use href="#mark"/></svg>AI Limit Tracker</a>
+  <nav aria-label="Sayfa">
+    <a href="#filmler">Nasıl çalışır</a>
+    <a href="#ozellikler">Özellikler</a>
+    <a href="#gizlilik">Gizlilik</a>
+    <a class="silver sm" href="#kur">İndir</a>
+  </nav>
 </header>
 
 <main id="top">
-  <section class="hero on-dark">
+  <section class="hero">
     <div class="wrap">
-      <p class="eyebrow" data-in><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(128,128,128,.35)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="#ff6a3d" stroke-width="3" stroke-linecap="round" stroke-dasharray="28.8 27.7" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="rgba(128,128,128,.35)" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="20.7 6.9" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="7.0 20.6" transform="rotate(135 12 12)"/></svg>AI Limit Tracker</p>
+      <svg class="ring-mark" data-in aria-hidden="true"><use href="#mark"/></svg>
       <h1 data-in>Limitine takılmadan<br>çalış.</h1>
       <p class="lede" data-in>Claude, Codex ve Cursor limitlerin menü çubuğunda. Dolmadan önce haber verir.</p>
       <div class="ctas" data-in>
-        <a class="pill" href="https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest">Mac için indir</a>
-        <a class="more" href="#nasil">Nasıl çalıştığını izle</a>
+        <a class="silver" href="https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest"><svg><use href="#down"/></svg>Mac için indir</a>
+        <a class="link" href="#filmler">Nasıl çalıştığını gör<svg><use href="#arrow"/></svg></a>
       </div>
-    </div>
-    <div class="stage" data-in>
-      <div class="video-frame">
-        <video id="heroVideo" src="media/film/01-hook.mp4" poster="media/film/01-hook.jpg" autoplay muted loop playsinline preload="auto" aria-label="Kısa film: işin ortasında limit dolar; menü çubuğundaki AI Limit Tracker ikonu açılır, Claude ve Codex halkaları dolar ve “Bu hızla 22 dakikada dolar” uyarısı görünür."></video>
+      <div class="frame metal" data-in>
+        <div class="screen">
+          <video id="heroVideo" src="media/film/01-hook.mp4" poster="media/film/01-hook.jpg" autoplay muted loop playsinline preload="auto" aria-label="Kısa film: işin ortasında limit dolar; menü çubuğundaki AI Limit Tracker ikonu açılır, Claude ve Codex halkaları dolar ve “Bu hızla 22 dakikada dolar” uyarısı görünür."></video>
+          <button class="vbtn" id="vbtn" type="button" aria-label="Videoyu duraklat"><svg viewBox="0 0 14 14" fill="currentColor" id="vIcon"><rect x="2" y="1" width="3.5" height="12" rx="1"/><rect x="8.5" y="1" width="3.5" height="12" rx="1"/></svg></button>
+        </div>
       </div>
-      <button class="vctl" id="vctl" type="button" aria-label="Videoyu duraklat"><svg viewBox="0 0 14 14" fill="currentColor" id="vIcon"><rect x="2" y="1" width="3.5" height="12" rx="1"/><rect x="8.5" y="1" width="3.5" height="12" rx="1"/></svg></button>
+      <div class="meta" data-in><span>macOS 14 ve üstü</span><span>Apple Silicon ve Intel</span><span>Ücretsiz</span></div>
     </div>
-    <p class="note">macOS 14 Sonoma ve üstü · Ücretsiz</p>
   </section>
 
-  <section class="section" id="nasil">
-    <div class="wide">
-      <div class="headline" data-up>
-        <p class="eyebrow">Nasıl çalışır</p>
-        <h2>Bir bakış.<br>Her limit.</h2>
-        <p class="copy">Menü çubuğundaki halkaya tıkla ya da her yerden <b>⌃⌥L</b>'ye bas. Çalışırken limitlerin canlı dolar; <b>dolmadan önce</b> haber alırsın, biri dolunca diğer hesabın hazır olduğunu görürsün.</p>
+  <section class="section" id="filmler">
+    <div class="wrap">
+      <div class="head" data-up>
+        <svg class="tag" aria-hidden="true"><use href="#tag"/></svg>
+        <h2>Bir bakış.<br><span class="dim">Her limit.</span></h2>
+        <p>Menü çubuğundaki halkaya tıkla ya da ⌃⌥L'ye bas. Gerisini uygulama takip eder.</p>
       </div>
-      <div class="proto" id="proto" role="img" aria-label="Prototip: menü çubuğundaki halkaya tıklanınca popup açılıyor, Claude limiti dolarken bildirim geliyor, iş hesabına geçiliyor">
-        <div class="mac-bar" aria-hidden="true">
-          <b>Terminal</b><span>Kabuk</span><span>Düzen</span><span>Görüntü</span><span>Pencere</span>
-          <div class="r"><span class="ring-btn" id="ringBtn"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(0,0,0,.18)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="#ff6a3d" stroke-width="3" stroke-linecap="round" stroke-dasharray="30.5 26.0" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="rgba(0,0,0,.18)" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="20.7 6.9" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="#1d1d1f" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="7.2 20.4" transform="rotate(135 12 12)"/></svg></span><span>Pzt 12 Eki 16:41</span></div>
-        </div>
-        <div class="term-win" aria-hidden="true">
-          <div class="tb"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span>~/proje — claude</span></div>
-          <div class="body" id="termBody">
-            <div class="ln"><span class="p">&gt;</span> giriş akışını yeniden yaz, testleri de güncelle</div>
-            <div class="ln d">● src/auth/session.ts okunuyor</div>
-            <div class="ln d">● src/auth/login.ts düzenleniyor</div>
-            <div class="ln d">● 14 test çalıştırılıyor</div>
-            <div class="ln okc">✓ 14 test geçti</div>
-            <div class="ln"><span class="p">&gt;</span> şimdi kayıt ekranını da aynı yapıya taşı</div>
-            <div class="ln d">● src/auth/signup.ts okunuyor</div>
+      <div class="reel">
+        <ol class="steps" id="steps"><li class="step" tabindex="0" data-src="media/film/02-one.mp4" data-poster="media/film/02-one.jpg" data-alt="Üç ayrı kullanım penceresi tek bir AI Limit Tracker popup’ında birleşir."><svg class="pr" viewBox="0 0 40 40" aria-hidden="true"><circle class="trk" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="75.40 200" transform="rotate(135 20 20)"/><circle class="val" data-c="100.53" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="0 200" transform="rotate(135 20 20)"/></svg><div><b>Tek yer</b><span>Limitlerin farklı sayfalarda. Artık hepsi menü çubuğunda.</span></div></li><li class="step" tabindex="0" data-src="media/film/03-forecast.mp4" data-poster="media/film/03-forecast.jpg" data-alt="Claude kartında 5 saatlik halka %91’e çıkar, tahmin “Bu hızla 22 dakikada dolar” olur."><svg class="pr" viewBox="0 0 40 40" aria-hidden="true"><circle class="trk" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="75.40 200" transform="rotate(135 20 20)"/><circle class="val" data-c="100.53" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="0 200" transform="rotate(135 20 20)"/></svg><div><b>Tahmin</b><span>Çalışma hızına bakar, limitin ne zaman dolacağını önceden söyler.</span></div></li><li class="step" tabindex="0" data-src="media/film/04-alerts.mp4" data-poster="media/film/04-alerts.jpg" data-alt="%75 ve %90’da gelen macOS bildirimleri ve limit yenilendi bildirimi."><svg class="pr" viewBox="0 0 40 40" aria-hidden="true"><circle class="trk" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="75.40 200" transform="rotate(135 20 20)"/><circle class="val" data-c="100.53" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="0 200" transform="rotate(135 20 20)"/></svg><div><b>Bildirim</b><span>%75’te ve %90’da haber verir; limit yenilenince bir daha.</span></div></li><li class="step" tabindex="0" data-src="media/film/05-remind.mp4" data-poster="media/film/05-remind.jpg" data-alt="Dolu karta sağ tıklayıp “açılınca haber ver” seçilir; limit açılınca bildirim gelir."><svg class="pr" viewBox="0 0 40 40" aria-hidden="true"><circle class="trk" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="75.40 200" transform="rotate(135 20 20)"/><circle class="val" data-c="100.53" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="0 200" transform="rotate(135 20 20)"/></svg><div><b>Hatırlatma</b><span>Dolduysa karta sağ tıkla; açıldığı an haberin olur.</span></div></li><li class="step" tabindex="0" data-src="media/film/06-accounts.mp4" data-poster="media/film/06-accounts.jpg" data-alt="İki Claude hesabı: bireysel dolar, %8’deki iş hesabı kullanılabilir olarak öne çıkar."><svg class="pr" viewBox="0 0 40 40" aria-hidden="true"><circle class="trk" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="75.40 200" transform="rotate(135 20 20)"/><circle class="val" data-c="100.53" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="0 200" transform="rotate(135 20 20)"/></svg><div><b>İki hesap</b><span>Biri dolunca diğerinin hazır olduğunu görürsün.</span></div></li><li class="step" tabindex="0" data-src="media/film/07-flip.mp4" data-poster="media/film/07-flip.jpg" data-alt="Kart döner, arkasında 13 haftalık kullanım ısı haritası görünür."><svg class="pr" viewBox="0 0 40 40" aria-hidden="true"><circle class="trk" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="75.40 200" transform="rotate(135 20 20)"/><circle class="val" data-c="100.53" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="0 200" transform="rotate(135 20 20)"/></svg><div><b>Etkinlik</b><span>Karta tıkla: tüm limitler ve 13 haftalık ısı haritası.</span></div></li><li class="step" tabindex="0" data-src="media/film/08-details.mp4" data-poster="media/film/08-details.jpg" data-alt="⌃⌥L kısayolu ve menü çubuğundaki dört ikon stili."><svg class="pr" viewBox="0 0 40 40" aria-hidden="true"><circle class="trk" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="75.40 200" transform="rotate(135 20 20)"/><circle class="val" data-c="100.53" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="0 200" transform="rotate(135 20 20)"/></svg><div><b>Yolunda durmaz</b><span>Menü çubuğunda durur, ⌃⌥L ile her yerden açılır.</span></div></li><li class="step" tabindex="0" data-src="media/film/09-privacy.mp4" data-poster="media/film/09-privacy.jpg" data-alt="Kilit simgesi: token’lar Mac’inde kalır; aracı, analitik ve üyelik yok."><svg class="pr" viewBox="0 0 40 40" aria-hidden="true"><circle class="trk" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="75.40 200" transform="rotate(135 20 20)"/><circle class="val" data-c="100.53" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="0 200" transform="rotate(135 20 20)"/></svg><div><b>Gizlilik</b><span>Token’ların Mac’inde kalır. Aracı yok, analitik yok.</span></div></li></ol>
+        <div class="stick">
+          <div class="frame metal">
+            <div class="screen"><video id="reelVideo" muted playsinline loop preload="metadata" poster="media/film/02-one.jpg" src="media/film/02-one.mp4"></video></div>
           </div>
         </div>
-        <div class="popup" id="pp" aria-hidden="true">
-          <div class="card"><div class="cl"><div class="ch"><svg viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg><div><div class="cn">Claude</div><div class="cp">PRO</div></div></div><span class="chip" id="etaChip">Bu hızla 2 saatte dolar</span><div class="chips"><span class="on" id="chipA">bireysel</span><span id="chipB">iş</span></div></div><div class="rings"><div class="gauge" id="gA" data-p="62" data-l="5 saat" data-r="2 sa 54 dk"></div><div class="gauge" id="gB" data-p="41" data-l="Haftalık" data-r="3 g 17 sa"></div></div></div>
-          <div class="card"><div class="cl"><div class="ch"><svg viewBox="0 0 24 24"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg><div><div class="cn">Codex</div><div class="cp">TEAM</div></div></div></div><div class="rings"><div class="gauge" data-p="35" data-l="5 saat" data-r="4 sa 6 dk"></div><div class="gauge" data-p="5" data-l="Haftalık" data-r="6 g 23 sa"></div></div></div>
-          <div class="foot"><span class="sp">Güncellendi 16:41</span><span class="gb">Ayarlar</span><span class="gb">Yenile</span><span class="gb">Çık</span></div>
-        </div>
-        <div class="nbanner" id="nb" aria-hidden="true"><span class="appicon"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(0,0,0,.18)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="#ff6a3d" stroke-width="3" stroke-linecap="round" stroke-dasharray="30.5 26.0" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="rgba(0,0,0,.18)" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="20.7 6.9" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="#1d1d1f" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="7.2 20.4" transform="rotate(135 12 12)"/></svg></span><div><b>Claude · %90</b><span>5 saatlik limitin dolmak üzere. 1 sa 12 dk sonra yenilenir.</span></div><time>şimdi</time></div>
-        <span class="click" id="clk"></span>
-        <svg class="cursor" id="cur" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2l16 9.5-7 1.6 4 7.4-3 1.5-4-7.4L4 20Z" fill="#000" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>
       </div>
-      <ol class="steps" id="steps">
-        <li><span class="fill"></span><b>Halkaya tıkla</b>Menü çubuğunda, ya da her yerden ⌃⌥L.</li>
-        <li><span class="fill"></span><b>Canlı izle</b>Çalıştıkça halkalar dolar, ne zaman dolacağı yazar.</li>
-        <li><span class="fill"></span><b>Önceden haber al</b>%75 ve %90'da bildirim gelir.</li>
-        <li><span class="fill"></span><b>Diğer hesaba geç</b>Biri dolunca öbürü hazır.</li>
-      </ol>
     </div>
   </section>
 
-  <section class="section alt" id="one-cikanlar">
-    <div class="wide">
-      <div class="headline" data-up>
-        <h2>Öne çıkanlar.</h2>
+  <section class="section" id="ozellikler" style="padding-top:40px">
+    <div class="wrap">
+      <div class="head" data-up>
+        <svg class="tag" aria-hidden="true"><use href="#tag"/></svg>
+        <h2>Küçük uygulama.<br><span class="dim">Büyük rahatlık.</span></h2>
       </div>
-    </div>
-    <div class="gallery" id="gallery" aria-roledescription="galeri">
-      <article class="gitem film">
-        <video src="media/film/02-one.mp4" poster="media/film/02-one.jpg" muted playsinline preload="none" aria-label="Limitler farklı yerlerde; üç ayrı kullanım penceresi tek bir AI Limit Tracker popup’ında birleşir."></video>
-      </article>
-      <article class="gitem film">
-        <video src="media/film/03-forecast.mp4" poster="media/film/03-forecast.jpg" muted playsinline preload="none" aria-label="Claude kartında 5 saatlik halka %91’e çıkar, tahmin “Bu hızla 22 dakikada dolar” olur."></video>
-      </article>
-      <article class="gitem film">
-        <video src="media/film/04-alerts.mp4" poster="media/film/04-alerts.jpg" muted playsinline preload="none" aria-label="%75 ve %90’da gelen macOS bildirimleri ve limit yenilendi bildirimi."></video>
-      </article>
-      <article class="gitem film">
-        <video src="media/film/05-remind.mp4" poster="media/film/05-remind.jpg" muted playsinline preload="none" aria-label="Dolu karta sağ tıklayıp “açılınca haber ver” seçilir; limit açılınca bildirim gelir."></video>
-      </article>
-      <article class="gitem film">
-        <video src="media/film/06-accounts.mp4" poster="media/film/06-accounts.jpg" muted playsinline preload="none" aria-label="İki Claude hesabı: bireysel dolar, %8’deki iş hesabı kullanılabilir olarak öne çıkar."></video>
-      </article>
-      <article class="gitem film">
-        <video src="media/film/07-flip.mp4" poster="media/film/07-flip.jpg" muted playsinline preload="none" aria-label="Kart döner, arkasında 13 haftalık kullanım ısı haritası görünür."></video>
-      </article>
-      <article class="gitem film">
-        <video src="media/film/08-details.mp4" poster="media/film/08-details.jpg" muted playsinline preload="none" aria-label="⌃⌥L kısayolu ve menü çubuğundaki dört ikon stili."></video>
-      </article>
-      <article class="gitem film">
-        <video src="media/film/09-privacy.mp4" poster="media/film/09-privacy.jpg" muted playsinline preload="none" aria-label="Kilit simgesi: token’lar Mac’inde kalır; aracı, analitik ve üyelik yok."></video>
-      </article>
-    </div>
-    <div class="gctl">
-      <div class="dots" id="dots" role="tablist" aria-label="Galeri"></div>
-      <button class="round" id="gplay" type="button" aria-label="Galeriyi duraklat"><svg viewBox="0 0 14 14" fill="currentColor"><rect x="2" y="1" width="3.5" height="12" rx="1"/><rect x="8.5" y="1" width="3.5" height="12" rx="1"/></svg></button>
-    </div>
-  </section>
-
-  <section class="section alt" id="ozellikler" style="padding-top:40px">
-    <div class="wide">
-      <div class="headline" data-up>
-        <p class="eyebrow">Özellikler</p>
-        <h2>Limitlerin, <span class="grad">tam kontrolde.</span></h2>
-      </div>
-      <div class="bento" id="bento">
-        <article class="tile span3">
-          <p class="kick k-orange">Widget gibi</p>
-          <h3>Üç sağlayıcı, bir bakış.</h3>
-          <p>Claude, Codex ve Cursor halkaları; renk ne kadar dolduğunu söyler.</p>
-          <div class="art" style="display:flex;gap:18px;justify-content:center;flex-wrap:wrap">
-            <div class="ios-widget"><div><div class="wring" data-p="72" data-c="#6e5ce7"><div class="lg"><svg viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg></div></div><div class="wpct">%72</div></div><div><div class="wring" data-p="35" data-c="#3a86f7"><div class="lg"><svg viewBox="0 0 24 24"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg></div></div><div class="wpct">%35</div></div><div><div class="wring" data-p="92" data-c="#ff3b30"><div class="lg"><svg viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg></div></div><div class="wpct">%92</div></div><div><div class="wring" data-p="8" data-c="#34c759"><div class="lg"><svg viewBox="0 0 24 24"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></div></div><div class="wpct">%8</div></div></div>
-            <div class="ios-widget dark"><div><div class="wring" data-p="44" data-c="#bf5af2" data-t="rgba(255,255,255,.15)"><div class="lg"><svg viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg></div></div><div class="wpct">%44</div></div><div><div class="wring" data-p="5" data-c="#0a84ff" data-t="rgba(255,255,255,.15)"><div class="lg"><svg viewBox="0 0 24 24"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg></div></div><div class="wpct">%5</div></div><div><div class="wring" data-p="61" data-c="#ff9f0a" data-t="rgba(255,255,255,.15)"><div class="lg"><svg viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg></div></div><div class="wpct">%61</div></div><div><div class="wring" data-p="22" data-c="#30d158" data-t="rgba(255,255,255,.15)"><div class="lg"><svg viewBox="0 0 24 24"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></div></div><div class="wpct">%22</div></div></div>
-          </div>
+      <div class="grid">
+        <article class="tile metal w2" data-tile>
+          <div class="big">22<small> dk</small></div>
+          <div class="vis"><span class="gauge"><svg viewBox="0 0 58 58" aria-hidden="true"><circle cx="29.0" cy="29.0" r="26.00" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="6" stroke-linecap="round" stroke-dasharray="122.52 200" transform="rotate(135 29.0 29.0)"/><circle class="val" cx="29.0" cy="29.0" r="26.00" fill="none" stroke="url(#gRed)" stroke-width="6" stroke-linecap="round" stroke-dasharray="111.50 200" transform="rotate(135 29.0 29.0)"/><text x="50%" y="53%" text-anchor="middle" dominant-baseline="middle">91%</text></svg>5 saat</span><span class="chip hot">Bu hızla 22 dakikada dolar</span></div>
+          <h3>Ne zaman dolacağını bilir.</h3>
+          <p>Yüzdeyi göstermekle kalmaz; çalışma hızına bakıp limitin ne zaman dolacağını söyler.</p>
         </article>
-        <article class="tile span3 dark">
-          <p class="kick k-purple">Tempo</p>
-          <h3>Ne zaman dolacağını önceden bil.</h3>
-          <p>Son kullanım hızına bakar, bu tempoyla limitin ne zaman dolacağını söyler.</p>
-          <div class="art"><span class="island" style="box-shadow:0 0 0 1px rgba(255,255,255,.12)"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="#ff453a" stroke-width="3" stroke-linecap="round" stroke-dasharray="36.9 19.7" transform="rotate(135 12 12)"/></svg><b>Claude %87</b><span id="islandEta">Bu hızla 22 dakikada dolar</span></span></div>
+        <article class="tile metal" data-tile>
+          <div class="big" style="font-size:56px;white-space:nowrap">%75<small> · %90</small></div>
+          <h3>Dolmadan haber verir.</h3>
+          <p>İki eşikte bildirim, limit yenilenince bir tane daha.</p>
         </article>
-        <article class="tile span2">
-          <p class="kick k-red">Bildirimler</p>
-          <h3>Sen seç, o haber versin.</h3>
-          <div class="art"><div class="ios-list" id="toggles"><div class="row"><span class="ic" style="background:#ff9500"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 16V11a6 6 0 0 0-12 0v5l-2 2h16l-2-2ZM10 21h4"/></svg></span><span class="lb">%75'te uyar</span><span class="tog on"></span></div><div class="row"><span class="ic" style="background:#ff3b30"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3Z"/><path d="M12 10v4M12 17h.01"/></svg></span><span class="lb">%90'da uyar</span><span class="tog on"></span></div><div class="row"><span class="ic" style="background:#34c759"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.7"/><path d="M4 4v4h4"/></svg></span><span class="lb">Yenilenince</span><span class="tog"></span></div></div></div>
+        <article class="tile metal" data-tile>
+          <div class="big">1<small> kez</small></div>
+          <h3>Bir kez giriş yap.</h3>
+          <p>Kendi tarayıcında. Oturumu bundan sonra uygulama yeniler.</p>
         </article>
-        <article class="tile span2">
-          <p class="kick k-blue">Hatırlatma</p>
-          <h3>Açılınca haber ver.</h3>
-          <div class="art"><div class="ctx"><div>Kartı Çevir <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3"/><path d="M18 3v4h-4M6 21v-4h4"/></svg></div><div>Hesapları Adlandır… <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/></svg></div><div class="sep blue">Açılınca haber ver · 5 saat <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 16V11a6 6 0 0 0-12 0v5l-2 2h16l-2-2ZM10 21h4"/></svg></div><div>Açılınca haber ver · Haftalık <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 16V11a6 6 0 0 0-12 0v5l-2 2h16l-2-2ZM10 21h4"/></svg></div></div></div>
+        <article class="tile metal" data-tile>
+          <div class="big">2<small> hesap</small></div>
+          <div class="vis"><span class="gauge"><svg viewBox="0 0 58 58" aria-hidden="true"><circle cx="29.0" cy="29.0" r="26.00" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="6" stroke-linecap="round" stroke-dasharray="122.52 200" transform="rotate(135 29.0 29.0)"/><circle class="val" cx="29.0" cy="29.0" r="26.00" fill="none" stroke="url(#gRed)" stroke-width="6" stroke-linecap="round" stroke-dasharray="122.52 200" transform="rotate(135 29.0 29.0)"/><text x="50%" y="53%" text-anchor="middle" dominant-baseline="middle">100%</text></svg>bireysel</span><span class="gauge"><svg viewBox="0 0 58 58" aria-hidden="true"><circle cx="29.0" cy="29.0" r="26.00" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="6" stroke-linecap="round" stroke-dasharray="122.52 200" transform="rotate(135 29.0 29.0)"/><circle class="val" cx="29.0" cy="29.0" r="26.00" fill="none" stroke="url(#gBlue)" stroke-width="6" stroke-linecap="round" stroke-dasharray="9.80 200" transform="rotate(135 29.0 29.0)"/><text x="50%" y="53%" text-anchor="middle" dominant-baseline="middle">8%</text></svg>iş</span></div>
+          <h3>Biri dolunca öbürü.</h3>
+          <p>Bireysel ve iş hesabın yan yana.</p>
         </article>
-        <article class="tile span2">
-          <p class="kick k-gray">Kısayol</p>
+        <article class="tile metal" data-tile>
+          <div class="keys"><span class="key">⌃</span>+<span class="key">⌥</span>+<span class="key">L</span></div>
           <h3>Her yerden aç.</h3>
-          <div class="art"><div class="keys" style="font-size:16px"><span class="key" style="min-width:60px;height:60px"><b>⌃</b>control</span>+<span class="key" style="min-width:60px;height:60px"><b>⌥</b>option</span>+<span class="key" style="min-width:60px;height:60px"><b>L</b>&nbsp;</span></div></div>
+          <p>Hangi uygulamada olursan ol, bir kısayol uzağında.</p>
         </article>
-        <article class="tile span4">
-          <p class="kick k-green">Tek seferlik giriş</p>
-          <h3>Bir kez giriş yap. Hep bağlı kal.</h3>
-          <p>Giriş, kullandığın tarayıcıda açılır; oradaki Google oturumun ve kayıtlı şifrelerin hazır. Bağlantıyı sonra uygulama kendisi tazeler.</p>
-          <div class="art"><div class="ios-list" style="width:min(100%,460px)"><div class="row"><span class="ic" style="background:#1d1d1f"><svg viewBox="0 0 24 24" fill="#fff"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg></span><span class="lb">Claude</span><span class="val" style="color:#34c759">Bağlı</span></div><div class="row"><span class="ic" style="background:#1d1d1f"><svg viewBox="0 0 24 24" fill="#fff"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg></span><span class="lb">Codex</span><span class="val" style="color:#34c759">Bağlı</span></div><div class="row"><span class="ic" style="background:#1d1d1f"><svg viewBox="0 0 24 24" fill="#fff"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></span><span class="lb">Cursor</span><span class="val" style="color:#34c759">Bağlı</span></div></div></div>
+        <article class="tile metal w2" data-tile>
+          <div class="big">13<small> hafta</small></div>
+          <div class="vis"><div class="heat" id="heat"></div></div>
+          <h3>Ne kadar çalıştığını gör.</h3>
+          <p>Karta tıkla: arkasında tüm limitler ve Claude Code ile Codex kullanımının ısı haritası.</p>
         </article>
-        <article class="tile span2 dark">
-          <p class="kick k-orange">Menü çubuğu</p>
-          <h3>Senin tarzın.</h3>
-          <p>Dört ikon stili, gerçek renkleriyle.</p>
-          <div class="art" style="display:flex;gap:12px"><span style="width:64px;height:44px;border-radius:12px;background:rgba(255,255,255,.08);display:grid;place-items:center"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="#ff6a3d" stroke-width="3" stroke-linecap="round" stroke-dasharray="30.5 26.0" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="20.7 6.9" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="4.4" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="7.2 20.4" transform="rotate(135 12 12)"/></svg></span><span style="width:64px;height:44px;border-radius:12px;background:rgba(255,255,255,.08);display:grid;place-items:center"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="#ff3b30" stroke-width="3" stroke-linecap="round" stroke-dasharray="39.0 17.5" transform="rotate(135 12 12)"/></svg></span><span style="width:64px;height:44px;border-radius:12px;background:rgba(255,255,255,.08);display:grid;place-items:center"><span style="display:flex;gap:3px"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="#ff6a3d" stroke-width="3" stroke-linecap="round" stroke-dasharray="30.5 26.0" transform="rotate(135 12 12)"/></svg><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="3" stroke-linecap="round" stroke-dasharray="42.4 14.1" transform="rotate(135 12 12)"/><circle cx="12" cy="12" r="9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-dasharray="14.8 41.7" transform="rotate(135 12 12)"/></svg></span></span><span style="width:64px;height:44px;border-radius:12px;background:rgba(255,255,255,.08);display:grid;place-items:center"><svg width="40" height="20" viewBox="0 0 40 20" aria-hidden="true"><rect x="2" y="3" width="36" height="3.5" rx="1.75" fill="rgba(255,255,255,.25)"/><rect x="2" y="3" width="26" height="3.5" rx="1.75" fill="#ff6a3d"/><rect x="2" y="9" width="36" height="3.5" rx="1.75" fill="rgba(255,255,255,.25)"/><rect x="2" y="9" width="12.6" height="3.5" rx="1.75" fill="#fff"/><rect x="2" y="15" width="36" height="3.5" rx="1.75" fill="rgba(255,255,255,.25)"/><rect x="2" y="15" width="3.5" height="3.5" rx="1.75" fill="#0a84ff"/></svg></span></div>
+        <article class="tile metal w2" data-tile>
+          <div class="big">4<small> stil</small></div>
+          <div class="vis icons"><span><svg width="26" height="26"><use href="#mark"/></svg></span><span><span style="display:flex;align-items:center;gap:6px;font:650 14px var(--round);color:#ff7a66"><svg width="22" height="22" viewBox="0 0 58 58"><circle cx="29.0" cy="29.0" r="26.00" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="6" stroke-linecap="round" stroke-dasharray="122.52 200" transform="rotate(135 29.0 29.0)"/><circle class="val" cx="29.0" cy="29.0" r="26.00" fill="none" stroke="url(#gRed)" stroke-width="6" stroke-linecap="round" stroke-dasharray="111.50 200" transform="rotate(135 29.0 29.0)"/></svg>91% · 22dk</span></span><span><span style="display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="#ff7a4d"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg><svg width="20" height="20" viewBox="0 0 58 58"><circle cx="29.0" cy="29.0" r="26.00" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="6" stroke-linecap="round" stroke-dasharray="122.52 200" transform="rotate(135 29.0 29.0)"/><circle class="val" cx="29.0" cy="29.0" r="26.00" fill="none" stroke="url(#gRed)" stroke-width="6" stroke-linecap="round" stroke-dasharray="78.41 200" transform="rotate(135 29.0 29.0)"/></svg><svg width="14" height="14" viewBox="0 0 24 24" fill="#f2f2f4"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg><svg width="20" height="20" viewBox="0 0 58 58"><circle cx="29.0" cy="29.0" r="26.00" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="6" stroke-linecap="round" stroke-dasharray="122.52 200" transform="rotate(135 29.0 29.0)"/><circle class="val" cx="29.0" cy="29.0" r="26.00" fill="none" stroke="url(#gBlue)" stroke-width="6" stroke-linecap="round" stroke-dasharray="53.91 200" transform="rotate(135 29.0 29.0)"/></svg></span></span><span><span style="display:flex;flex-direction:column;gap:5px;width:54px"><i style="height:5px;border-radius:3px;background:linear-gradient(90deg,#ff7a4d 64%,rgba(255,255,255,.15) 64%)"></i><i style="height:5px;border-radius:3px;background:linear-gradient(90deg,#f2f2f4 44%,rgba(255,255,255,.15) 44%)"></i></span></span></div>
+          <h3>Menü çubuğuna sen karar ver.</h3>
+          <p>İç içe halkalar, en dolu limit, yan yana ya da ince barlar. Açık ve koyu temaya uyar.</p>
+        </article>
+        <article class="tile metal w2" data-tile>
+          <div class="big">0<small> aracı</small></div>
+          <div class="vis flow"><span class="node">Mac'in</span><svg><use href="#arrow"/></svg><span class="node">Anthropic · OpenAI · Cursor</span></div>
+          <h3>Doğrudan kaynağından.</h3>
+          <p>Bizim bir sunucumuz yok; limitler sağlayıcının kendi adresinden okunur.</p>
         </article>
       </div>
     </div>
   </section>
 
-  <section class="section" id="saglayicilar">
+  <section class="section" id="saglayicilar" style="padding-top:40px">
     <div class="wrap">
-      <div class="headline" data-up>
-        <p class="eyebrow">Sağlayıcılar</p>
-        <h2>Hangi limit,<br>ne zaman açılıyor.</h2>
+      <div class="head" data-up>
+        <svg class="tag" aria-hidden="true"><use href="#tag"/></svg>
+        <h2>Hangi limit,<br><span class="dim">ne zaman açılıyor.</span></h2>
       </div>
-      <div class="compare" data-up>
-        <div class="col"><span class="logo"><svg viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg></span><h3>Claude</h3><p class="src">Pro, Max, Team</p><ul><li>5 saatlik pencere<small>Kalan süre ve açılış saati</small></li><li>Haftalık<small>Tüm modeller</small></li><li>Opus ve Sonnet haftalık<small>Modele göre ayrı limitler</small></li><li>Ekstra kullanım<small>Planın üstündeki ek kullanım</small></li></ul></div>
-        <div class="col"><span class="logo"><svg viewBox="0 0 24 24"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg></span><h3>Codex</h3><p class="src">Plus, Pro, Team</p><ul><li>5 saatlik pencere<small>CLI ve uygulama</small></li><li>Haftalık<small>Codex sınırı</small></li><li>Code review<small>Kendi 5 saatlik ve haftalık penceresi</small></li><li>13 haftalık etkinlik<small>Bu Mac'teki oturumlardan</small></li></ul></div>
-        <div class="col"><span class="logo"><svg viewBox="0 0 24 24"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></span><h3>Cursor</h3><p class="src">Free, Pro, Business</p><ul><li>Aylık kullanım<small>Yenilenme tarihiyle</small></li><li>Auto<small>Ayrı kota</small></li><li>Harcama notu<small>"$15,60 / $20"</small></li><li>Giriş gerekmez<small>Cursor uygulamasından okur</small></li></ul></div>
-      </div>
+      <div class="prov"><article class="pcard metal" data-tile><div class="top"><span class="lg"><svg viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg></span><div><h3>Claude</h3><p class="plan">Pro, Max, Team</p></div></div><ul><li><svg aria-hidden="true"><use href="#tag"/></svg><span>5 saatlik pencere<small>Kalan süre ve açılış saati</small></span></li><li><svg aria-hidden="true"><use href="#tag"/></svg><span>Haftalık<small>Tüm modeller</small></span></li><li><svg aria-hidden="true"><use href="#tag"/></svg><span>Opus ve Sonnet haftalık<small>Modele göre ayrı limitler</small></span></li><li><svg aria-hidden="true"><use href="#tag"/></svg><span>Ekstra kullanım<small>Planın üstündeki ek kullanım</small></span></li></ul></article><article class="pcard metal" data-tile><div class="top"><span class="lg"><svg viewBox="0 0 24 24"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg></span><div><h3>Codex</h3><p class="plan">Plus, Pro, Team</p></div></div><ul><li><svg aria-hidden="true"><use href="#tag"/></svg><span>5 saatlik pencere<small>CLI ve uygulama</small></span></li><li><svg aria-hidden="true"><use href="#tag"/></svg><span>Haftalık<small>Codex sınırı</small></span></li><li><svg aria-hidden="true"><use href="#tag"/></svg><span>Code review<small>Kendi 5 saatlik ve haftalık penceresi</small></span></li><li><svg aria-hidden="true"><use href="#tag"/></svg><span>13 haftalık etkinlik<small>Bu Mac'teki oturumlardan</small></span></li></ul></article><article class="pcard metal" data-tile><div class="top"><span class="lg"><svg viewBox="0 0 24 24"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></span><div><h3>Cursor</h3><p class="plan">Free, Pro, Business</p></div></div><ul><li><svg aria-hidden="true"><use href="#tag"/></svg><span>Aylık kullanım<small>Yenilenme tarihiyle</small></span></li><li><svg aria-hidden="true"><use href="#tag"/></svg><span>Auto<small>Ayrı kota</small></span></li><li><svg aria-hidden="true"><use href="#tag"/></svg><span>Harcama notu<small>"$15,60 / $20"</small></span></li><li><svg aria-hidden="true"><use href="#tag"/></svg><span>Giriş gerekmez<small>Cursor uygulamasından okur</small></span></li></ul></article></div>
     </div>
   </section>
 
-  <section class="section alt" id="gizlilik">
+  <section class="section" id="gizlilik" style="padding-top:40px">
     <div class="wrap">
-      <div class="headline" data-up>
-        <p class="eyebrow">Gizlilik</p>
-        <h2>Verilerin<br>Mac'inde kalır.</h2>
-        <p class="copy">Bizim bir sunucumuz yok. Uygulama limitlerini <b>doğrudan kaynağından</b> okur ve hiçbir yere göndermez.</p>
+      <div class="head" data-up>
+        <svg class="tag" aria-hidden="true"><use href="#tag"/></svg>
+        <h2>Verilerin<br><span class="dim">Mac'inde kalır.</span></h2>
+        <p>Uygulama limitlerini doğrudan kaynağından okur ve hiçbir yere göndermez.</p>
       </div>
-      <div class="privacy" data-up>
-        <div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h13M13 7l5 5-5 5"/><circle cx="4" cy="12" r="1.5"/></svg><h3>Doğrudan kaynağından.</h3><p>Yalnızca Anthropic, OpenAI ve Cursor'ın kendi adresleriyle konuşur.</p></div>
-        <div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3Z"/><path d="M9 12l2 2 4-4"/></svg><h3>Araçlarına dokunmaz.</h3><p>Claude Code ve Codex oturumlarını yalnızca okur; kendi oturumu yalnızca senin okuyabildiğin bir dosyada durur.</p></div>
-        <div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><h3>İmzalı güncellemeler.</h3><p>Yeni sürüm uygulamanın içinden kurulur; kurulmadan önce imzası doğrulanır.</p></div>
+      <div class="priv">
+        <div class="metal" data-tile><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h13M13 7l5 5-5 5"/><circle cx="4" cy="12" r="1.5"/></svg><h3>Doğrudan kaynağından.</h3><p>Yalnızca Anthropic, OpenAI ve Cursor'ın kendi adresleriyle konuşur.</p></div>
+        <div class="metal" data-tile><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6Z"/><path d="M9 12l2 2 4-4"/></svg><h3>Araçlarına dokunmaz.</h3><p>Claude Code ve Codex oturumlarını yalnızca okur; kendi oturumu yalnızca senin okuyabildiğin bir dosyada durur.</p></div>
+        <div class="metal" data-tile><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><h3>İmzalı güncellemeler.</h3><p>Yeni sürüm uygulamanın içinden kurulur; kurulmadan önce imzası doğrulanır.</p></div>
       </div>
     </div>
   </section>
 
   <section class="section install" id="kur">
     <div class="wrap">
-      <div class="headline" data-up>
-        <h2>Hemen başla.</h2>
-        <p class="copy">Ücretsiz. macOS 14 Sonoma ve üstü, Apple Silicon ve Intel.</p>
-      </div>
-      <div style="margin-top:32px" data-up><a class="pill" href="https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest">Mac için indir</a></div>
-      <div class="code" data-up><code id="cmd">curl -fsSL https://raw.githubusercontent.com/bahadirnuroglu/ai_limit_tracker/main/install.sh | bash</code><button type="button" id="copy">Kopyala</button></div>
-      <p class="fine-print" data-up>Ya da Terminal'e yapıştır: indirir, imzasını doğrular, Uygulamalar'a kurar ve açar.</p>
+      <svg class="ring-mark" data-up aria-hidden="true"><use href="#mark"/></svg>
+      <h2 data-up>Bir dakikada kur.</h2>
+      <p class="sub" data-up>Ücretsiz. macOS 14 Sonoma ve üstü, Apple Silicon ve Intel.</p>
+      <div class="ctas" data-up><a class="silver" href="https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest"><svg><use href="#down"/></svg>Mac için indir</a></div>
+      <div class="term metal" data-up><div class="in"><code id="cmd"><b>$</b> curl -fsSL https://raw.githubusercontent.com/bahadirnuroglu/ai_limit_tracker/main/install.sh | bash</code><button class="silver sm" type="button" id="copy">Kopyala</button></div></div>
+      <p class="fine" data-up>Ya da Terminal'e yapıştır: indirir, imzasını doğrular, Uygulamalar'a kurar ve açar.</p>
     </div>
   </section>
 </main>
 
 <footer>
   <div class="wrap">
+    <div class="row">
+      <span class="name"><svg width="20" height="20"><use href="#mark"/></svg>AI Limit Tracker</span>
+      <a href="https://github.com/bahadirnuroglu/ai_limit_tracker">GitHub</a>
+      <a href="https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest">Son sürüm</a>
+      <a href="#kur">Kurulum</a>
+      <a href="#gizlilik">Gizlilik</a>
+    </div>
     <p>Claude, Anthropic'in; Codex ve ChatGPT, OpenAI'ın; Cursor, Anysphere'in ticari markalarıdır. AI Limit Tracker bu şirketlerle bağlantılı değildir; limitleri senin hesabının kendi verisinden okur.</p>
-    <hr>
-    <div class="links"><a href="https://github.com/bahadirnuroglu/ai_limit_tracker">GitHub</a><a href="https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest">Son sürüm</a><a href="#kur">Kurulum</a><a href="#gizlilik">Gizlilik</a></div>
   </div>
 </footer>
 
@@ -492,173 +365,75 @@ footer .links { display: flex; gap: 8px 22px; flex-wrap: wrap }
 <script>
 (function () {
   var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  // Giriş videosu: Apple'ın oynat/duraklat düğmesi
-  var v = document.getElementById("heroVideo"), vb = document.getElementById("vctl"), vi = document.getElementById("vIcon");
   var PAUSE = '<rect x="2" y="1" width="3.5" height="12" rx="1"/><rect x="8.5" y="1" width="3.5" height="12" rx="1"/>', PLAY = '<path d="M3 1.5v11l9.5-5.5Z"/>';
-  if (reduce) { v.removeAttribute("autoplay"); v.pause(); vi.innerHTML = PLAY; vb.setAttribute("aria-label", "Videoyu oynat"); }
-  vb.addEventListener("click", function () {
-    if (v.paused) { v.play(); vi.innerHTML = PAUSE; vb.setAttribute("aria-label", "Videoyu duraklat"); }
-    else { v.pause(); vi.innerHTML = PLAY; vb.setAttribute("aria-label", "Videoyu oynat"); }
-  });
 
-  // Uygulamadaki halka (270°): normal mavi, tempodan hızlı mor, %90+ kırmızı
-  function tint(p) { return p >= 90 ? "#ff3b30" : p >= 40 ? "#6e5ce7" : "#3a86f7"; }
-  document.querySelectorAll(".gauge").forEach(function (g) {
-    var p = +g.dataset.p, r = 20, c = 2 * Math.PI * r, arc = c * .75, fill = arc * Math.max(p, 1.2) / 100;
-    g.innerHTML = '<svg viewBox="0 0 46 46" aria-hidden="true"><circle cx="23" cy="23" r="20" fill="none" stroke="rgba(0,0,0,.1)" stroke-width="6" stroke-linecap="round" stroke-dasharray="' + arc + ' ' + c + '" transform="rotate(135 23 23)"/><circle class="arc" cx="23" cy="23" r="20" fill="none" stroke="' + tint(p) + '" stroke-width="6" stroke-linecap="round" stroke-dasharray="' + arc + ' ' + c + '" stroke-dashoffset="' + (arc - fill) + '" transform="rotate(135 23 23)"/><text class="pct" x="23" y="27" text-anchor="middle">' + p + '%</text></svg><span class="l">' + g.dataset.l + '</span><span class="r">' + g.dataset.r + '</span>';
-    g._arc = g.querySelector(".arc"); g._full = arc; g._target = arc - fill;
-  });
-  function setGauge(g, p) {
-    p = Math.round(p);
-    g._arc.setAttribute("stroke-dashoffset", g._full - g._full * Math.max(p, 1.2) / 100);
-    g._arc.setAttribute("stroke", tint(p));
-    g.querySelector(".pct").textContent = p + "%";
+  // Giriş filmi
+  var hv = document.getElementById("heroVideo"), vb = document.getElementById("vbtn"), vi = document.getElementById("vIcon");
+  function heroState() { var p = hv.paused; vi.innerHTML = p ? PLAY : PAUSE; vb.setAttribute("aria-label", p ? "Videoyu oynat" : "Videoyu duraklat"); }
+  if (reduce) { hv.removeAttribute("autoplay"); hv.pause(); }
+  vb.addEventListener("click", function () { hv.paused ? hv.play() : hv.pause(); });
+  hv.addEventListener("play", heroState); hv.addEventListener("pause", heroState); heroState();
+
+  // Filmler: kaydırdıkça ortadaki adım etkin olur, film değişir; halka filmin ilerlemesini gösterir
+  var steps = [].slice.call(document.querySelectorAll(".step")), rv = document.getElementById("reelVideo"), cur = -1, inView = false;
+  function arc(el) { return el.querySelector(".val"); }
+  function activate(i) {
+    if (i === cur) return; cur = i;
+    steps.forEach(function (s, k) { s.classList.toggle("on", k === i); s.setAttribute("aria-current", k === i ? "true" : "false"); if (k !== i) arc(s).setAttribute("stroke-dasharray", "0 200"); });
+    var s = steps[i];
+    rv.style.opacity = 0;
+    setTimeout(function () {
+      rv.poster = s.dataset.poster; rv.src = s.dataset.src; rv.setAttribute("aria-label", s.dataset.alt);
+      if (inView && !reduce) { var p = rv.play(); if (p && p.catch) p.catch(function () {}); }
+    }, 180);
   }
-  function ringIn(scope, delay) {
-    if (!window.gsap || reduce) return;
-    scope.querySelectorAll(".gauge").forEach(function (g, i) {
-      gsap.fromTo(g._arc, { attr: { "stroke-dashoffset": g._full } }, { attr: { "stroke-dashoffset": g._target }, duration: 1.2, delay: (delay || 0) + i * .06, ease: "elastic.out(1, .75)" });
+  rv.addEventListener("loadeddata", function () { rv.style.opacity = 1; });
+  rv.addEventListener("timeupdate", function () {
+    if (cur < 0 || !rv.duration) return;
+    var a = arc(steps[cur]), C = +a.dataset.c, f = rv.currentTime / rv.duration;
+    a.setAttribute("stroke-dasharray", (C * .75 * Math.max(.02, f)) + " 200");
+  });
+  steps.forEach(function (s, i) { s.addEventListener("click", function () { s.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" }); activate(i); }); });
+  var stepIO = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) activate(steps.indexOf(e.target)); }); }, { rootMargin: "-45% 0px -45% 0px" });
+  steps.forEach(function (s) { stepIO.observe(s); });
+  new IntersectionObserver(function (es) { inView = es[0].isIntersecting; if (inView && !reduce) { var p = rv.play(); if (p && p.catch) p.catch(function () {}); } else rv.pause(); }, { threshold: .25 }).observe(document.getElementById("filmler"));
+  activate(0);
+
+  // Isı haritası (temsili)
+  var heat = document.getElementById("heat"), seed = 7, pal = ["rgba(255,255,255,.07)", "#5b3427", "#94492c", "#d4602f", "#ff7a3d"];
+  function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+  for (var d = 0; d < 7; d++) for (var w = 0; w < 13; w++) { var x = rnd() * (.35 + w / 13) * (d > 4 ? .5 : 1), lv = x < .22 ? 0 : x < .42 ? 1 : x < .6 ? 2 : x < .8 ? 3 : 4, c = document.createElement("i"); c.style.background = pal[lv]; c.style.gridRow = d + 1; c.style.gridColumn = w + 1; heat.appendChild(c); }
+
+  // Metal yüzeyler: hologram imleci izler, kutular hafifçe eğilir (uygulamadaki hover)
+  document.querySelectorAll(".metal").forEach(function (m) {
+    m.addEventListener("pointermove", function (e) {
+      var r = m.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+      m.style.setProperty("--mx", x); m.style.setProperty("--my", y); m.style.setProperty("--rot", ((x - .5) * 30) + "deg");
+      if (!reduce && m.hasAttribute("data-tile")) m.style.transform = "perspective(900px) rotateX(" + ((.5 - y) * 5) + "deg) rotateY(" + ((x - .5) * 7) + "deg)";
     });
-  }
-
-  // iOS Piller widget'ı halkaları (tam daire)
-  document.querySelectorAll(".wring").forEach(function (w) {
-    var p = +w.dataset.p, c = 2 * Math.PI * 25;
-    w.insertAdjacentHTML("afterbegin", '<svg viewBox="0 0 58 58" aria-hidden="true"><circle cx="29" cy="29" r="25" fill="none" stroke="' + (w.dataset.t || "rgba(0,0,0,.08)") + '" stroke-width="6"/><circle class="warc" cx="29" cy="29" r="25" fill="none" stroke="' + w.dataset.c + '" stroke-width="6" stroke-linecap="round" stroke-dasharray="' + c + '" stroke-dashoffset="' + (c - c * p / 100) + '"/></svg>');
-    w._c = c; w._t = c - c * p / 100;
+    m.addEventListener("pointerleave", function () { m.style.transform = ""; });
   });
-
-  // Galeri: kaydırma, noktalar, otomatik akış, oynat/duraklat
-  var gal = document.getElementById("gallery"), items = gal.querySelectorAll(".gitem"), dots = document.getElementById("dots"), gplay = document.getElementById("gplay");
-  items.forEach(function (it, i) {
-    var b = document.createElement("button"); b.type = "button"; b.setAttribute("aria-label", (i + 1) + ". öğe"); b.setAttribute("role", "tab");
-    dots.appendChild(b);
-  });
-  var cur = 0, playing = !reduce, inView = false;
-  var vids = Array.prototype.map.call(items, function (it) { return it.querySelector("video"); });
-  // Yalnızca ortadaki film oynar; diğerleri başa sarılıp durur. Film bitince sıradakine geçilir.
-  function sync() {
-    vids.forEach(function (vd, k) {
-      if (!vd) return;
-      if (k === cur && playing && inView) { var p = vd.play(); if (p && p.catch) p.catch(function () {}); }
-      else { vd.pause(); if (k !== cur) vd.currentTime = 0; }
-    });
-  }
-  function mark(i) { cur = i; dots.querySelectorAll("button").forEach(function (b, k) { b.classList.toggle("on", k === i); b.setAttribute("aria-selected", k === i); }); sync(); }
-  // Kendi kaydırmamız sürerken ara konumlar seçimi değiştirmesin
-  var steering = null;
-  function go(i) { var it = items[i]; clearTimeout(steering); steering = setTimeout(function () { steering = null; }, 900); gal.scrollTo({ left: it.offsetLeft - (gal.clientWidth - it.clientWidth) / 2, behavior: reduce ? "auto" : "smooth" }); mark(i); }
-  vids.forEach(function (vd, k) { if (vd) vd.addEventListener("ended", function () { if (k === cur && playing) go((cur + 1) % items.length); }); });
-  gal.addEventListener("scroll", function () {
-    if (steering) return;
-    var mid = gal.scrollLeft + gal.clientWidth / 2, best = 0, bd = 1e9;
-    items.forEach(function (it, i) { var d = Math.abs(it.offsetLeft + it.clientWidth / 2 - mid); if (d < bd) { bd = d; best = i; } });
-    if (best !== cur) mark(best);
-  }, { passive: true });
-  var PIC = { pause: '<svg viewBox="0 0 14 14" fill="currentColor"><rect x="2" y="1" width="3.5" height="12" rx="1"/><rect x="8.5" y="1" width="3.5" height="12" rx="1"/></svg>', play: '<svg viewBox="0 0 14 14" fill="currentColor"><path d="M3 1.5v11l9.5-5.5Z"/></svg>' };
-  function setPlaying(on) { playing = on; gplay.innerHTML = on ? PIC.pause : PIC.play; gplay.setAttribute("aria-label", on ? "Galeriyi duraklat" : "Galeriyi oynat"); sync(); }
-  dots.querySelectorAll("button").forEach(function (b, i) { b.addEventListener("click", function () { go(i); }); });
-  gplay.addEventListener("click", function () { setPlaying(!playing); });
-  setPlaying(playing); mark(0);
-  if ("IntersectionObserver" in window) new IntersectionObserver(function (es) { inView = es[0].isIntersecting; sync(); }, { threshold: .4 }).observe(gal);
-  else { inView = true; sync(); }
 
   // Kurulum komutu
-  var btn = document.getElementById("copy"), cmd = document.getElementById("cmd");
+  var btn = document.getElementById("copy"), cmd = document.getElementById("cmd"), text = cmd.textContent.replace(/^\$\s*/, "");
   btn.addEventListener("click", function () {
     function done() { btn.textContent = "Kopyalandı"; setTimeout(function () { btn.textContent = "Kopyala"; }, 1800); }
     function select() { var r = document.createRange(); r.selectNodeContents(cmd); var s = getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = "⌘C ile kopyala"; }
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(cmd.textContent).then(done, select); else select();
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, select); else select();
   });
 
-  if (!window.gsap || reduce) { document.getElementById("nb").style.display = "none"; return; }
+  if (!window.gsap || reduce) return;
   gsap.registerPlugin(ScrollTrigger);
-
-  // Apple tarzı yumuşak giriş ve yukarı süzülme
-  gsap.from("[data-in]", { y: 30, opacity: 0, duration: 1.1, stagger: .12, ease: "power3.out" });
-  gsap.utils.toArray("[data-up]").forEach(function (el) { gsap.from(el, { y: 40, opacity: 0, duration: 1, ease: "power3.out", scrollTrigger: { trigger: el, start: "top 86%" } }); });
-  gsap.to(".hero .stage", { scale: .92, opacity: .5, ease: "none", scrollTrigger: { trigger: ".hero", start: "40% top", end: "bottom top", scrub: true } });
-  gsap.from(".proto", { y: 80, scale: .94, opacity: 0, duration: 1.2, ease: "power3.out", scrollTrigger: { trigger: ".proto", start: "top 90%" } });
-  gsap.from("#gallery .gitem", { x: 120, opacity: 0, duration: 1, stagger: .08, ease: "power3.out", scrollTrigger: { trigger: "#gallery", start: "top 85%" } });
-
-  // Bento: kartlar ve iOS bileşenleri canlanır
-  gsap.from("#bento .tile", { y: 60, opacity: 0, duration: .9, stagger: .07, ease: "power3.out", scrollTrigger: { trigger: "#bento", start: "top 85%" } });
-  ScrollTrigger.create({ trigger: "#bento", start: "top 70%", once: true, onEnter: function () {
-    document.querySelectorAll("#bento .warc").forEach(function (a, i) { var w = a.closest(".wring"); gsap.fromTo(a, { attr: { "stroke-dashoffset": w._c } }, { attr: { "stroke-dashoffset": w._t }, duration: 1.4, delay: .3 + i * .05, ease: "power3.out" }); });
-    var t = document.querySelectorAll("#toggles .tog"); gsap.delayedCall(1.2, function () { t[2].classList.add("on"); }); gsap.delayedCall(2.6, function () { t[2].classList.remove("on"); });
-    gsap.from("#bento .island", { scale: .6, opacity: 0, duration: .8, delay: .5, ease: "back.out(1.8)" });
-    gsap.from("#bento .ctx > div", { y: -8, opacity: 0, duration: .3, stagger: .06, delay: .6 });
-    gsap.to("#bento .key", { y: 3, duration: .12, stagger: .18, delay: 1, yoyo: true, repeat: 1, ease: "power2.in" });
-  } });
-
-  // Nasıl çalışır: Mac ekranında senaryo
-  (function () {
-    var proto = document.getElementById("proto"), pp = document.getElementById("pp"), nb = document.getElementById("nb");
-    var curs = document.getElementById("cur"), clk = document.getElementById("clk"), ringBtn = document.getElementById("ringBtn");
-    var gA = document.getElementById("gA"), gB = document.getElementById("gB"), eta = document.getElementById("etaChip");
-    var chipA = document.getElementById("chipA"), chipB = document.getElementById("chipB");
-    var lines = document.querySelectorAll("#termBody .ln"), steps = document.querySelectorAll("#steps li");
-    function at(el) { var r = el.getBoundingClientRect(), o = proto.getBoundingClientRect(); return { x: r.left - o.left + r.width / 2, y: r.top - o.top + r.height / 2 }; }
-    function step(n) { steps.forEach(function (li, i) { li.classList.toggle("on", i === n); }); }
-    var st = { a: 62, w: 41 };
-    function paint() {
-      setGauge(gA, st.a); setGauge(gB, st.w);
-      var mins = Math.max(6, Math.round((100 - st.a) * 3.1));
-      eta.textContent = mins >= 60 ? "Bu hızla " + Math.round(mins / 60) + " saatte dolar" : "Bu hızla " + mins + " dakikada dolar";
-      eta.classList.toggle("hot", st.a >= 90);
-    }
-    function reset() {
-      gsap.set(pp, { opacity: 0, scale: .92, y: -8 }); gsap.set(nb, { opacity: 0, x: 60 }); gsap.set(lines, { opacity: 0, x: -6 });
-      gsap.set(".steps .fill", { width: 0 }); ringBtn.classList.remove("on");
-      chipA.classList.add("on"); chipB.classList.remove("on");
-      st.a = 62; st.w = 41; paint(); gA.querySelector(".r").textContent = "2 sa 54 dk";
-      var o = proto.getBoundingClientRect(); gsap.set(curs, { x: o.width * .32, y: o.height * .7, opacity: 1 });
-    }
-    function clickAt(p) { gsap.timeline().set(clk, { x: p.x, y: p.y, scale: .4, opacity: 1 }).to(clk, { scale: 1.4, opacity: 0, duration: .45, ease: "power2.out" }); }
-    function build() {
-      var tl = gsap.timeline({ repeat: -1, repeatDelay: .6, onRepeat: reset });
-      var ringP = at(ringBtn);
-      tl.call(function () { step(0); })
-        .to(".steps li:nth-child(1) .fill", { width: "100%", duration: 3, ease: "none" }, 0)
-        .to(lines[0], { opacity: 1, x: 0, duration: .3 }, .2)
-        .to(lines[1], { opacity: 1, x: 0, duration: .3 }, .7)
-        .to(curs, { x: ringP.x - 4, y: ringP.y - 2, duration: 1.2, ease: "power2.inOut" }, .6)
-        .add(function () { clickAt(ringP); ringBtn.classList.add("on"); }, 1.85)
-        .to(pp, { opacity: 1, scale: 1, y: 0, duration: .55, ease: "back.out(1.6)" }, 1.95)
-        .add(function () { ringIn(pp, 0); }, 2.05)
-        .call(function () { step(1); }, null, 3)
-        .to(".steps li:nth-child(2) .fill", { width: "100%", duration: 3.2, ease: "none" }, 3)
-        .to(curs, { x: "-=120", y: "+=150", duration: 1, ease: "power2.inOut" }, 3)
-        .to(lines[2], { opacity: 1, x: 0, duration: .3 }, 3.2)
-        .to(lines[3], { opacity: 1, x: 0, duration: .3 }, 4)
-        .to(lines[4], { opacity: 1, x: 0, duration: .3 }, 4.8)
-        .to(st, { a: 91, w: 47, duration: 3, ease: "power1.in", onUpdate: paint }, 3.2)
-        .call(function () { step(2); gA.querySelector(".r").textContent = "1 sa 12 dk"; }, null, 6.2)
-        .to(".steps li:nth-child(3) .fill", { width: "100%", duration: 2.6, ease: "none" }, 6.2)
-        .to(nb, { opacity: 1, x: 0, duration: .6, ease: "back.out(1.4)" }, 6.3)
-        .to(pp, { y: 92, duration: .5, ease: "power2.out" }, 6.3)
-        .to(lines[5], { opacity: 1, x: 0, duration: .3 }, 7)
-        .to(nb, { opacity: 0, x: 60, duration: .5, ease: "power2.in" }, 8.6)
-        .to(pp, { y: 0, duration: .5, ease: "power2.out" }, 8.7)
-        .call(function () { step(3); }, null, 8.8)
-        .to(".steps li:nth-child(4) .fill", { width: "100%", duration: 3, ease: "none" }, 8.8)
-        .to(curs, { x: function () { return at(chipB).x - 4; }, y: function () { return at(chipB).y - 2; }, duration: 1, ease: "power2.inOut" }, 8.9)
-        .add(function () { clickAt(at(chipB)); chipA.classList.remove("on"); chipB.classList.add("on"); }, 10)
-        .to(st, { a: 8, w: 12, duration: .8, ease: "power2.out", onUpdate: paint }, 10.05)
-        .call(function () { gA.querySelector(".r").textContent = "4 sa 51 dk"; }, null, 10.1)
-        .to(lines[6], { opacity: 1, x: 0, duration: .3 }, 10.4)
-        .to(curs, { x: "+=40", y: "+=120", duration: 1, ease: "power2.inOut" }, 10.6)
-        .to(pp, { opacity: 0, scale: .94, y: -6, duration: .4, ease: "power2.in" }, 11.9)
-        .call(function () { ringBtn.classList.remove("on"); }, null, 12.2);
-      return tl;
-    }
-    reset();
-    var tl = null;
-    ScrollTrigger.create({ trigger: proto, start: "top 80%", end: "bottom top", onToggle: function (self) {
-      if (self.isActive) { if (!tl) tl = build(); else tl.resume(); } else if (tl) tl.pause();
-    } });
-    window.addEventListener("resize", function () { if (tl) { tl.kill(); tl = null; reset(); tl = build(); } });
-  })();
+  gsap.from("[data-in]", { y: 34, opacity: 0, filter: "blur(10px)", duration: 1.2, stagger: .1, ease: "power3.out" });
+  gsap.utils.toArray("[data-up]").forEach(function (el) { gsap.from(el, { y: 40, opacity: 0, filter: "blur(8px)", duration: 1.1, ease: "power3.out", scrollTrigger: { trigger: el, start: "top 86%" } }); });
+  gsap.utils.toArray(".grid, .prov, .priv").forEach(function (g) {
+    gsap.from(g.children, { y: 60, opacity: 0, duration: 1.1, stagger: .07, ease: "power3.out", scrollTrigger: { trigger: g, start: "top 85%" } });
+  });
+  gsap.utils.toArray(".tile .gauge .val").forEach(function (a) {
+    var to = a.getAttribute("stroke-dasharray");
+    gsap.fromTo(a, { attr: { "stroke-dasharray": "0 200" } }, { attr: { "stroke-dasharray": to }, duration: 1.6, ease: "elastic.out(1, .8)", scrollTrigger: { trigger: a, start: "top 90%" } });
+  });
+  gsap.from("#heat i", { scale: .3, opacity: 0, duration: .5, stagger: { each: .006, from: "start" }, ease: "power2.out", scrollTrigger: { trigger: "#heat", start: "top 88%" } });
+  gsap.to(".hero .frame", { scale: .94, opacity: .6, ease: "none", scrollTrigger: { trigger: ".hero", start: "55% top", end: "bottom top", scrub: true } });
 })();
 </script>
