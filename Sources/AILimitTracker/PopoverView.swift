@@ -260,9 +260,12 @@ private struct ProviderCard: View {
 
     private var front: [Limit] { usage.frontLimits }
     private var hiddenCount: Int { max(usage.limits.count - front.count, 0) }
+    /// Etkinlik bu Mac'teki Claude Code / Codex kayıtlarından gelir; kayıtlarda hesap bilgisi yok. Bu yüzden yalnızca
+    /// aracın oturumuna bağlı yerel hesapta gösterilir (ek hesapta aynı harita "o hesabınmış" gibi görünüyordu).
+    private var activitySource: ActivitySource? { selected == id.rawValue ? id.activity : nil }
     private var currentTab: BackTab {
-        if let tab { return tab }
-        return hiddenCount > 0 || id.activity == nil ? .limits : .activity
+        if let tab, tab == .limits || activitySource != nil { return tab }
+        return hiddenCount > 0 || activitySource == nil ? .limits : .activity
     }
 
     var body: some View {
@@ -321,6 +324,8 @@ private struct ProviderCard: View {
             }
         }
         .onChange(of: shown) { _, visible in if !visible { showBack = false; flipAngle = 0; tab = nil } }
+        // Arka yüzdeyken yerel hesaba geçilirse ısı haritası o an yüklensin
+        .onChange(of: selected) { _, _ in if showBack, activity == nil, let source = activitySource { Task { activity = await ActivityLoader.load(source) } } }
     }
 
     private func flip() {
@@ -328,13 +333,13 @@ private struct ProviderCard: View {
         NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
         if reduceMotion {
             withAnimation(.easeInOut(duration: 0.2)) { showBack = flipped }
-            if showBack, let source = id.activity { Task { activity = await ActivityLoader.load(source) } }
+            if showBack, let source = activitySource { Task { activity = await ActivityLoader.load(source) } }
             if !showBack { tab = nil }
             return
         }
         withAnimation(.easeIn(duration: 0.16)) { flipAngle = 90 } completion: {
             showBack = flipped
-            if showBack, let source = id.activity { Task { activity = await ActivityLoader.load(source) } }
+            if showBack, let source = activitySource { Task { activity = await ActivityLoader.load(source) } }
             if !showBack { tab = nil }
             flipAngle = -90
             withAnimation(.spring(response: 0.38, dampingFraction: 0.72)) { flipAngle = 0 }
@@ -563,7 +568,7 @@ private struct ProviderCard: View {
                 }
                 .opacity(staticPart)
             case .activity:
-                if let source = id.activity {
+                if let source = activitySource {
                     Heatmap(values: activity ?? [:], source: source, interactive: interactive)
                     HStack(spacing: 4) {
                         if let activity {
@@ -603,7 +608,7 @@ private struct ProviderCard: View {
     private var segment: some View {
         HStack(spacing: 0) {
             segButton("Limitler", .limits)
-            if id.activity != nil { segButton("Etkinlik", .activity) }
+            if activitySource != nil { segButton("Etkinlik", .activity) }
         }
         .padding(2)
         .background(palette.subtle, in: RoundedRectangle(cornerRadius: 7))
@@ -613,7 +618,7 @@ private struct ProviderCard: View {
         let on = currentTab == value
         return Button {
             tab = value
-            if value == .activity, activity == nil, let source = id.activity {
+            if value == .activity, activity == nil, let source = activitySource {
                 Task { activity = await ActivityLoader.load(source) }
             }
         } label: {

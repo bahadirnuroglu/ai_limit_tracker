@@ -92,6 +92,8 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
 - Activity.swift: ısı haritası verisi YEREL kayıtlardan (claude.ai web/ChatGPT dahil değil):
   Claude Code ~/.claude/projects/**/*.jsonl (assistant usage: input+output+cache_creation, message.id ile tekil),
   Codex ~/.codex/sessions/**/*.jsonl (token_count.last_token_usage: input-cached+output). 10 dk önbellek.
+  Kayıtlarda hesap bilgisi yok: Etkinlik sekmesi YALNIZCA yerel hesapta (id = sağlayıcı adı) görünür; ek hesapta gizli
+  (önceden her hesapta aynı harita çıkıyordu, kullanıcı hata saydı).
 - MenuIcon.swift: MenuBarStyle (UsageStore.menuBarStyle, UserDefaults "menuBarStyle"): recentTwo (varsayılan; en son
   kullanılan iki sağlayıcı iç içe halka), mostFull (en dolu sağlayıcı halkası + logo, %90+ kırmızı + kalan süre),
   sideBySide (yan yana halka + logo), bars (alt alta ince barlar). Hepsi 22 pt (menü çubuğu azamisi).
