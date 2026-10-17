@@ -9,3 +9,5 @@ marketing/x-thread/tr/
 marketing/x-thread/en-dark/
 marketing/x-thread/tr-dark/
 marketing/x-thread/film/
+# macOS duvar kâğıtları (Apple'ın; sistemden çıkarılır: /System/Library/Desktop Pictures)
+marketing/x-thread/source/wall/

@@ -71,6 +71,10 @@ func render(_ i: Int) {
     }
 }
 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+    // Ses olayları (window.sfxEvents) varsa aynı adla .json olarak yazılır; sfx aracı bunlardan ses izi üretir
+    w.evaluateJavaScript("JSON.stringify(window.sfxEvents || [])") { j, _ in
+        if let j = j as? String, j != "[]" { try? j.write(to: out.deletingPathExtension().appendingPathExtension("json"), atomically: true, encoding: .utf8) }
+    }
     w.evaluateJavaScript("window.duration") { d, _ in total = Int(((d as? Double) ?? 6) * Double(fps)); render(0) }
 }
 app.run()
