@@ -125,21 +125,28 @@
   const o2text = 'Never hit a limit mid‑task again.';
 
 
-  // Ses olayları: Apple'ın filmlerindeki gibi az ve yerinde; macOS sistem sesleri (sfx aracı yerleştirir)
-  const sfx = [], E = (t, k, g) => sfx.push({ t: +t.toFixed(3), k, g: g ?? 1 });
+  // Ses olayları: Apple'ın kendi sesleri (iOS klavye, şarj, VoiceOver arayüz sesleri, iOS 17 tonları); sfx aracı yerleştirir
+  const sfx = [], E = (t, k, g, r) => sfx.push({ t: +t.toFixed(3), k, g: g ?? 1, r: r ?? 1 });
   const cross = (f, v, a, b) => { for (let t = a; t < b; t += 1 / 120) if (f(t) >= v) return t; return b; };
-  E(0.55, 'pop');                                   // ikon belirir
-  E(4.62, 'pop', .8);                               // popup açılır
+  // Halka dolarken: değer her ~3 puan arttığında ilerleme tıkı, perdesi değerle yükselir
+  const fillTicks = (f, a, b, from, to, step = 3, g = 1) => { let next = from + step; for (let t = a; t < b; t += 1 / 120) { const v = f(t); if ((to > from && v >= next) || (to < from && v <= next)) { E(t, 'progress', g, .85 + .7 * (v - Math.min(from, to)) / Math.abs(to - from)); next += to > from ? step : -step; } } };
+  E(0.55, 'appear');
+  E(4.62, 'popup'); E(5.42, 'charge');                                     // popup açılır, halkalar dolar
+  fillTicks(t => 93 * Math.min(1, spring(t - 5.4, 1.0, .85)), 5.4, 6.4, 0, 93, 9, .7);
   const p3 = t => lerp(62, 91, eIO(seg(t, 9.0, 11.2)));
-  E(cross(p3, 80, 9, 11.2), 'tink', .8); E(cross(p3, 90, 9, 11.2), 'tink');   // tahmin çipi değişir
-  [13.2, 13.9, 14.6].forEach((t, i) => E(t, 'notify', [.7, .85, 1][i]));     // bildirimler
-  E(18.7, 'click'); E(18.82, 'tink', .9);           // İş hesabına geç
-  E(21.62, 'click'); E(21.7, 'swish');              // kartı çevir
-  [25.8, 25.98, 26.16].forEach(t => E(t, 'key'));   // ⌃⌥L
-  [26.2, 27.0, 27.8].forEach(t => E(t, 'tink', .45));                       // menü çubuğu stili değişir
-  E(29.4, 'ok'); E(29.7, 'ok', .9);                 // bağlandı
-  E(30.85, 'send');                                 // beyaza geçiş
-  E(31.45, 'success');                              // kapanış
+  fillTicks(p3, 9.0, 11.2, 62, 91, 2.5);                                   // tahmin: halka tırmanır
+  E(cross(p3, 80, 9, 11.2), 'change'); E(cross(p3, 90, 9, 11.2), 'change', 1.2);
+  [13.2, 13.9, 14.6].forEach((t, i) => E(t, 'notify', [.75, .6, .9][i]));  // bildirimler
+  E(18.7, 'down'); E(18.79, 'up');                                         // İş hesabına geç
+  fillTicks(t => lerp(93, 8, eIO(seg(t, 18.75, 19.4))), 18.75, 19.4, 93, 8, 12, .6);
+  E(19.45, 'success', .8);
+  E(21.62, 'down'); E(21.71, 'up'); E(21.72, 'slide');                     // kartı çevir
+  for (let c = 1; c <= 13; c += 2) E(22.1 + c * .05, 'progress', .45, .9 + c * .045);   // ısı haritası dolar
+  [25.8, 25.98].forEach(t => E(t, 'mod')); E(26.16, 'key');                // ⌃ ⌥ L
+  [26.2, 27.0, 27.8].forEach(t => E(t, 'change', .6));                     // menü çubuğu stili
+  E(29.4, 'success', .7); E(29.7, 'success', .6, 1.12);                    // bağlandı
+  E(30.85, 'send');                                                        // beyaza geçiş
+  E(31.42, 'welcome');                                                     // kapanış
   window.sfxEvents = sfx;
   window.duration = 36; window.poster = 11.6;
   window.frame = t => {

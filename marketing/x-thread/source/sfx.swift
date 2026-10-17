@@ -2,9 +2,9 @@ import AVFoundation
 import Foundation
 // sfx <olaylar.json> <video.mp4> <çıktı.mp4>: olay listesindeki anlara macOS'un kendi sistem seslerini yerleştirir,
 // karıştırıp AAC ses izi olarak videoya ekler (video yeniden kodlanmaz). Sesler bu Mac'teki sistem dosyalarından okunur.
-// Olay: {"t": saniye, "k": tür, "g": kazanç (ops.)}
+// Olay: {"t": saniye, "k": tür, "g": kazanç (ops.), "r": çalma hızı / perde (ops., 1 = olduğu gibi)}
 let a = CommandLine.arguments
-struct Ev: Decodable { let t: Double; let k: String; let g: Double? }
+struct Ev: Decodable { let t: Double; let k: String; let g: Double?; let r: Double? }
 let events = try! JSONDecoder().decode([Ev].self, from: Data(contentsOf: URL(fileURLWithPath: a[1])))
 let video = AVURLAsset(url: URL(fileURLWithPath: a[2]))
 let sr = 48000.0, dur = CMTimeGetSeconds(video.duration)
@@ -12,17 +12,24 @@ let N = Int((dur + 2) * sr)
 var L = [Float](repeating: 0, count: N), R = [Float](repeating: 0, count: N)
 
 let S = "/System/Library/Sounds/", D = "/System/Library/Components/CoreAudio.component/Contents/SharedSupport/SystemSounds/"
+let U = "/System/iOSSupport/System/Library/PrivateFrameworks/UIKitCore.framework/Versions/A/Resources/"   // iOS klavye, şarj
+let V = "/System/Library/PrivateFrameworks/ScreenReader.framework/Versions/A/Resources/Sounds/"          // arayüz sesleri
+let E = "/System/Library/PrivateFrameworks/ToneLibrary.framework/Versions/A/Resources/AlertTones/EncoreInfinitum/" // iOS 17+ tonları
 /// Tür → (Apple ses dosyası, kazanç)
 let bank: [String: (String, Float)] = [
-    "pop": (S + "Pop.aiff", 0.55),                                  // ikon / popup belirir
-    "tink": (S + "Tink.aiff", 0.35),                                // çip değişir, stil değişir
-    "notify": (S + "Glass.aiff", 0.32),                             // bildirim
-    "click": (D + "accessibility/Slow Keys, Key Registered.aif", 0.5), // fare tıkı
-    "key": (D + "accessibility/Slow Keys, Key Registered.aif", 0.7),   // tuş
-    "swish": (D + "ink/InkSoundStroke3.aif", 0.45),                 // kart dönüşü, ürün kayarak girer
-    "send": (D + "system/SentMessage.caf", 0.4),                    // beyaza geçiş
-    "ok": (D + "system/acknowledgment_sent.caf", 0.5),              // bağlandı
-    "success": (D + "system/payment_success.aif", 0.4),             // kapanış
+    "appear": (V + "BubbleAppear.aiff", 0.7),            // ikon belirir
+    "popup": (V + "PopupAppeared.aiff", 0.7),            // popup açılır
+    "charge": (U + "connect_power-D52-D53-D54.wav", 0.5),// halkalar dolar (iPhone şarja takma sesi)
+    "progress": (V + "GuideProgress.aiff", 0.32),        // halka / harita dolarken ilerleme tıkı (perdesi yükselir)
+    "change": (V + "Select.aiff", 0.5),                  // çip ya da stil değişir
+    "notify": (E + "Rebound-EncoreInfinitum.caf", 0.42), // bildirim (iOS varsayılan tonu)
+    "down": (V + "MouseDown.aiff", 0.8), "up": (V + "MouseUp.aiff", 0.7),  // fare tıkı
+    "mod": (U + "key_press_modifier.caf", 0.9),          // ⌃ ⌥ (iOS klavye)
+    "key": (U + "key_press_click.caf", 1.0),             // L
+    "slide": (E + "Slide-EncoreInfinitum.caf", 0.3),     // kart dönüşü
+    "success": (V + "GuideSuccess.aiff", 0.45),          // bağlandı / kullanılabilir
+    "send": (D + "system/SentMessage.caf", 0.4),         // beyaza geçiş
+    "welcome": (E + "Welcome-EncoreInfinitum.caf", 0.42),// kapanış
 ]
 
 /// Dosyayı 48 kHz stereo float'a çevirir
@@ -42,10 +49,17 @@ func load(_ path: String) -> [[Float]] {
     let n = Int(out.frameLength)
     return (0..<2).map { c in Array(UnsafeBufferPointer(start: out.floatChannelData![c], count: n)) }
 }
+/// Çalma hızını değiştirir (perde ve süre birlikte), doğrusal ara değerleme
+func repitch(_ x: [[Float]], _ r: Double) -> [[Float]] {
+    guard abs(r - 1) > 0.001 else { return x }
+    let n = Int(Double(x[0].count) / r)
+    return x.map { ch in (0..<n).map { i in let p = Double(i) * r, k = Int(p), f = Float(p - Double(k)); return k + 1 < ch.count ? ch[k] * (1 - f) + ch[k + 1] * f : 0 } }
+}
 var cache: [String: [[Float]]] = [:]
 for e in events {
     guard let (path, base) = bank[e.k] else { print("bilinmeyen tür: \(e.k)"); continue }
-    let s = cache[path] ?? load(path); cache[path] = s
+    let raw = cache[path] ?? load(path); cache[path] = raw
+    let s = repitch(raw, e.r ?? 1)
     let g = base * Float(e.g ?? 1), start = Int(e.t * sr)
     for i in 0..<s[0].count where start + i < N { L[start + i] += s[0][i] * g; R[start + i] += s[1][i] * g }
 }
