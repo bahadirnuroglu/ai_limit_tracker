@@ -25,13 +25,28 @@ html, body { margin: 0; width: 1600px; height: 900px; overflow: hidden; backgrou
 /* Masaüstü sahneleri: macOS Tahoe Day duvar kâğıdı */
 .lwall { position: absolute; inset: 0; background: url(wall/tahoe-day.jpg) 30% 40% / cover }
 .panel .mbar { background: rgba(255,255,255,.55); color: #1d1d1f }
+.mstrip { position: absolute; left: 0; right: 0; top: 0; height: 120px; background: rgba(255,255,255,.55); -webkit-backdrop-filter: blur(30px); display: flex; align-items: center; gap: 44px; padding-left: 44px; font-size: 34px; font-weight: 500; color: #1d1d1f; letter-spacing: -.01em }
+#slot { display: grid; place-items: center; min-width: 180px; height: 76px; border-radius: 16px; background: rgba(0,0,0,.1) }
+/* ---- Koyu sürüm: siyah zemin, kısık renk bulutu, grafit kartlar (comp.css .dk), Sonoma koyu duvar kâğıdı ---- */
+.dk html, .dk body { background: #000 }
+.dk #stage { color: #f5f5f7 }
+.dk .bg { background: radial-gradient(38% 42% at 30% 35%, rgba(120,90,255,.2), transparent 70%), radial-gradient(34% 40% at 72% 62%, rgba(255,110,70,.14), transparent 70%), radial-gradient(30% 34% at 60% 20%, rgba(80,170,255,.12), transparent 70%), #000 }
+.dk .t .a .wd { background: linear-gradient(90deg, #9b8cff, #ff6a55 60%, #ffb340); -webkit-background-clip: text; background-clip: text; color: transparent }
+.dk .lwall { background: linear-gradient(rgba(0,0,0,.12), rgba(0,0,0,.12)), url(wall/sonoma-dark.jpg) 60% 30% / cover }
+.dk .panel { box-shadow: 0 40px 100px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.1) }
+.dk .panel .mbar { background: rgba(0,0,0,.35); color: #fff }
+.dk .mstrip { background: rgba(30,30,34,.6); color: #f5f5f7 }
+.dk #slot { background: rgba(255,255,255,.14) }
+.dk .wash { background: #000 }
+.dk .list { box-shadow: 0 30px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.08) !important }
 .cur2 { position: absolute; left: 0; top: 0; width: 26px; height: 26px; z-index: 30; pointer-events: none; filter: drop-shadow(0 2px 3px rgba(0,0,0,.3)); opacity: 0 }
 .list { width: 520px }
 </style>
 <body>
 <div id="stage"></div>
 <script>
-const hp = location.hash.slice(1).split('-'), lang = hp[0] || 'en', dk = false, only = 'launch';
+const hp = location.hash.slice(1).split('-'), lang = hp[0] || 'en', dk = hp.includes('dark'), only = 'launch';
+if (dk) document.documentElement.classList.add('dk');
 </script>
 <script src="comp.js"></script>
 <script src="launch.js"></script>
