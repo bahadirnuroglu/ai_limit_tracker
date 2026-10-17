@@ -58,7 +58,7 @@ h1, h2, h3 { text-wrap: balance }
 .link svg { width: 18px; height: 18px }
 
 /* Üst çubuk: yüzen grafit kapsül */
-.bar { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 50; width: min(calc(100% - 32px), 760px); height: 58px; border-radius: 18px; display: flex; align-items: center; gap: 22px; padding: 0 8px 0 18px;
+.bar { position: fixed; top: 16px; left: 0; right: 0; margin-inline: auto; z-index: 50; width: min(calc(100% - 32px), 760px); height: 58px; border-radius: 18px; display: flex; align-items: center; gap: 22px; padding: 0 8px 0 18px;
   background: rgba(32, 32, 36, .72); backdrop-filter: blur(22px) saturate(160%); -webkit-backdrop-filter: blur(22px) saturate(160%); box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 20px 50px rgba(0,0,0,.4) }
 .bar .name { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; letter-spacing: -.01em; white-space: nowrap }
 .bar nav { margin-left: auto; display: flex; align-items: center; gap: 22px; font-size: 14px; color: var(--ink-2) }
@@ -102,31 +102,78 @@ h1, h2, h3 { text-wrap: balance }
 .ch.on { position: relative; color: #3a3a3e; background: linear-gradient(180deg, var(--silver-hi), var(--silver-lo)); box-shadow: 0 1px 0 rgba(255,255,255,.6) inset, 0 6px 16px rgba(0,0,0,.35) }
 .chdesc { margin-top: 18px; text-align: center; font-size: 17px; color: var(--ink-2); min-height: 1.5em }
 
-/* Özellikler: grafit metal kutular, büyük yuvarlak rakamlar */
-.grid { margin-top: 70px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px }
-.tile { padding: 30px; min-height: 300px; display: flex; flex-direction: column; transform-style: preserve-3d; transition: transform .5s cubic-bezier(.2,.8,.2,1) }
+/* Kelime maskesi (GSAP ile kelimeler aşağıdan çıkar) */
+.w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .1em; margin-bottom: -.1em }
+.wi { display: inline-block; will-change: transform }
+.hero h1.split { background: none; color: #f2f2f4 }
+.hero h1.split .wi { background: linear-gradient(180deg, #fff 30%, #a9a9b2 115%); -webkit-background-clip: text; background-clip: text; color: transparent }
+.head h2 .dim .wi { color: var(--ink-3) }
+.bar { will-change: transform }
+
+/* Özellikler: kutularda uygulamanın gerçek parçaları (koyu temadaki grafit kart, bildirim, bağlı satırları,
+   hesap seçici, Etkinlik kartı, menü çubuğu); her biri ekrana girince canlanır */
+.grid { margin-top: 64px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px }
+.tile { display: flex; flex-direction: column; min-height: 420px; transition: transform .6s cubic-bezier(.2,.8,.2,1) }
 .tile.w2 { grid-column: span 2 }
-.tile .big { font-family: var(--round); font-size: 74px; line-height: 1; font-weight: 700; letter-spacing: -.04em; background: linear-gradient(180deg, #fff 35%, #9d9da6); -webkit-background-clip: text; background-clip: text; color: transparent }
-.tile .big small { font-size: .5em; letter-spacing: -.02em }
-.tile h3 { margin-top: auto; padding-top: 26px; font-size: 20px; font-weight: 650; letter-spacing: -.02em }
-.tile p { margin-top: 6px; color: var(--ink-2); font-size: 16px; line-height: 1.45 }
-.tile .vis { margin-top: 22px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap }
-.chip { display: inline-flex; align-items: center; padding: 6px 11px; border-radius: 9px; font-size: 14px; font-weight: 600; letter-spacing: -.01em }
-.chip.hot { color: #ff7a66; background: rgba(255,90,60,.16) }
-.chip.ok { color: #5fe07f; background: rgba(52,199,89,.16) }
-.chip.pu { color: #c3b6ff; background: rgba(139,108,255,.2) }
-.gauge { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; color: var(--ink-2) }
-.gauge svg { width: 58px; height: 58px; overflow: visible }
-.gauge text { font-family: var(--round); font-size: 12.5px; font-weight: 650; fill: var(--ink) }
-.keys { display: flex; gap: 10px; align-items: center; color: var(--ink-3); font-size: 22px }
-.key { width: 62px; height: 62px; border-radius: 14px; display: grid; place-items: center; font-size: 26px; font-weight: 500; color: #3a3a3e; background: linear-gradient(180deg, var(--silver-hi), var(--silver-lo)); box-shadow: 0 1px 0 rgba(255,255,255,.7) inset, 0 4px 0 #8e8e95, 0 10px 20px rgba(0,0,0,.4) }
-.heat { display: grid; grid-template-columns: repeat(13, 16px); grid-auto-rows: 16px; gap: 4px }
-.heat i { border-radius: 4px; background: rgba(255,255,255,.07) }
-.icons { display: flex; gap: 12px; flex-wrap: wrap }
-.icons span { height: 40px; min-width: 64px; padding: 0 12px; border-radius: 10px; display: grid; place-items: center; background: rgba(0,0,0,.28); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06) }
-.flow { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--ink-2); flex-wrap: wrap }
-.flow .node { padding: 9px 13px; border-radius: 10px; background: rgba(0,0,0,.28); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); color: var(--ink) }
-.flow svg { width: 18px; height: 18px; color: var(--ink-3) }
+.tile .stage { flex: 1; display: grid; place-items: center; padding: 40px 28px 8px; perspective: 1200px }
+.tile .txt { padding: 0 32px 32px }
+.tile h3 { font-size: 21px; font-weight: 650; letter-spacing: -.022em }
+.tile p { margin-top: 6px; color: var(--ink-2); font-size: 16px; line-height: 1.45; max-width: 40ch }
+.acard { position: relative; display: flex; justify-content: space-between; gap: 18px; width: min(100%, 440px); padding: 18px 18px 18px 20px; border-radius: 16px; color: #c7c7cc; background: linear-gradient(160deg, #46464b, #303034); box-shadow: 0 30px 60px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.06) }
+.acard::before { content: ""; position: absolute; inset: 5px; border-radius: 11px; border: 1px solid rgba(255,255,255,.1); pointer-events: none }
+.al { display: flex; flex-direction: column; justify-content: space-between; gap: 14px; min-width: 0 }
+.ah { display: flex; align-items: center; gap: 11px }
+.alogo { fill: #c7c7cc; flex: none }
+.ah b { display: block; font-size: 19px; font-weight: 700; letter-spacing: -.02em }
+.ah small { display: block; font-size: 11px; font-weight: 500; color: #9a9aa2 }
+.achip { display: inline-flex; width: max-content; padding: 5px 9px; border-radius: 8px; font-size: 13px; font-weight: 600; letter-spacing: -.01em }
+.achip.hot { color: #ff7a66; background: rgba(255,90,60,.18) }
+.achip.pu { color: #c3b6ff; background: rgba(139,108,255,.22) }
+.achip.ok { color: #5fe07f; background: rgba(52,199,89,.18) }
+.arings { display: flex; gap: 10px }
+.ag { display: flex; flex-direction: column; align-items: center; width: 74px; font-size: 12px; color: #c7c7cc }
+.ag svg { width: 58px; height: 58px; overflow: visible }
+.ag text { font-family: var(--round); font-size: 12.5px; font-weight: 650; fill: #e5e5ea }
+.ag b { font-weight: 500; margin-top: 1px } .ag small { font-size: 11px; color: #9a9aa2; font-variant-numeric: tabular-nums }
+.nts { display: flex; flex-direction: column; gap: 10px; width: min(100%, 340px) }
+.nt { display: flex; gap: 11px; align-items: flex-start; padding: 12px 13px; border-radius: 18px; background: rgba(52,52,56,.92); box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 18px 40px rgba(0,0,0,.45); font-size: 13px; letter-spacing: -.005em }
+.nt + .nt { transform: scale(.96); opacity: .75 }
+.nt b { display: block; font-weight: 600 } .nt span { display: block; color: #c7c7cc; line-height: 1.3 }
+.nt time { margin-left: auto; font-size: 12px; color: #8e8e93; white-space: nowrap }
+.nicon { width: 36px; height: 36px; flex: none; border-radius: 9px; display: grid; place-items: center; background: linear-gradient(180deg, var(--silver-hi), var(--silver-lo)) }
+.rows { width: min(100%, 320px); border-radius: 16px; background: rgba(0,0,0,.26); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); overflow: hidden }
+.rw { display: flex; align-items: center; gap: 12px; padding: 14px 16px } .rw + .rw { border-top: 1px solid rgba(255,255,255,.06) }
+.rl { width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center; background: rgba(255,255,255,.06) } .rl svg { fill: #e5e5ea }
+.rn { flex: 1; font-size: 15px; font-weight: 600 } .rn small { display: block; font-size: 12px; font-weight: 400; color: var(--ink-3) }
+.ok { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; color: #5fe07f }
+.ok i { width: 8px; height: 8px; border-radius: 50%; background: #30d158; box-shadow: 0 0 0 4px rgba(48,209,88,.18) }
+.accw { display: flex; flex-direction: column; align-items: center; gap: 18px }
+.seg { position: relative; display: flex; padding: 3px; border-radius: 11px; background: rgba(255,255,255,.08); font-size: 13px; font-weight: 600 }
+.seg span { position: relative; z-index: 1; width: 84px; text-align: center; padding: 6px 0; color: var(--ink-2); transition: color .3s }
+.seg span.on { color: #fff }
+.seg .thumb { position: absolute; top: 3px; bottom: 3px; left: 3px; width: 84px; border-radius: 8px; background: #636366; box-shadow: 0 2px 6px rgba(0,0,0,.35) }
+.keys { display: flex; align-items: center; gap: 10px }
+.key { width: 70px; height: 70px; border-radius: 16px; display: grid; place-items: center; font-size: 28px; font-weight: 500; color: #3a3a3e; background: linear-gradient(180deg, var(--silver-hi), var(--silver-lo)); box-shadow: 0 1px 0 rgba(255,255,255,.7) inset, 0 5px 0 #8e8e95, 0 14px 24px rgba(0,0,0,.45) }
+.plus { color: var(--ink-3); font-size: 20px }
+.hcard { width: min(100%, 470px); padding: 18px 20px; border-radius: 16px; background: linear-gradient(160deg, #46464b, #303034); box-shadow: 0 30px 60px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.06); color: #c7c7cc; position: relative }
+.hcard::before { content: ""; position: absolute; inset: 5px; border-radius: 11px; border: 1px solid rgba(255,255,255,.1); pointer-events: none }
+.hh { display: flex; align-items: center; gap: 10px } .hh b { display: block; font-size: 16px; font-weight: 700 } .hh small { display: block; font-size: 11px; color: #9a9aa2 }
+.hm { margin-top: 12px; display: grid; grid-template-columns: 30px 1fr; grid-template-rows: auto 1fr; gap: 4px 6px; font-size: 10px; color: #9a9aa2 }
+.hm .mo { grid-column: 2; display: grid; grid-template-columns: repeat(4, 1fr) } .hm .dy { display: grid; grid-auto-rows: 1fr; gap: 4px }
+.hm em { font-style: normal; line-height: 1 } .hm .dy em { display: flex; align-items: center }
+.heat { display: grid; grid-template-columns: repeat(13, 1fr); gap: 4px }
+.heat i { aspect-ratio: 1; border-radius: 4px; background: rgba(255,255,255,.08) }
+.hf { margin-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #9a9aa2 }
+.leg { display: inline-flex; align-items: center; gap: 3px } .leg i { width: 9px; height: 9px; border-radius: 2px }
+.mbw { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 22px }
+.mb { width: 100%; max-width: 380px; height: 50px; display: flex; align-items: center; gap: 16px; padding: 0 16px; border-radius: 13px; font-size: 15px !important; background: rgba(0,0,0,.35); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); font-size: 13px; color: #e5e5ea; white-space: nowrap; overflow: hidden }
+.mbr { margin-left: auto; display: flex; align-items: center; gap: 12px }
+.mbi { position: relative; display: grid; place-items: center; min-width: 112px; height: 34px; padding: 0 8px; border-radius: 8px; background: rgba(255,255,255,.14) }
+.mbi .st { grid-area: 1 / 1; display: grid; place-items: center; transform: scale(1.25) }
+.mbi .st + .st { opacity: 0 }
+.sti { display: flex; align-items: center; gap: 4px; font: 650 12px var(--round); color: #ff7a66 } .sti svg { fill: #f2f2f4 } .sti em { font-style: normal }
+.stb { display: flex; flex-direction: column; gap: 4px; width: 46px } .stb i { display: block; height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--c) var(--w), rgba(255,255,255,.18) var(--w)) }
+.stn { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center } .stn span { padding: 6px 11px; border-radius: 9px; font-size: 13px; color: var(--ink-3); background: rgba(255,255,255,.04); transition: color .3s, background .3s } .stn span.on { color: #3a3a3e; background: linear-gradient(180deg, var(--silver-hi), var(--silver-lo)) }
 
 /* Sağlayıcılar: metal kart başına satırlar */
 .prov { margin-top: 70px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px }
@@ -169,10 +216,14 @@ footer p { margin-top: 18px; max-width: 72em }
 
 @media (max-width: 980px) {
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  .tile.w2 { grid-column: span 2 }
   .prov, .priv { grid-template-columns: minmax(0, 1fr) }
 }
 
 @media (max-width: 640px) {
+  .acard { flex-direction: column; gap: 14px; width: 100% }
+  .tile .stage { padding: 30px 20px 6px }
+  .tile .txt { padding: 0 24px 26px }
   .bar nav a:not(.silver) { display: none }
   .grid { grid-template-columns: minmax(0, 1fr) }
   .tile.w2 { grid-column: auto }
@@ -248,55 +299,48 @@ footer p { margin-top: 18px; max-width: 72em }
 
   <section class="section" id="ozellikler" style="padding-top:40px">
     <div class="wrap">
-      <div class="head" data-up>
+      <div class="head">
         <svg class="tag" aria-hidden="true"><use href="#tag"/></svg>
         <h2>Küçük uygulama.<br><span class="dim">Büyük rahatlık.</span></h2>
       </div>
       <div class="grid">
-        <article class="tile metal w2" data-tile>
-          <div class="big">22<small> dk</small></div>
-          <div class="vis"><span class="gauge"><svg viewBox="0 0 58 58" aria-hidden="true"><circle cx="29.0" cy="29.0" r="26.00" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="6" stroke-linecap="round" stroke-dasharray="122.52 200" transform="rotate(135 29.0 29.0)"/><circle class="val" cx="29.0" cy="29.0" r="26.00" fill="none" stroke="url(#gRed)" stroke-width="6" stroke-linecap="round" stroke-dasharray="111.50 200" transform="rotate(135 29.0 29.0)"/><text x="50%" y="53%" text-anchor="middle" dominant-baseline="middle">91%</text></svg>5 saat</span><span class="chip hot">Bu hızla 22 dakikada dolar</span></div>
-          <h3>Ne zaman dolacağını bilir.</h3>
-          <p>Yüzdeyi göstermekle kalmaz; çalışma hızına bakıp limitin ne zaman dolacağını söyler.</p>
+        <article class="tile metal w2" data-tile id="tTempo">
+          <div class="stage"><div class="acard"><div class="al"><div class="ah"><svg class="alogo" width="26" height="26" viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg><div><b>Claude</b><small>PRO</small></div></div><span class="achip pu" id="tempoChip">Bu hızla 2 saatte dolar</span></div>
+            <div class="arings"><span class="ag" id="tempoG"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="22.25" fill="none" stroke="rgba(255,255,255,.13)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="104.85 200" transform="rotate(135 25 25)"/><circle class="val" data-arc="104.85" data-p="91" cx="25" cy="25" r="22.25" fill="none" stroke="url(#gRed)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="95.41 200" transform="rotate(135 25 25)"/><text x="50%" y="53%" text-anchor="middle" dominant-baseline="middle">91%</text></svg><b>5 saat</b><small>1 sa 12 dk</small></span><span class="ag"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="22.25" fill="none" stroke="rgba(255,255,255,.13)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="104.85 200" transform="rotate(135 25 25)"/><circle class="val" data-arc="104.85" data-p="41" cx="25" cy="25" r="22.25" fill="none" stroke="url(#gBlue)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="42.99 200" transform="rotate(135 25 25)"/><text x="50%" y="53%" text-anchor="middle" dominant-baseline="middle">41%</text></svg><b>Haftalık</b><small>3 g 17 sa</small></span></div></div></div>
+          <div class="txt"><h3>Ne zaman dolacağını bilir.</h3><p>Yüzdeyi göstermekle kalmaz; çalışma hızına bakıp limitin ne zaman dolacağını önceden söyler.</p></div>
         </article>
-        <article class="tile metal" data-tile>
-          <div class="big" style="font-size:56px;white-space:nowrap">%75<small> · %90</small></div>
-          <h3>Dolmadan haber verir.</h3>
-          <p>İki eşikte bildirim, limit yenilenince bir tane daha.</p>
+        <article class="tile metal" data-tile id="tNotif">
+          <div class="stage"><div class="nts">
+            <div class="nt"><span class="nicon"><svg width="22" height="22"><use href="#mark"/></svg></span><div><b>Claude · 5 saat %90</b><span>Limite çok yaklaştın. 1 sa 12 dk sonra sıfırlanır.</span></div><time>şimdi</time></div>
+            <div class="nt"><span class="nicon"><svg width="22" height="22"><use href="#mark"/></svg></span><div><b>Codex · Haftalık %75</b><span>Limitin dörtte üçünü kullandın.</span></div><time>40 dk</time></div></div></div>
+          <div class="txt"><h3>Dolmadan haber verir.</h3><p>%75'te ve %90'da bildirim, limit yenilenince bir tane daha.</p></div>
         </article>
-        <article class="tile metal" data-tile>
-          <div class="big">1<small> kez</small></div>
-          <h3>Bir kez giriş yap.</h3>
-          <p>Kendi tarayıcında. Oturumu bundan sonra uygulama yeniler.</p>
+        <article class="tile metal" data-tile id="tLogin">
+          <div class="stage"><div class="rows">
+            <div class="rw"><span class="rl"><svg class="" width="20" height="20" viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg></span><span class="rn">Claude<small>Tarayıcında bir kez</small></span><span class="ok"><i></i>Bağlı</span></div>
+            <div class="rw"><span class="rl"><svg class="" width="20" height="20" viewBox="0 0 24 24"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg></span><span class="rn">Codex<small>Tarayıcında bir kez</small></span><span class="ok"><i></i>Bağlı</span></div></div></div>
+          <div class="txt"><h3>Bir kez giriş yap.</h3><p>Kendi tarayıcında; oturumu bundan sonra uygulama yeniler.</p></div>
         </article>
-        <article class="tile metal" data-tile>
-          <div class="big">2<small> hesap</small></div>
-          <div class="vis"><span class="gauge"><svg viewBox="0 0 58 58" aria-hidden="true"><circle cx="29.0" cy="29.0" r="26.00" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="6" stroke-linecap="round" stroke-dasharray="122.52 200" transform="rotate(135 29.0 29.0)"/><circle class="val" cx="29.0" cy="29.0" r="26.00" fill="none" stroke="url(#gRed)" stroke-width="6" stroke-linecap="round" stroke-dasharray="122.52 200" transform="rotate(135 29.0 29.0)"/><text x="50%" y="53%" text-anchor="middle" dominant-baseline="middle">100%</text></svg>bireysel</span><span class="gauge"><svg viewBox="0 0 58 58" aria-hidden="true"><circle cx="29.0" cy="29.0" r="26.00" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="6" stroke-linecap="round" stroke-dasharray="122.52 200" transform="rotate(135 29.0 29.0)"/><circle class="val" cx="29.0" cy="29.0" r="26.00" fill="none" stroke="url(#gBlue)" stroke-width="6" stroke-linecap="round" stroke-dasharray="9.80 200" transform="rotate(135 29.0 29.0)"/><text x="50%" y="53%" text-anchor="middle" dominant-baseline="middle">8%</text></svg>iş</span></div>
-          <h3>Biri dolunca öbürü.</h3>
-          <p>Bireysel ve iş hesabın yan yana.</p>
+        <article class="tile metal" data-tile id="tAcc">
+          <div class="stage"><div class="accw"><div class="seg"><i class="thumb"></i><span class="on">bireysel</span><span>iş</span></div>
+            <div class="arings"><span class="ag" id="accA"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="22.25" fill="none" stroke="rgba(255,255,255,.13)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="104.85 200" transform="rotate(135 25 25)"/><circle class="val" data-arc="104.85" data-p="100" cx="25" cy="25" r="22.25" fill="none" stroke="url(#gRed)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="104.85 200" transform="rotate(135 25 25)"/><text x="50%" y="53%" text-anchor="middle" dominant-baseline="middle">100%</text></svg><b>5 saat</b><small>1 sa 48 dk</small></span><span class="ag" id="accB"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="22.25" fill="none" stroke="rgba(255,255,255,.13)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="104.85 200" transform="rotate(135 25 25)"/><circle class="val" data-arc="104.85" data-p="63" cx="25" cy="25" r="22.25" fill="none" stroke="url(#gBlue)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="66.06 200" transform="rotate(135 25 25)"/><text x="50%" y="53%" text-anchor="middle" dominant-baseline="middle">63%</text></svg><b>Haftalık</b><small>4 g 6 sa</small></span></div>
+            <span class="achip hot" id="accChip">Doldu · açılış 19:10</span></div></div>
+          <div class="txt"><h3>Biri dolunca öbürü.</h3><p>Bireysel ve iş hesabın aynı kartta; tek dokunuşla geç.</p></div>
         </article>
-        <article class="tile metal" data-tile>
-          <div class="keys"><span class="key">⌃</span>+<span class="key">⌥</span>+<span class="key">L</span></div>
-          <h3>Her yerden aç.</h3>
-          <p>Hangi uygulamada olursan ol, bir kısayol uzağında.</p>
+        <article class="tile metal" data-tile id="tKeys">
+          <div class="stage"><div class="keys"><span class="key">⌃</span><span class="plus">+</span><span class="key">⌥</span><span class="plus">+</span><span class="key">L</span></div></div>
+          <div class="txt"><h3>Her yerden aç.</h3><p>Hangi uygulamada olursan ol, popup bir kısayol uzağında.</p></div>
         </article>
-        <article class="tile metal w2" data-tile>
-          <div class="big">13<small> hafta</small></div>
-          <div class="vis"><div class="heat" id="heat"></div></div>
-          <h3>Ne kadar çalıştığını gör.</h3>
-          <p>Karta tıkla: arkasında tüm limitler ve Claude Code ile Codex kullanımının ısı haritası.</p>
+        <article class="tile metal w2" data-tile id="tHeat">
+          <div class="stage"><div class="hcard"><div class="hh"><svg class="alogo" width="22" height="22" viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg><div><b>Etkinlik</b><small>Claude Code · son 13 hafta</small></div></div>
+            <div class="hm"><span class="mo"><em>Tem</em><em>Ağu</em><em>Eyl</em><em>Eki</em></span><span class="dy"><em>Pzt</em><em></em><em>Çar</em><em></em><em>Cum</em><em></em><em></em></span><div class="heat" id="heat"></div></div>
+            <div class="hf"><span>2,4M token · 38 aktif gün</span><span class="leg">Az<i style="background:rgba(255,255,255,.08)"></i><i style="background:#5b3427"></i><i style="background:#94492c"></i><i style="background:#d4602f"></i><i style="background:#ff7a3d"></i>Çok</span></div></div></div>
+          <div class="txt"><h3>Ne kadar çalıştığını gör.</h3><p>Karta tıkla: arkasında tüm limitler ve bu Mac'teki Claude Code ile Codex kullanımının ısı haritası.</p></div>
         </article>
-        <article class="tile metal w2" data-tile>
-          <div class="big">4<small> stil</small></div>
-          <div class="vis icons"><span><svg width="26" height="26"><use href="#mark"/></svg></span><span><span style="display:flex;align-items:center;gap:6px;font:650 14px var(--round);color:#ff7a66"><svg width="22" height="22" viewBox="0 0 58 58"><circle cx="29.0" cy="29.0" r="26.00" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="6" stroke-linecap="round" stroke-dasharray="122.52 200" transform="rotate(135 29.0 29.0)"/><circle class="val" cx="29.0" cy="29.0" r="26.00" fill="none" stroke="url(#gRed)" stroke-width="6" stroke-linecap="round" stroke-dasharray="111.50 200" transform="rotate(135 29.0 29.0)"/></svg>91% · 22dk</span></span><span><span style="display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="#ff7a4d"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg><svg width="20" height="20" viewBox="0 0 58 58"><circle cx="29.0" cy="29.0" r="26.00" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="6" stroke-linecap="round" stroke-dasharray="122.52 200" transform="rotate(135 29.0 29.0)"/><circle class="val" cx="29.0" cy="29.0" r="26.00" fill="none" stroke="url(#gRed)" stroke-width="6" stroke-linecap="round" stroke-dasharray="78.41 200" transform="rotate(135 29.0 29.0)"/></svg><svg width="14" height="14" viewBox="0 0 24 24" fill="#f2f2f4"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg><svg width="20" height="20" viewBox="0 0 58 58"><circle cx="29.0" cy="29.0" r="26.00" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="6" stroke-linecap="round" stroke-dasharray="122.52 200" transform="rotate(135 29.0 29.0)"/><circle class="val" cx="29.0" cy="29.0" r="26.00" fill="none" stroke="url(#gBlue)" stroke-width="6" stroke-linecap="round" stroke-dasharray="53.91 200" transform="rotate(135 29.0 29.0)"/></svg></span></span><span><span style="display:flex;flex-direction:column;gap:5px;width:54px"><i style="height:5px;border-radius:3px;background:linear-gradient(90deg,#ff7a4d 64%,rgba(255,255,255,.15) 64%)"></i><i style="height:5px;border-radius:3px;background:linear-gradient(90deg,#f2f2f4 44%,rgba(255,255,255,.15) 44%)"></i></span></span></div>
-          <h3>Menü çubuğuna sen karar ver.</h3>
-          <p>İç içe halkalar, en dolu limit, yan yana ya da ince barlar. Açık ve koyu temaya uyar.</p>
-        </article>
-        <article class="tile metal w2" data-tile>
-          <div class="big">0<small> aracı</small></div>
-          <div class="vis flow"><span class="node">Mac'in</span><svg><use href="#arrow"/></svg><span class="node">Anthropic · OpenAI · Cursor</span></div>
-          <h3>Doğrudan kaynağından.</h3>
-          <p>Bizim bir sunucumuz yok; limitler sağlayıcının kendi adresinden okunur.</p>
+        <article class="tile metal" data-tile id="tBar">
+          <div class="stage"><div class="mbw"><div class="mb"><b>Terminal</b><span class="mbr"><span class="mbi"><span class="st"><svg width="20" height="20"><use href="#mark"/></svg></span><span class="st"><span class="sti"><svg width="18" height="18" viewBox="0 0 50 50"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="22.25" fill="none" stroke="rgba(255,255,255,.13)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="104.85 200" transform="rotate(135 25 25)"/><circle class="val" data-arc="104.85" data-p="91" cx="25" cy="25" r="22.25" fill="none" stroke="url(#gRed)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="95.41 200" transform="rotate(135 25 25)"/></svg><em>91%</em></span></span><span class="st"><span class="sti"><svg class="" width="11" height="11" viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg><svg width="16" height="16" viewBox="0 0 50 50"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="22.25" fill="none" stroke="rgba(255,255,255,.13)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="104.85 200" transform="rotate(135 25 25)"/><circle class="val" data-arc="104.85" data-p="64" cx="25" cy="25" r="22.25" fill="none" stroke="url(#gRed)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="67.10 200" transform="rotate(135 25 25)"/></svg><svg class="" width="11" height="11" viewBox="0 0 24 24"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg><svg width="16" height="16" viewBox="0 0 50 50"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="22.25" fill="none" stroke="rgba(255,255,255,.13)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="104.85 200" transform="rotate(135 25 25)"/><circle class="val" data-arc="104.85" data-p="44" cx="25" cy="25" r="22.25" fill="none" stroke="url(#gBlue)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="46.13 200" transform="rotate(135 25 25)"/></svg></span></span><span class="st"><span class="stb"><i style="--w:64%;--c:#ff7a4d"></i><i style="--w:44%;--c:#f2f2f4"></i></span></span></span><span>17:12</span></span></div>
+            <div class="stn"><span class="on">İç içe</span><span>En dolu</span><span>Yan yana</span><span>Barlar</span></div></div></div>
+          <div class="txt"><h3>Menü çubuğuna sen karar ver.</h3><p>Dört ikon stili; açık ve koyu temaya uyar.</p></div>
         </article>
       </div>
     </div>
@@ -354,6 +398,7 @@ footer p { margin-top: 18px; max-width: 72em }
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js"></script>
 <script>
 (function () {
   var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -390,8 +435,8 @@ footer p { margin-top: 18px; max-width: 72em }
   new IntersectionObserver(function (es) { inView = es[0].isIntersecting; inView ? play() : rv.pause(); }, { threshold: .35 }).observe(rv);
   activate(0, true);
 
-  // Isı haritası (temsili)
-  var heat = document.getElementById("heat"), seed = 7, pal = ["rgba(255,255,255,.07)", "#5b3427", "#94492c", "#d4602f", "#ff7a3d"];
+  // Isı haritası (temsili, uygulamadaki Etkinlik kartı gibi)
+  var heat = document.getElementById("heat"), seed = 7, pal = ["rgba(255,255,255,.08)", "#5b3427", "#94492c", "#d4602f", "#ff7a3d"];
   function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
   for (var d = 0; d < 7; d++) for (var w = 0; w < 13; w++) { var x = rnd() * (.35 + w / 13) * (d > 4 ? .5 : 1), lv = x < .22 ? 0 : x < .42 ? 1 : x < .6 ? 2 : x < .8 ? 3 : 4, c = document.createElement("i"); c.style.background = pal[lv]; c.style.gridRow = d + 1; c.style.gridColumn = w + 1; heat.appendChild(c); }
 
@@ -415,16 +460,201 @@ footer p { margin-top: 18px; max-width: 72em }
 
   if (!window.gsap || reduce) return;
   gsap.registerPlugin(ScrollTrigger);
-  gsap.from("[data-in]", { y: 34, opacity: 0, filter: "blur(10px)", duration: 1.2, stagger: .1, ease: "power3.out" });
-  gsap.utils.toArray("[data-up]").forEach(function (el) { gsap.from(el, { y: 40, opacity: 0, filter: "blur(8px)", duration: 1.1, ease: "power3.out", scrollTrigger: { trigger: el, start: "top 86%" } }); });
-  gsap.utils.toArray(".grid, .prov, .priv").forEach(function (g) {
-    gsap.from(g.children, { y: 60, opacity: 0, duration: 1.1, stagger: .07, ease: "power3.out", scrollTrigger: { trigger: g, start: "top 85%" } });
+  var E = "expo.out", Q = "power3.out";
+
+  // Pürüzsüz kaydırma (Lenis), ScrollTrigger ile aynı saatte; sayfa içi bağlantılar da yumuşak
+  var lenis = null;
+  if (window.Lenis) {
+    document.documentElement.style.scrollBehavior = "auto";
+    lenis = new Lenis({ duration: 1.2, easing: function (t) { return Math.min(1, 1.001 - Math.pow(2, -10 * t)); } });
+    lenis.on("scroll", ScrollTrigger.update);
+    gsap.ticker.add(function (t) { lenis.raf(t * 1000); });
+    gsap.ticker.lagSmoothing(0);
+    document.querySelectorAll('a[href^="#"]').forEach(function (a) {
+      a.addEventListener("click", function (e) { var id = a.getAttribute("href"); if (id.length > 1 && document.querySelector(id)) { e.preventDefault(); lenis.scrollTo(id, { offset: -10, duration: 1.6 }); } });
+    });
+  }
+
+  // Başlıkları kelimelere böl: her kelime kendi maskesinden yukarı kayar
+  function split(el) {
+    (function walk(node) {
+      [].slice.call(node.childNodes).forEach(function (n) {
+        if (n.nodeType === 3) {
+          var frag = document.createDocumentFragment();
+          n.textContent.split(/(\s+)/).forEach(function (part) {
+            if (!part) return;
+            if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(part)); return; }
+            var w = document.createElement("span"); w.className = "w";
+            var i = document.createElement("span"); i.className = "wi"; i.textContent = part;
+            w.appendChild(i); frag.appendChild(w);
+          });
+          n.parentNode.replaceChild(frag, n);
+        } else if (n.nodeType === 1 && n.tagName !== "BR") walk(n);
+      });
+    })(el);
+    el.classList.add("split");
+    return el.querySelectorAll(".wi");
+  }
+
+  // Üst çubuk: aşağı kaydırınca saklanır, yukarıda geri gelir
+  var bar = document.querySelector(".bar");
+  ScrollTrigger.create({ start: 0, end: "max", onUpdate: function (self) {
+    var hide = self.direction === 1 && self.scroll() > 520;
+    gsap.to(bar, { yPercent: hide ? -160 : 0, duration: .6, ease: Q, overwrite: true });
+  } });
+
+  // Giriş: halka döner, başlık kelime kelime, film çerçevesi öne eğik gelip doğrulur
+  var heroWords = split(document.querySelector(".hero h1"));
+  gsap.timeline({ defaults: { ease: E } })
+    .from(bar, { yPercent: -150, duration: 1.2 })
+    .from(".hero .ring-mark", { scale: .3, rotate: -140, opacity: 0, duration: 1.6 }, 0.1)
+    .from(heroWords, { yPercent: 115, duration: 1.4, stagger: .08 }, 0.25)
+    .from(".hero .lede", { y: 26, opacity: 0, filter: "blur(10px)", duration: 1.3 }, 0.7)
+    .from(".hero .ctas > *", { y: 22, opacity: 0, duration: 1.1, stagger: .1 }, 0.85)
+    .from(".hero .frame", { y: 140, rotateX: 28, scale: .9, opacity: 0, transformPerspective: 1800, transformOrigin: "50% 0%", duration: 2 }, 0.9)
+    .from(".hero .meta span", { y: 14, opacity: 0, duration: .9, stagger: .07 }, 1.5);
+  // Kaydırınca giriş katmanları farklı hızda: başlık yukarı süzülür, film yakına gelir
+  gsap.to(".hero .wrap > h1, .hero .lede, .hero .ctas, .hero .ring-mark", { yPercent: -40, opacity: .2, ease: "none", scrollTrigger: { trigger: ".hero", start: "top top", end: "45% top", scrub: true } });
+  gsap.fromTo(".hero .frame", { scale: 1 }, { scale: 1.06, ease: "none", immediateRender: false, scrollTrigger: { trigger: ".hero .frame", start: "top 60%", end: "bottom top", scrub: true } });
+
+  // Bölüm başlıkları: halka çizilerek döner, satırlar maskeden çıkar, açıklama süzülür
+  gsap.utils.toArray(".head, .install").forEach(function (h) {
+    var title = h.querySelector("h2"), words = split(title);
+    var tl = gsap.timeline({ scrollTrigger: { trigger: h, start: "top 82%" }, defaults: { ease: E } });
+    var tag = h.querySelector(".tag, .ring-mark");
+    if (tag) tl.from(tag, { rotate: -180, scale: .4, opacity: 0, duration: 1.4 }, 0);
+    tl.from(words, { yPercent: 115, duration: 1.3, stagger: .06 }, 0.05);
+    var rest = h.querySelectorAll(":scope > p, :scope > .sub, :scope > .ctas, :scope > .term, :scope > .fine");
+    if (rest.length) tl.from(rest, { y: 30, opacity: 0, filter: "blur(8px)", duration: 1.2, stagger: .1 }, 0.35);
   });
-  gsap.utils.toArray(".tile .gauge .val").forEach(function (a) {
-    var to = a.getAttribute("stroke-dasharray");
-    gsap.fromTo(a, { attr: { "stroke-dasharray": "0 200" } }, { attr: { "stroke-dasharray": to }, duration: 1.6, ease: "elastic.out(1, .8)", scrollTrigger: { trigger: a, start: "top 90%" } });
+
+  // Film oynatıcı: çerçeve kaydırmayla büyüyerek yerine oturur, sekmeler sırayla gelir
+  gsap.fromTo(".player .frame", { scale: .86, rotateX: 14, transformPerspective: 1800, transformOrigin: "50% 100%", opacity: .3 },
+    { scale: 1, rotateX: 0, opacity: 1, ease: "none", scrollTrigger: { trigger: ".player", start: "top 95%", end: "top 35%", scrub: 1 } });
+  gsap.from(".ch", { y: 18, opacity: 0, duration: 1, stagger: .05, ease: E, scrollTrigger: { trigger: ".chapters", start: "top 92%" } });
+
+  // Kartlar: gruplar halinde yükselir (sonra transform bırakılır ki imleç eğimi çalışsın)
+  function rise(sel, opts) {
+    gsap.set(sel, { y: 80, opacity: 0, scale: .97 });
+    ScrollTrigger.batch(sel, { start: "top 90%", once: true, onEnter: function (els) {
+      gsap.to(els, Object.assign({ y: 0, opacity: 1, scale: 1, duration: 1.4, ease: E, stagger: .1, clearProps: "transform" }, opts || {}));
+    } });
+  }
+  rise(".tile"); rise(".pcard"); rise(".priv .metal");
+  gsap.utils.toArray(".pcard").forEach(function (c) {
+    gsap.from(c.querySelectorAll("li"), { x: -16, opacity: 0, duration: .9, stagger: .07, ease: Q, scrollTrigger: { trigger: c, start: "top 85%" } });
   });
-  gsap.from("#heat i", { scale: .3, opacity: 0, duration: .5, stagger: { each: .006, from: "start" }, ease: "power2.out", scrollTrigger: { trigger: "#heat", start: "top 88%" } });
-  gsap.to(".hero .frame", { scale: .94, opacity: .6, ease: "none", scrollTrigger: { trigger: ".hero", start: "55% top", end: "bottom top", scrub: true } });
+
+  // Kutuların içi: ekrandayken oynar, çıkınca durur
+  function live(el, tl) { ScrollTrigger.create({ trigger: el, start: "top 85%", end: "bottom 10%", onToggle: function (s) { s.isActive ? tl.play() : tl.pause(); } }); return tl; }
+  function ringTo(g, p, tone, d) {
+    var v = g.querySelector(".val"), arc = +v.dataset.arc, txt = g.querySelector("text"), o = { p: +(txt.textContent.replace("%", "")) || 0 };
+    var tl = gsap.timeline();
+    tl.to(o, { p: p, duration: d || 1.4, ease: "power2.inOut", onUpdate: function () {
+      v.setAttribute("stroke-dasharray", Math.max(.01, arc * Math.min(o.p, 100) / 100) + " 200"); txt.textContent = Math.round(o.p) + "%";
+    } }, 0);
+    if (tone) tl.call(function () { v.setAttribute("stroke", "url(#" + tone + ")"); }, null, 0);
+    return tl;
+  }
+  function setRing(g, p) { var v = g.querySelector(".val"); v.setAttribute("stroke-dasharray", Math.max(.01, +v.dataset.arc * p / 100) + " 200"); g.querySelector("text").textContent = p + "%"; }
+
+  // Tahmin: halka %62'den %91'e tırmanır, çip "2 saat" → "45 dk" → "22 dk" (mor → kırmızı)
+  (function () {
+    var g = document.getElementById("tempoG"), chip = document.getElementById("tempoChip"), v = g.querySelector(".val");
+    function chipTo(t, k) { return function () { chip.textContent = t; chip.className = "achip " + k; gsap.fromTo(chip, { scale: 1.12 }, { scale: 1, duration: .6, ease: "back.out(3)" }); }; }
+    var tl = gsap.timeline({ paused: true, repeat: -1, repeatDelay: 1.6 });
+    tl.call(function () { setRing(g, 62); v.setAttribute("stroke", "url(#gBlue)"); chip.textContent = "Bu hızla 2 saatte dolar"; chip.className = "achip pu"; })
+      .add(ringTo(g, 91, null, 3), 0.4)
+      .call(function () { v.setAttribute("stroke", "url(#gPurple)"); }, null, 0.9)
+      .call(chipTo("Bu hızla 45 dakikada dolar", "pu"), null, 1.6)
+      .call(function () { v.setAttribute("stroke", "url(#gRed)"); }, null, 2.7)
+      .call(chipTo("Bu hızla 22 dakikada dolar", "hot"), null, 2.9)
+      .to(".acard", { rotateX: 4, rotateY: -6, duration: 2, ease: "sine.inOut", yoyo: true, repeat: 1 }, 0.4)
+      .to({}, { duration: 2.4 });
+    live("#tTempo", tl);
+  })();
+
+  // Bildirimler: sağdan kayarak üst üste gelir, sonra çekilir
+  (function () {
+    var n = document.querySelectorAll("#tNotif .nt");
+    var tl = gsap.timeline({ paused: true, repeat: -1, repeatDelay: .6 });
+    tl.set(n, { x: 120, opacity: 0 })
+      .to(n[1], { x: 0, opacity: .75, duration: .9, ease: E }, 0.2)
+      .to(n[0], { x: 0, opacity: 1, duration: .9, ease: E }, 1.1)
+      .fromTo(n[1], { scale: 1 }, { scale: .96, duration: .6, ease: Q }, 1.1)
+      .to(n, { x: 60, opacity: 0, duration: .6, ease: "power2.in", stagger: .08 }, 4.6);
+    live("#tNotif", tl);
+  })();
+
+  // Bir kez giriş: "Bekleniyor…" → yeşil nokta ve "Bağlı"
+  (function () {
+    var oks = document.querySelectorAll("#tLogin .ok");
+    var tl = gsap.timeline({ paused: true, repeat: -1, repeatDelay: 2.4 });
+    tl.call(function () { oks.forEach(function (o) { o.innerHTML = '<i style="background:#8e8e93;box-shadow:none"></i>Bekleniyor…'; o.style.color = "#9a9aa2"; }); });
+    oks.forEach(function (o, k) {
+      tl.call(function () { o.innerHTML = "<i></i>Bağlı"; o.style.color = ""; }, null, 1 + k * .7)
+        .fromTo(o, { scale: .6 }, { scale: 1, duration: .7, ease: "back.out(3)" }, 1 + k * .7);
+    });
+    live("#tLogin", tl);
+  })();
+
+  // İki hesap: seçici bireysel ↔ iş; halkalar ve çip hesapla değişir
+  (function () {
+    var thumb = document.querySelector("#tAcc .thumb"), sp = document.querySelectorAll("#tAcc .seg span"), a = document.getElementById("accA"), b = document.getElementById("accB"), chip = document.getElementById("accChip");
+    function to(i) {
+      var t = gsap.timeline();
+      t.to(thumb, { x: i * 84, duration: .55, ease: "back.out(1.6)" }, 0)
+        .call(function () { sp.forEach(function (s, k) { s.classList.toggle("on", k === i); }); chip.textContent = i ? "Kullanılabilir" : "Doldu · açılış 19:10"; chip.className = "achip " + (i ? "ok" : "hot"); }, null, .15)
+        .add(ringTo(a, i ? 8 : 100, i ? "gBlue" : "gRed", 1), .1)
+        .add(ringTo(b, i ? 12 : 63, null, 1), .15)
+        .fromTo(chip, { scale: .85 }, { scale: 1, duration: .6, ease: "back.out(3)" }, .2);
+      return t;
+    }
+    var tl = gsap.timeline({ paused: true, repeat: -1 });
+    tl.add(to(1), 1.6).add(to(0), 4.4).to({}, { duration: 1.4 });
+    live("#tAcc", tl);
+  })();
+
+  // Kısayol: tuşlar sırayla basılır
+  (function () {
+    var k = document.querySelectorAll("#tKeys .key");
+    var tl = gsap.timeline({ paused: true, repeat: -1, repeatDelay: 1.4 });
+    k.forEach(function (key, i) { tl.to(key, { y: 4, boxShadow: "0 1px 0 rgba(255,255,255,.7) inset, 0 1px 0 #8e8e95, 0 6px 12px rgba(0,0,0,.4)", duration: .14, ease: "power2.out" }, .2 + i * .16); });
+    tl.to(k, { y: 0, boxShadow: "0 1px 0 rgba(255,255,255,.7) inset, 0 5px 0 #8e8e95, 0 14px 24px rgba(0,0,0,.45)", duration: .5, ease: "back.out(3)" }, 1.1);
+    live("#tKeys", tl);
+  })();
+
+  // Etkinlik: hücreler haftalar boyunca dalga gibi dolar
+  gsap.from("#heat i", { scale: 0, opacity: 0, duration: .7, ease: "back.out(2)", stagger: { grid: [7, 13], from: "start", axis: "x", amount: 1.4 }, scrollTrigger: { trigger: "#tHeat", start: "top 80%" } });
+
+  // Menü çubuğu: ikon dört stil arasında yumuşakça değişir, alttaki ad da
+  (function () {
+    var st = document.querySelectorAll("#tBar .st"), names = document.querySelectorAll("#tBar .stn span");
+    var tl = gsap.timeline({ paused: true, repeat: -1 });
+    st.forEach(function (s, i) {
+      var nx = st[(i + 1) % st.length], at = 1.8 + i * 1.9;
+      tl.to(s, { opacity: 0, y: -8, filter: "blur(4px)", duration: .45, ease: "power2.in" }, at)
+        .fromTo(nx, { opacity: 0, y: 8, filter: "blur(4px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: .55, ease: Q }, at + .3)
+        .call(function () { names.forEach(function (n, k) { n.classList.toggle("on", k === (i + 1) % st.length); }); }, null, at + .3);
+    });
+    live("#tBar", tl);
+  })();
+
+  // Kurulum: komut yazılır gibi belirir
+  (function () {
+    var cmdEl = document.getElementById("cmd"), full = cmdEl.textContent.replace(/^\$\s*/, ""), o = { n: 0 };
+    cmdEl.innerHTML = "<b>$</b> ";
+    gsap.to(o, { n: full.length, duration: 1.8, ease: "none", scrollTrigger: { trigger: ".term", start: "top 88%" },
+      onUpdate: function () { cmdEl.innerHTML = "<b>$</b> " + full.slice(0, Math.round(o.n)); } });
+  })();
+
+  // Gümüş düğmeler: imlece hafifçe çekilir
+  document.querySelectorAll(".silver").forEach(function (b) {
+    var xTo = gsap.quickTo(b, "x", { duration: .5, ease: Q }), yTo = gsap.quickTo(b, "y", { duration: .5, ease: Q });
+    b.addEventListener("pointermove", function (e) { var r = b.getBoundingClientRect(); xTo((e.clientX - r.left - r.width / 2) * .25); yTo((e.clientY - r.top - r.height / 2) * .35); });
+    b.addEventListener("pointerleave", function () { xTo(0); yTo(0); });
+  });
+
+  gsap.from("footer .row > *, footer p", { y: 16, opacity: 0, duration: 1, stagger: .05, ease: Q, scrollTrigger: { trigger: "footer", start: "top 95%" } });
 })();
 </script>
