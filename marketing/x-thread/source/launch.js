@@ -101,7 +101,7 @@
       <div id="keys" style="position:absolute;left:96px;top:418px;display:flex;gap:18px;align-items:center;color:#86868b;font-size:34px;zoom:1.25"><div class="key"><b>⌃</b>control</div>+<div class="key"><b>⌥</b>option</div>+<div class="key" style="justify-content:center"><b>L</b></div></div>
       <div class="panel" id="bar7" style="left:820px;top:200px;width:900px;height:500px;border-radius:30px 0 0 30px"><div class="lwall"></div>
         <div style="position:absolute;left:0;right:0;top:0;height:120px;background:rgba(255,255,255,.55);-webkit-backdrop-filter:blur(30px);display:flex;align-items:center;gap:44px;padding-left:44px;font-size:34px;font-weight:500;color:#1d1d1f;letter-spacing:-.01em">
-        <span id="slot" style="display:grid;place-items:center;min-width:180px;height:76px;border-radius:16px;background:rgba(0,0,0,.1)"><span id="slotIn" style="zoom:2.2;display:flex"></span></span><span>Wi‑Fi</span><span>Mon 17:12</span></div></div>
+        <span id="slot" style="display:grid;place-items:center;min-width:180px;height:76px;border-radius:16px;background:rgba(0,0,0,.1)"><span id="slotIn" style="zoom:2.2;display:flex"></span></span><span>Wi‑Fi</span><span>Mon 17:12</span></div></div></div>
     <div class="shot" id="s8"><div class="t" id="c8" style="left:900px;top:330px;font-size:74px;width:640px">Claude <span class="g">and</span> Codex.<span class="ln" id="c8b" style="margin-top:22px;font-size:34px;font-weight:500;letter-spacing:-.012em;color:#86868b;line-height:1.3">Sign in once, in your own browser. Your tokens stay on your Mac.</span></div>
       <div id="lst" style="position:absolute;left:-60px;top:330px"><div class="list" style="zoom:1.5;box-shadow:0 30px 80px rgba(40,30,80,.14),0 0 0 1px rgba(0,0,0,.05)">
         <div class="row"><span class="ic">${logo('claude')}</span><span class="lb">Claude<small>Signed in with your browser</small></span><span class="ok">${check}Connected</span></div>
@@ -131,6 +131,8 @@
   // Halka dolarken: değer her ~3 puan arttığında ilerleme tıkı, perdesi değerle yükselir
   const fillTicks = (f, a, b, from, to, step = 3, g = 1) => { let next = from + step; for (let t = a; t < b; t += 1 / 120) { const v = f(t); if ((to > from && v >= next) || (to < from && v <= next)) { E(t, 'progress', g, .85 + .7 * (v - Math.min(from, to)) / Math.abs(to - from)); next += to > from ? step : -step; } } };
   E(0.55, 'appear');
+  const typing = (text, t0, dur) => [...text].forEach((ch, i) => E(t0 + (i + 1) * dur / text.length - .01, ch === ' ' || ch === ' ' ? 'mod' : 'key', .75 + .25 * ((i * 37) % 7) / 7, .94 + .12 * ((i * 53) % 5) / 5));
+  typing('AI Limit Tracker', .95, .85);
   E(4.62, 'popup'); E(5.42, 'charge');                                     // popup açılır, halkalar dolar
   fillTicks(t => 93 * Math.min(1, spring(t - 5.4, 1.0, .85)), 5.4, 6.4, 0, 93, 9, .7);
   const p3 = t => lerp(62, 91, eIO(seg(t, 9.0, 11.2)));
@@ -146,7 +148,8 @@
   [26.2, 27.0, 27.8].forEach(t => E(t, 'change', .6));                     // menü çubuğu stili
   E(29.4, 'success', .7); E(29.7, 'success', .6, 1.12);                    // bağlandı
   E(30.85, 'send');                                                        // beyaza geçiş
-  E(31.42, 'welcome');                                                     // kapanış
+  E(31.42, 'welcome');
+  typing(o2text, 32.7, 1.5);                                                     // kapanış
   window.sfxEvents = sfx;
   window.duration = 36; window.poster = 11.6;
   window.frame = t => {
