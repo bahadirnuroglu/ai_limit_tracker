@@ -147,7 +147,7 @@
   const cells = $$('#fb .hm i').map(c => [c, +c.style.gridColumn.split(' ')[0]]);
   setChip($('#ff .chip'), pace('22 min'), 'hot');
   const keyEls = $$('#keys .key'), okEls = $$('#lst .ok');
-  const o2text = 'Never hit a limit mid‑task again.';
+  const o2text = 'Claude, Codex, Cursor. One menu bar.';
 
 
   // Ses olayları: Apple'ın kendi sesleri (iOS klavye, şarj, VoiceOver arayüz sesleri, iOS 17 tonları); sfx aracı yerleştirir
