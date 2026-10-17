@@ -18,12 +18,18 @@
   const center = el => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
 
   // Çekim: bulanıklıktan netleşerek girer, beyaza bulanıklaşarak çıkar
-  function shot(el, t, a, b, fi = .55, fo = .5) {
-    const i = eOut(seg(t, a, a + fi)), o = eIO(seg(t, b - fo, b));
-    el.style.display = t < a || t > b ? 'none' : 'block';
-    el.style.opacity = i * (1 - o);
-    el.style.transform = `scale(${1.04 - .04 * i + .03 * o})`;
-    el.style.filter = `blur(${10 * (1 - i) + 12 * o}px)`;
+  // Sahneler uzun bir sayfa gibi akar: geçişte çıkan sahne ve giren sahne aynı eğriyle birlikte bir ekran yukarı kayar
+  // (giren tam bir ekran aşağıdan gelir, üst üste binmezler). Geçiş penceresi: çıkışta [b-.5, b+.4], girişte [a-.3, a+.6];
+  // ardışık sahnelerde a = b - .2 olduğundan ikisi aynı anda kayar. Hızın en yüksek olduğu ortada hafif hareket bulanıklığı.
+  const FLOW = 900;
+  function shot(el, t, a, b) {
+    const A = a - .3, B = b + .4;
+    el.style.display = t < A || t > B ? 'none' : 'block';
+    if (t < A || t > B) return;
+    const i = a <= 0 ? 1 : eIO(seg(t, A, a + .6)), o = eIO(seg(t, b - .5, B));
+    el.style.opacity = 1;
+    el.style.transform = `translateY(${FLOW * (1 - i) - FLOW * o}px)`;
+    el.style.filter = `blur(${4 * Math.sin(Math.PI * i) * (i < 1 ? 1 : 0) + 4 * Math.sin(Math.PI * o)}px)`;
   }
   // Kelimeler: her kelime ayrı span; sırayla yukarı kayıp netleşir
   function words(el) {
@@ -176,7 +182,7 @@
   window.sfxEvents = sfx;
   window.duration = 40.4; window.poster = 11.6;
   window.frame = t => {
-    $('#bg').style.transform = `translate(${Math.sin(t / 6) * 30}px, ${Math.cos(t / 7) * 20}px) scale(${1.02 + .02 * Math.sin(t / 9)})`;
+    $('#bg').style.transform = `translate(${Math.sin(t / 6) * 30}px, ${Math.cos(t / 7) * 20 - t * 2.2}px) scale(${1.12 + .02 * Math.sin(t / 9)})`;
 
     // 1 · Tanışma
     shot($('#s1'), t, 0, 3.3, .2, .5);
@@ -213,7 +219,7 @@
 
     // 4b · Açılınca haber ver: sağ tık → menü → zil; saat gelince bildirim iner, halka boşalır
     { const L0 = 16.3, l = t - L0, c = $('#card4b .card'), ctx = $('#ctx4b'), items = [...ctx.querySelectorAll('div')], bell = c.querySelector('.bell');
-      shot($('#s4b'), t, L0, L0 + 4.4);
+      shot($('#s4b'), t, L0, L0 + 4.6);
       showWords(W.c4b, t, L0 + .3);
       const k = eOut(seg(l, .1, 1.4)); $('#card4b').style.transform = `translateX(${(1 - k) * 160}px)`;
       ctx.style.transformOrigin = '0 0';
@@ -268,13 +274,13 @@
       si.style.opacity = t < 29.8 ? 1 : (ph < .15 ? ph / .15 : ph > .85 ? (1 - ph) / .15 : 1); }
 
     // 8 · Bir kez giriş
-    shot($('#s8'), t, 32.9, 35.7, .55, .6);
+    shot($('#s8'), t, 32.9, 35.8);
     showWords(W.c8, t, 33.2, .08);
     { const k = eOut(seg(t, 33, 34.2)); $('#lst').style.transform = `translateX(${(k - 1) * 120}px)`; }
     okEls.forEach((o, i) => { const k = spring(t - 33.8 - i * .3, .4, .55); o.style.opacity = seg(t, 33.8 + i * .3, 33.9 + i * .3); o.style.transform = `scale(${.5 + .5 * k})`; });
 
     // Beyaza bulanıklaşan geçiş
-    $('#wash').style.opacity = Math.sin(Math.PI * seg(t, 35.2, 36.1)) * .95;
+    // Beyaz geçiş kaldırıldı: kapanış da aynı akışla gelir
 
     // 9 · Kapanış: ikon, ad, yazılan slogan, ücretsiz
     shot($('#s9'), t, 35.6, 40.6, .4, .01);
