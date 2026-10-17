@@ -125,25 +125,21 @@
   const o2text = 'Never hit a limit mid‑task again.';
 
 
-  // Ses olayları: her animasyon anına mikro ses (sfx aracı sentezler)
-  const sfx = [], E = (t, k, g, p) => sfx.push({ t: +t.toFixed(3), k, g: g ?? 1, p: p ?? 0 });
-  const wordTicks = (list, t0, gap = .09) => list.forEach((w, i) => E(t0 + i * gap, 'tick', .8));
+  // Ses olayları: Apple'ın filmlerindeki gibi az ve yerinde; macOS sistem sesleri (sfx aracı yerleştirir)
+  const sfx = [], E = (t, k, g) => sfx.push({ t: +t.toFixed(3), k, g: g ?? 1 });
   const cross = (f, v, a, b) => { for (let t = a; t < b; t += 1 / 120) if (f(t) >= v) return t; return b; };
-  E(0.1, 'air'); E(0.55, 'pop'); for (let i = 0; i < 16; i++) E(.95 + (i + 1) * .85 / 16, 'type', .9);
-  [3.1, 7.6, 12.1, 16.3, 20.5, 24.3, 28.5].forEach(a => E(a - .12, 'whoosh', .8));
-  wordTicks(W.h2.slice(0, 3), 3.25); wordTicks(W.h2.slice(3), 4.05); wordTicks(W.c3, 7.9); wordTicks(W.c4, 12.4);
-  wordTicks(W.c5a, 16.6); wordTicks(W.c5b, 17.4); wordTicks(W.c6, 20.8); wordTicks(W.c7, 24.6); wordTicks(W.c8, 28.8, .08);
-  E(4.6, 'rise'); [5.4, 5.5, 5.55, 5.65].forEach((t, i) => E(t, 'blip', .9, i));
+  E(0.55, 'pop');                                   // ikon belirir
+  E(4.62, 'pop', .8);                               // popup açılır
   const p3 = t => lerp(62, 91, eIO(seg(t, 9.0, 11.2)));
-  E(7.8, 'slide'); E(cross(p3, 80, 9, 11.2), 'ding', 1, 0); E(cross(p3, 90, 9, 11.2), 'ding', 1, 1);
-  E(12.2, 'slide'); [13.2, 13.9, 14.6].forEach(t => E(t, 'chime'));
-  E(16.4, 'slide'); E(18.7, 'click'); E(18.8, 'ding', 1, 2);
-  E(21.62, 'click'); E(21.72, 'flip'); E(22.25, 'shimmer');
-  E(24.4, 'slide'); [25.8, 25.98, 26.16].forEach(t => E(t, 'key')); E(26.7, 'keyup');
-  [26.2, 27.0, 27.8].forEach(t => E(t, 'tick', 1.1));
-  E(28.6, 'slide'); E(29.4, 'success', 1, 0); E(29.7, 'success', 1, 1);
-  E(30.75, 'swell'); E(31.4, 'pop', 1.3); E(31.9, 'air'); for (let i = 0; i < o2text.length; i++) E(32.7 + (i + 1) * 1.5 / o2text.length, 'type', .8);
-  E(34.4, 'sting');
+  E(cross(p3, 80, 9, 11.2), 'tink', .8); E(cross(p3, 90, 9, 11.2), 'tink');   // tahmin çipi değişir
+  [13.2, 13.9, 14.6].forEach((t, i) => E(t, 'notify', [.7, .85, 1][i]));     // bildirimler
+  E(18.7, 'click'); E(18.82, 'tink', .9);           // İş hesabına geç
+  E(21.62, 'click'); E(21.7, 'swish');              // kartı çevir
+  [25.8, 25.98, 26.16].forEach(t => E(t, 'key'));   // ⌃⌥L
+  [26.2, 27.0, 27.8].forEach(t => E(t, 'tink', .45));                       // menü çubuğu stili değişir
+  E(29.4, 'ok'); E(29.7, 'ok', .9);                 // bağlandı
+  E(30.85, 'send');                                 // beyaza geçiş
+  E(31.45, 'success');                              // kapanış
   window.sfxEvents = sfx;
   window.duration = 36; window.poster = 11.6;
   window.frame = t => {
