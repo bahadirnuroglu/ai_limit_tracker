@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Tweet Films</title>
+<script src="logos.js"></script>
+<link rel="stylesheet" href="comp.css">
+<style>
+/* Film dili: siyah sahne, tepeden yumuşak ışık, tek büyük ürün, satır satır beliren SF Pro, ince film greni */
+html, body { margin: 0; width: 1600px; height: 900px; overflow: hidden; background: #000 }
+#stage { position: relative; width: 1600px; height: 900px; overflow: hidden; background: #000; color: #f5f5f7; font-family: var(--sf); -webkit-font-smoothing: antialiased }
+.shot { position: absolute; inset: 0; overflow: hidden }
+.cam { position: absolute; inset: 0; transform-origin: 0 0 }
+.light { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(60% 55% at 50% -8%, rgba(255,255,255,.085), transparent 70%) }
+.vig { position: absolute; inset: 0; pointer-events: none; z-index: 40; background: radial-gradient(90% 85% at 50% 45%, transparent 55%, rgba(0,0,0,.6)) }
+.grain { position: absolute; inset: -60px; pointer-events: none; z-index: 41; opacity: .055; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>") }
+.cap { position: absolute; left: 0; right: 0; text-align: center; font-size: 66px; font-weight: 600; letter-spacing: -.024em; line-height: 1.1; z-index: 20 }
+.cap.left { left: 120px; right: auto; text-align: left; width: 640px }
+.cap .g { color: #86868b }
+.cap .ln { display: block }
+.cap.small { font-size: 34px; font-weight: 500; letter-spacing: -.012em; color: #86868b }
+.limit { position: absolute; left: 50%; top: 590px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 14px; padding: 16px 28px; border-radius: 999px; white-space: nowrap;
+  background: rgba(255,69,58,.12); color: #ff6961; font: 500 28px var(--mono); letter-spacing: 0; box-shadow: inset 0 0 0 1px rgba(255,69,58,.35) }
+.desk { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; background: radial-gradient(70% 90% at 85% 0%, #5b2f4a, transparent 60%), radial-gradient(80% 90% at 10% 100%, #2d2160, transparent 60%), linear-gradient(160deg, #1a1530, #3a1f3c 55%, #4a2a33) }
+.desk .mbar { background: rgba(0,0,0,.35); color: #fff }
+.win { position: absolute; width: 470px; border-radius: 14px; background: #1c1c1e; box-shadow: 0 0 0 1px rgba(255,255,255,.1), 0 40px 80px rgba(0,0,0,.6); overflow: hidden; letter-spacing: -.01em }
+.win .tb { height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 14px; background: #2a2a2d; font-size: 13px; color: #a1a1a6 }
+.win .tb i { width: 12px; height: 12px; border-radius: 50%; display: block; background: #4a4a4d }
+.win .tb span { margin-inline: auto; transform: translateX(-28px) }
+.win .bd { padding: 22px 24px 26px; display: flex; flex-direction: column; gap: 18px }
+.win .rw { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; font-size: 16px; color: #d1d1d6 }
+.win .rw b { font-weight: 500 }
+.win .rw span { color: #8e8e93; font-variant-numeric: tabular-nums }
+.win .bar { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: rgba(255,255,255,.1); overflow: hidden }
+.win .bar i { display: block; height: 100%; border-radius: 4px; background: #0a84ff }
+.wordmark { font-size: 76px; font-weight: 600; letter-spacing: -.028em }
+.cur2 { position: absolute; left: 0; top: 0; width: 26px; height: 26px; z-index: 30; pointer-events: none; filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)); opacity: 0 }
+</style>
+<body>
+<div id="stage"></div>
+<script>
+// #en-hook, #tr-forecast …: dil ve sahne. Filmler her zaman koyu temada.
+const hp = location.hash.slice(1).split('-'), lang = hp[0] || 'en', dk = true, only = hp[1] || 'hook';
+document.documentElement.classList.add('dk');
+</script>
+<script src="comp.js"></script>
+<script src="film.js"></script>
+</body>

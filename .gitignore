@@ -3,3 +3,9 @@ build/
 dist/
 assets/
 .claude/
+# X thread medya çıktıları (source/ ile yeniden üretilir)
+marketing/x-thread/en/
+marketing/x-thread/tr/
+marketing/x-thread/en-dark/
+marketing/x-thread/tr-dark/
+marketing/x-thread/film/
