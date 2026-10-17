@@ -460,6 +460,7 @@ final class UsageStore: ObservableObject {
         current.updatedAt = Date()
         usage[account.id] = current
         UsageHistory.record(limits)
+        AccountActivity.record(account: account.id, limits: limits)
         Notifier.shared.process(provider: title(account), limits: limits)
         if let email = result.email, email != account.email, let i = accounts.firstIndex(where: { $0.id == account.id }) {
             accounts[i].email = email

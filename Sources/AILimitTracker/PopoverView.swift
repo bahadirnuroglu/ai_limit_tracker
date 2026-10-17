@@ -260,9 +260,16 @@ private struct ProviderCard: View {
 
     private var front: [Limit] { usage.frontLimits }
     private var hiddenCount: Int { max(usage.limits.count - front.count, 0) }
-    /// Etkinlik bu Mac'teki Claude Code / Codex kayıtlarından gelir; kayıtlarda hesap bilgisi yok. Bu yüzden yalnızca
-    /// aracın oturumuna bağlı yerel hesapta gösterilir (ek hesapta aynı harita "o hesabınmış" gibi görünüyordu).
-    private var activitySource: ActivitySource? { selected == id.rawValue ? id.activity : nil }
+    /// Etkinlik her hesapta var. Yerel hesap: bu Mac'teki Claude Code / Codex kayıtları (geçmişe dönük, token).
+    /// Ek hesap: uygulamanın kendi okumaları (AccountActivity; o hesabın 5 saatlik limitindeki artışlar). Kayıt dosyalarında
+    /// hesap bilgisi olmadığı için ek hesaba yerel haritayı göstermek "o hesabınmış" gibi yanıltıyordu.
+    private var activitySource: ActivitySource? { id.activity }
+    private var isLocalAccount: Bool { selected == id.rawValue }
+    private func loadActivity() {
+        guard let source = activitySource else { return }
+        if isLocalAccount { Task { activity = await ActivityLoader.load(source) } }
+        else { activity = AccountActivity.values(account: selected) }
+    }
     private var currentTab: BackTab {
         if let tab, tab == .limits || activitySource != nil { return tab }
         return hiddenCount > 0 || activitySource == nil ? .limits : .activity
@@ -325,7 +332,7 @@ private struct ProviderCard: View {
         }
         .onChange(of: shown) { _, visible in if !visible { showBack = false; flipAngle = 0; tab = nil } }
         // Arka yüzdeyken yerel hesaba geçilirse ısı haritası o an yüklensin
-        .onChange(of: selected) { _, _ in if showBack, activity == nil, let source = activitySource { Task { activity = await ActivityLoader.load(source) } } }
+        .onChange(of: selected) { _, _ in activity = nil; if showBack { loadActivity() } }
     }
 
     private func flip() {
@@ -333,13 +340,13 @@ private struct ProviderCard: View {
         NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
         if reduceMotion {
             withAnimation(.easeInOut(duration: 0.2)) { showBack = flipped }
-            if showBack, let source = activitySource { Task { activity = await ActivityLoader.load(source) } }
+            if showBack { loadActivity() }
             if !showBack { tab = nil }
             return
         }
         withAnimation(.easeIn(duration: 0.16)) { flipAngle = 90 } completion: {
             showBack = flipped
-            if showBack, let source = activitySource { Task { activity = await ActivityLoader.load(source) } }
+            if showBack { loadActivity() }
             if !showBack { tab = nil }
             flipAngle = -90
             withAnimation(.spring(response: 0.38, dampingFraction: 0.72)) { flipAngle = 0 }
@@ -569,11 +576,18 @@ private struct ProviderCard: View {
                 .opacity(staticPart)
             case .activity:
                 if let source = activitySource {
-                    Heatmap(values: activity ?? [:], source: source, interactive: interactive)
+                    Heatmap(values: activity ?? [:], source: source, interactive: interactive,
+                            unit: isLocalAccount ? nil : { "%\(Int((Double($0) / 100).rounded())) limit kullanımı" })
                     HStack(spacing: 4) {
                         if let activity {
                             let total = activity.values.reduce(0, +)
-                            Text(total > 0 ? "\(source.title) · \(TokenFormat.short(total)) token · \(activity.count) gün" : "Bu Mac'te \(source.title) kaydı yok")
+                            if isLocalAccount {
+                                Text(total > 0 ? "\(source.title) · \(TokenFormat.short(total)) token · \(activity.count) gün" : "Bu Mac'te \(source.title) kaydı yok")
+                            } else if total > 0 {
+                                Text("Bu hesap · \(activity.count) aktif gün")
+                            } else {
+                                Text(AccountActivity.since(account: selected).map { "Kayıt başlangıcı: \($0.formatted(.dateTime.day().month(.abbreviated)))" } ?? "Bu hesabın etkinliği kaydediliyor")
+                            }
                         } else {
                             Text("Kayıtlar okunuyor…")
                         }
@@ -618,8 +632,8 @@ private struct ProviderCard: View {
         let on = currentTab == value
         return Button {
             tab = value
-            if value == .activity, activity == nil, let source = activitySource {
-                Task { activity = await ActivityLoader.load(source) }
+            if value == .activity, activity == nil {
+                loadActivity()
             }
         } label: {
             Text(title)
@@ -778,6 +792,8 @@ private struct Heatmap: View {
     let values: [Date: Int]
     let source: ActivitySource
     let interactive: Bool
+    /// Hücre ipucundaki birim (yoksa token)
+    var unit: ((Int) -> String)? = nil
 
     /// Seviye 0 boş; 1–4 marka renginin artan yoğunluğu.
     /// Claude: marka turuncusu (#D97757). Codex: bardaki mor doğrusal gradyan.
@@ -842,7 +858,7 @@ private struct Heatmap: View {
                                 .overlay(alignment: week < 3 ? .bottomLeading : week > Self.weeks - 4 ? .bottomTrailing : .bottom) {
                                     if isHovered {
                                         CellTip(text: date.formatted(.dateTime.day().month(.abbreviated).weekday(.abbreviated))
-                                                + " · " + (tokens > 0 ? "\(TokenFormat.short(tokens)) token" : "etkinlik yok"))
+                                                + " · " + (tokens > 0 ? (unit?(tokens) ?? "\(TokenFormat.short(tokens)) token") : "etkinlik yok"))
                                             .offset(y: -(cell + 5))
                                             .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .bottom)))
                                     }

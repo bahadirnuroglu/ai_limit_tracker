@@ -94,8 +94,10 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
 - Activity.swift: ısı haritası verisi YEREL kayıtlardan (claude.ai web/ChatGPT dahil değil):
   Claude Code ~/.claude/projects/**/*.jsonl (assistant usage: input+output+cache_creation, message.id ile tekil),
   Codex ~/.codex/sessions/**/*.jsonl (token_count.last_token_usage: input-cached+output). 10 dk önbellek.
-  Kayıtlarda hesap bilgisi yok: Etkinlik sekmesi YALNIZCA yerel hesapta (id = sağlayıcı adı) görünür; ek hesapta gizli
-  (önceden her hesapta aynı harita çıkıyordu, kullanıcı hata saydı).
+  Kayıtlarda hesap bilgisi yok. Etkinlik HER hesapta görünür: yerel hesap (id = sağlayıcı adı) bu kayıtları gösterir; ek hesap
+  AccountActivity'den (UsageStore.apply her okumada en kısa pencereli genel limitin artışını güne yazar, sıfırlanınca yeni değer;
+  UserDefaults "accountActivity", birim puan×100, geçmişe dönük yok, "Kayıt başlangıcı: …"). Kullanıcı hem "her hesapta aynı
+  harita" hem "birinde var birinde yok" durumunu hata saydı.
 - MenuIcon.swift: MenuBarStyle (UsageStore.menuBarStyle, UserDefaults "menuBarStyle"): recentTwo (varsayılan; en son
   kullanılan iki sağlayıcı iç içe halka), mostFull (en dolu sağlayıcı halkası + logo, %90+ kırmızı + kalan süre),
   sideBySide (yan yana halka + logo), bars (alt alta ince barlar). Hepsi 22 pt (menü çubuğu azamisi).

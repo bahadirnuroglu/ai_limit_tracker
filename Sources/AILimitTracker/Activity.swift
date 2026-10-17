@@ -110,3 +110,52 @@ enum TokenFormat {
         }
     }
 }
+
+/// Hesap başına etkinlik, uygulamanın kendi okumalarından. Yerel kayıt dosyası olmayan (ek) hesapların ısı haritası buradan
+/// gelir: en kısa pencereli genel limitin (5 saat) her okumadaki artışı o günün hanesine yazılır; limit sıfırlanmışsa
+/// yeni değer kadar sayılır. Birim yüzde puanı × 100 (Heatmap tamsayı ölçek bekliyor). Geçmişe dönük veri yok:
+/// hesap eklendiği / bu sürüm kurulduğu günden itibaren dolar.
+enum AccountActivity {
+    private static let key = "accountActivity"            // [hesap: [yyyy-MM-dd: puan×100]]
+    private static let lastKey = "accountActivityLast"    // [hesap: son yüzde]
+    private static let sinceKey = "accountActivitySince"  // [hesap: ilk kayıt zamanı]
+
+    private static let dayFormat: DateFormatter = {
+        let f = DateFormatter(); f.calendar = Calendar(identifier: .gregorian); f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"; return f
+    }()
+
+    static func record(account: String, limits: [Limit]) {
+        let general = limits.filter { $0.model == nil }
+        guard let limit = general.filter({ $0.window != nil }).min(by: { $0.window! < $1.window! }) ?? general.first ?? limits.first else { return }
+        let d = UserDefaults.standard
+        var last = d.dictionary(forKey: lastKey) as? [String: Double] ?? [:]
+        var since = d.dictionary(forKey: sinceKey) as? [String: Double] ?? [:]
+        if since[account] == nil { since[account] = Date().timeIntervalSince1970; d.set(since, forKey: sinceKey) }
+        let delta = last[account].map { limit.percent >= $0 ? limit.percent - $0 : limit.percent } ?? 0
+        last[account] = limit.percent
+        d.set(last, forKey: lastKey)
+        guard delta > 0.05 else { return }
+        var all = d.dictionary(forKey: key) as? [String: [String: Int]] ?? [:]
+        var days = all[account] ?? [:]
+        let today = dayFormat.string(from: Date())
+        days[today, default: 0] += Int((delta * 100).rounded())
+        // 100 günden eskiyi at
+        let cutoff = dayFormat.string(from: Date().addingTimeInterval(-100 * 86_400))
+        days = days.filter { $0.key >= cutoff }
+        all[account] = days
+        d.set(all, forKey: key)
+    }
+
+    /// Gün başı -> puan×100
+    static func values(account: String) -> [Date: Int] {
+        let all = UserDefaults.standard.dictionary(forKey: key) as? [String: [String: Int]] ?? [:]
+        var out: [Date: Int] = [:]
+        for (day, v) in all[account] ?? [:] { if let date = dayFormat.date(from: day) { out[Calendar.current.startOfDay(for: date)] = v } }
+        return out
+    }
+
+    static func since(account: String) -> Date? {
+        ((UserDefaults.standard.dictionary(forKey: sinceKey) as? [String: Double])?[account]).map { Date(timeIntervalSince1970: $0) }
+    }
+}
