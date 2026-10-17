@@ -2,6 +2,8 @@
 
 macOS menü çubuğu uygulaması: Claude, Codex ve Cursor kullanım limitlerini tek popup'ta gösterir.
 (Antigravity desteği eklenip kullanıcı isteğiyle KALDIRILDI; geri ekleme.)
+NOT: Tanıtım filmi (marketing/x-thread/source/launch.*) Antigravity'yi de gösteriyor; kullanıcı 2026-10-18'de
+"sadece filmde göster" dedi (uygulamada yok, logo resmi değil, nötr kemer).
 Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıfırdan yazma, mevcut kodu düzenle.
 
 ## Derleme
