@@ -12,6 +12,7 @@
     const w = 2 * Math.PI / response, z = damping, wd = w * Math.sqrt(1 - z * z);
     return 1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + z * w / wd * Math.sin(wd * t));
   }
+  const glide = p => { const a = .25; return p < a ? p * p / (2 * a) / (1 - a / 2) : (p - a / 2) / (1 - a / 2); };
   const pulse = (t, at, d = .35) => { const k = seg(t, at, at + d); return k > 0 && k < 1 ? Math.sin(Math.PI * k) : 0; };
   const $ = q => stage.querySelector(q), $$ = q => [...stage.querySelectorAll(q)];
   const center = el => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
@@ -186,8 +187,8 @@
     // 2 · Tek bakış: başlık ortada doğar, yukarı kayar; popup alttan, kenardan taşarak gelir
     shot($('#s2'), t, 3.1, 7.8);
     showWords(W.h2.slice(0, 3), t, 3.25); showWords(W.h2.slice(3), t, 4.05);
-    { const k = eIO(seg(t, 4.5, 5.6)), up = eIO(seg(t, 5.75, 6.85)); $('#h2').style.transform = `translateY(${300 * (1 - k) - 160 * up}px) scale(${1.12 - .12 * k})`; $('#h2').style.opacity = 1 - seg(t, 5.75, 6.25); }
-    { const k = eOut(seg(t, 4.6, 6.2)); pop2.style.transform = `translateY(${520 * (1 - k) - 640 * eIO(seg(t, 5.75, 6.85))}px)`; pop2.style.opacity = seg(t, 4.6, 5); }
+    { const k = eIO(seg(t, 4.5, 5.6)), up = glide(seg(t, 5.5, 7.8)); $('#h2').style.transform = `translateY(${300 * (1 - k) - 160 * up}px) scale(${1.12 - .12 * k})`; $('#h2').style.opacity = 1 - seg(t, 5.7, 6.3); }
+    { const k = eOut(seg(t, 4.6, 6.2)); pop2.style.transform = `translateY(${520 * (1 - k) - 900 * glide(seg(t, 5.5, 7.8))}px)`; pop2.style.opacity = seg(t, 4.6, 5); }
     { const c = $$('#pop2 .card'); const [a, b] = c[0].querySelectorAll('.gauge'), [d, e] = c[1].querySelectorAll('.gauge');
       setRing(a, 93, fill(t, 5.4), 'red'); setRing(b, 41, fill(t, 5.5)); setRing(d, 44, fill(t, 5.55)); setRing(e, 23, fill(t, 5.65));
       const [f1, f2] = c[2].querySelectorAll('.gauge'); setRing(f1, 78, fill(t, 5.7), 'purple'); setRing(f2, 34, fill(t, 5.8)); const [h1, h2] = c[3].querySelectorAll('.gauge'); setRing(h1, 52, fill(t, 5.9), 'blue'); setRing(h2, 27, fill(t, 6.0));
