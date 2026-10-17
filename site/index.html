@@ -88,22 +88,19 @@ h1, h2, h3 { text-wrap: balance }
 .head h2 .dim { color: var(--ink-3) }
 .head p { margin-top: 16px; font-size: 19px; color: var(--ink-2); max-width: 36em }
 
-/* Filmler: solda halka ilerlemeli adımlar, sağda yapışkan metal çerçeve */
-.reel { margin-top: 70px; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 56px; align-items: start }
-.steps { list-style: none; margin: 0; padding: 0 }
-.step { display: grid; grid-template-columns: 40px 1fr; gap: 16px; padding: 30px 0; min-height: 34vh; align-content: center; cursor: pointer; border-top: 1px solid rgba(255,255,255,.06) }
-.step:first-child { border-top: 0 }
-.step .pr { width: 40px; height: 40px; margin-top: 2px }
-.step .pr .trk { stroke: rgba(255,255,255,.1) }
-.step .pr .val { stroke: var(--ink-3); transition: stroke .4s }
-.step b { display: block; font-size: 24px; font-weight: 650; letter-spacing: -.025em; color: var(--ink-3); transition: color .4s }
-.step span { display: block; margin-top: 6px; font-size: 17px; color: var(--ink-3); transition: color .4s; max-width: 30ch }
-.step.on b { color: var(--ink) }
-.step.on span { color: var(--ink-2) }
-.step.on .pr .val { stroke: url(#ringGrad) }
-.stick { position: sticky; top: 110px }
-.stick .frame { margin: 0; width: 100% }
-.stick video { transition: opacity .3s }
+/* Filmler: büyük metal çerçeve + altında uygulamadaki Limitler/Etkinlik seçicisi dilinde bölüm sekmeleri;
+   her sekmede 270° halka filmin ilerlemesini gösterir, film bitince sıradakine geçilir */
+.player { margin-top: 64px }
+.player .frame { margin: 0 auto; width: min(100%, 1000px) }
+.player video { transition: opacity .3s }
+.chapters { margin-top: 22px; display: flex; justify-content: center }
+.chbar { display: flex; gap: 2px; padding: 4px; border-radius: 16px; background: rgba(255,255,255,.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); max-width: 100%; overflow-x: auto; scrollbar-width: none }
+.chbar::-webkit-scrollbar { display: none }
+.ch { flex: none; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px 0 11px; border: 0; border-radius: 12px; background: transparent; color: var(--ink-2); font: 600 14px var(--sf); letter-spacing: -.01em; cursor: pointer; transition: color .25s, background .25s }
+.ch:hover { color: var(--ink) }
+.ch svg { width: 18px; height: 18px }
+.ch.on { position: relative; color: #3a3a3e; background: linear-gradient(180deg, var(--silver-hi), var(--silver-lo)); box-shadow: 0 1px 0 rgba(255,255,255,.6) inset, 0 6px 16px rgba(0,0,0,.35) }
+.chdesc { margin-top: 18px; text-align: center; font-size: 17px; color: var(--ink-2); min-height: 1.5em }
 
 /* Özellikler: grafit metal kutular, büyük yuvarlak rakamlar */
 .grid { margin-top: 70px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px }
@@ -174,11 +171,7 @@ footer p { margin-top: 18px; max-width: 72em }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)) }
   .prov, .priv { grid-template-columns: minmax(0, 1fr) }
 }
-@media (max-width: 860px) {
-  .reel { grid-template-columns: minmax(0, 1fr); gap: 0 }
-  .stick { top: 82px; order: -1; z-index: 5; padding-bottom: 8px; background: linear-gradient(var(--bg) 85%, transparent) }
-  .step { min-height: 0; padding: 24px 0 }
-}
+
 @media (max-width: 640px) {
   .bar nav a:not(.silver) { display: none }
   .grid { grid-template-columns: minmax(0, 1fr) }
@@ -243,13 +236,12 @@ footer p { margin-top: 18px; max-width: 72em }
         <h2>Bir bakış.<br><span class="dim">Her limit.</span></h2>
         <p>Menü çubuğundaki halkaya tıkla ya da ⌃⌥L'ye bas. Gerisini uygulama takip eder.</p>
       </div>
-      <div class="reel">
-        <ol class="steps" id="steps"><li class="step" tabindex="0" data-src="media/film/02-one.mp4" data-poster="media/film/02-one.jpg" data-alt="Üç ayrı kullanım penceresi tek bir AI Limit Tracker popup’ında birleşir."><svg class="pr" viewBox="0 0 40 40" aria-hidden="true"><circle class="trk" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="75.40 200" transform="rotate(135 20 20)"/><circle class="val" data-c="100.53" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="0 200" transform="rotate(135 20 20)"/></svg><div><b>Tek yer</b><span>Limitlerin farklı sayfalarda. Artık hepsi menü çubuğunda.</span></div></li><li class="step" tabindex="0" data-src="media/film/03-forecast.mp4" data-poster="media/film/03-forecast.jpg" data-alt="Claude kartında 5 saatlik halka %91’e çıkar, tahmin “Bu hızla 22 dakikada dolar” olur."><svg class="pr" viewBox="0 0 40 40" aria-hidden="true"><circle class="trk" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="75.40 200" transform="rotate(135 20 20)"/><circle class="val" data-c="100.53" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="0 200" transform="rotate(135 20 20)"/></svg><div><b>Tahmin</b><span>Çalışma hızına bakar, limitin ne zaman dolacağını önceden söyler.</span></div></li><li class="step" tabindex="0" data-src="media/film/04-alerts.mp4" data-poster="media/film/04-alerts.jpg" data-alt="%75 ve %90’da gelen macOS bildirimleri ve limit yenilendi bildirimi."><svg class="pr" viewBox="0 0 40 40" aria-hidden="true"><circle class="trk" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="75.40 200" transform="rotate(135 20 20)"/><circle class="val" data-c="100.53" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="0 200" transform="rotate(135 20 20)"/></svg><div><b>Bildirim</b><span>%75’te ve %90’da haber verir; limit yenilenince bir daha.</span></div></li><li class="step" tabindex="0" data-src="media/film/05-remind.mp4" data-poster="media/film/05-remind.jpg" data-alt="Dolu karta sağ tıklayıp “açılınca haber ver” seçilir; limit açılınca bildirim gelir."><svg class="pr" viewBox="0 0 40 40" aria-hidden="true"><circle class="trk" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="75.40 200" transform="rotate(135 20 20)"/><circle class="val" data-c="100.53" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="0 200" transform="rotate(135 20 20)"/></svg><div><b>Hatırlatma</b><span>Dolduysa karta sağ tıkla; açıldığı an haberin olur.</span></div></li><li class="step" tabindex="0" data-src="media/film/06-accounts.mp4" data-poster="media/film/06-accounts.jpg" data-alt="İki Claude hesabı: bireysel dolar, %8’deki iş hesabı kullanılabilir olarak öne çıkar."><svg class="pr" viewBox="0 0 40 40" aria-hidden="true"><circle class="trk" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="75.40 200" transform="rotate(135 20 20)"/><circle class="val" data-c="100.53" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="0 200" transform="rotate(135 20 20)"/></svg><div><b>İki hesap</b><span>Biri dolunca diğerinin hazır olduğunu görürsün.</span></div></li><li class="step" tabindex="0" data-src="media/film/07-flip.mp4" data-poster="media/film/07-flip.jpg" data-alt="Kart döner, arkasında 13 haftalık kullanım ısı haritası görünür."><svg class="pr" viewBox="0 0 40 40" aria-hidden="true"><circle class="trk" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="75.40 200" transform="rotate(135 20 20)"/><circle class="val" data-c="100.53" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="0 200" transform="rotate(135 20 20)"/></svg><div><b>Etkinlik</b><span>Karta tıkla: tüm limitler ve 13 haftalık ısı haritası.</span></div></li><li class="step" tabindex="0" data-src="media/film/08-details.mp4" data-poster="media/film/08-details.jpg" data-alt="⌃⌥L kısayolu ve menü çubuğundaki dört ikon stili."><svg class="pr" viewBox="0 0 40 40" aria-hidden="true"><circle class="trk" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="75.40 200" transform="rotate(135 20 20)"/><circle class="val" data-c="100.53" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="0 200" transform="rotate(135 20 20)"/></svg><div><b>Yolunda durmaz</b><span>Menü çubuğunda durur, ⌃⌥L ile her yerden açılır.</span></div></li><li class="step" tabindex="0" data-src="media/film/09-privacy.mp4" data-poster="media/film/09-privacy.jpg" data-alt="Kilit simgesi: token’lar Mac’inde kalır; aracı, analitik ve üyelik yok."><svg class="pr" viewBox="0 0 40 40" aria-hidden="true"><circle class="trk" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="75.40 200" transform="rotate(135 20 20)"/><circle class="val" data-c="100.53" cx="20" cy="20" r="16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="0 200" transform="rotate(135 20 20)"/></svg><div><b>Gizlilik</b><span>Token’ların Mac’inde kalır. Aracı yok, analitik yok.</span></div></li></ol>
-        <div class="stick">
-          <div class="frame metal">
-            <div class="screen"><video id="reelVideo" muted playsinline loop preload="metadata" poster="media/film/02-one.jpg" src="media/film/02-one.mp4"></video></div>
-          </div>
+      <div class="player" data-up>
+        <div class="frame metal">
+          <div class="screen"><video id="reelVideo" muted playsinline preload="metadata" poster="media/film/02-one.jpg" src="media/film/02-one.mp4"></video></div>
         </div>
+        <div class="chapters"><div class="chbar" role="tablist" aria-label="Filmler"><button class="ch" type="button" role="tab" data-src="media/film/02-one.mp4" data-poster="media/film/02-one.jpg" data-alt="Üç ayrı kullanım penceresi tek bir AI Limit Tracker popup’ında birleşir." data-desc="Limitlerin farklı sayfalarda. Artık hepsi menü çubuğunda."><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="rgba(128,128,128,.3)" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="37.70 100" transform="rotate(135 10 10)"/><circle class="val" data-c="50.27" cx="10" cy="10" r="8" fill="none" stroke="url(#ringGrad)" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="0 100" transform="rotate(135 10 10)"/></svg>Tek yer</button><button class="ch" type="button" role="tab" data-src="media/film/03-forecast.mp4" data-poster="media/film/03-forecast.jpg" data-alt="Claude kartında 5 saatlik halka %91’e çıkar, tahmin “Bu hızla 22 dakikada dolar” olur." data-desc="Çalışma hızına bakar, limitin ne zaman dolacağını önceden söyler."><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="rgba(128,128,128,.3)" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="37.70 100" transform="rotate(135 10 10)"/><circle class="val" data-c="50.27" cx="10" cy="10" r="8" fill="none" stroke="url(#ringGrad)" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="0 100" transform="rotate(135 10 10)"/></svg>Tahmin</button><button class="ch" type="button" role="tab" data-src="media/film/04-alerts.mp4" data-poster="media/film/04-alerts.jpg" data-alt="%75 ve %90’da gelen macOS bildirimleri ve limit yenilendi bildirimi." data-desc="%75’te ve %90’da haber verir; limit yenilenince bir daha."><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="rgba(128,128,128,.3)" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="37.70 100" transform="rotate(135 10 10)"/><circle class="val" data-c="50.27" cx="10" cy="10" r="8" fill="none" stroke="url(#ringGrad)" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="0 100" transform="rotate(135 10 10)"/></svg>Bildirim</button><button class="ch" type="button" role="tab" data-src="media/film/05-remind.mp4" data-poster="media/film/05-remind.jpg" data-alt="Dolu karta sağ tıklayıp “açılınca haber ver” seçilir; limit açılınca bildirim gelir." data-desc="Dolduysa karta sağ tıkla; açıldığı an haberin olur."><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="rgba(128,128,128,.3)" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="37.70 100" transform="rotate(135 10 10)"/><circle class="val" data-c="50.27" cx="10" cy="10" r="8" fill="none" stroke="url(#ringGrad)" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="0 100" transform="rotate(135 10 10)"/></svg>Hatırlatma</button><button class="ch" type="button" role="tab" data-src="media/film/06-accounts.mp4" data-poster="media/film/06-accounts.jpg" data-alt="İki Claude hesabı: bireysel dolar, %8’deki iş hesabı kullanılabilir olarak öne çıkar." data-desc="Biri dolunca diğerinin hazır olduğunu görürsün."><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="rgba(128,128,128,.3)" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="37.70 100" transform="rotate(135 10 10)"/><circle class="val" data-c="50.27" cx="10" cy="10" r="8" fill="none" stroke="url(#ringGrad)" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="0 100" transform="rotate(135 10 10)"/></svg>İki hesap</button><button class="ch" type="button" role="tab" data-src="media/film/07-flip.mp4" data-poster="media/film/07-flip.jpg" data-alt="Kart döner, arkasında 13 haftalık kullanım ısı haritası görünür." data-desc="Karta tıkla: tüm limitler ve 13 haftalık ısı haritası."><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="rgba(128,128,128,.3)" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="37.70 100" transform="rotate(135 10 10)"/><circle class="val" data-c="50.27" cx="10" cy="10" r="8" fill="none" stroke="url(#ringGrad)" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="0 100" transform="rotate(135 10 10)"/></svg>Etkinlik</button><button class="ch" type="button" role="tab" data-src="media/film/08-details.mp4" data-poster="media/film/08-details.jpg" data-alt="⌃⌥L kısayolu ve menü çubuğundaki dört ikon stili." data-desc="Menü çubuğunda durur, ⌃⌥L ile her yerden açılır."><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="rgba(128,128,128,.3)" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="37.70 100" transform="rotate(135 10 10)"/><circle class="val" data-c="50.27" cx="10" cy="10" r="8" fill="none" stroke="url(#ringGrad)" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="0 100" transform="rotate(135 10 10)"/></svg>Yolunda durmaz</button><button class="ch" type="button" role="tab" data-src="media/film/09-privacy.mp4" data-poster="media/film/09-privacy.jpg" data-alt="Kilit simgesi: token’lar Mac’inde kalır; aracı, analitik ve üyelik yok." data-desc="Token’ların Mac’inde kalır. Aracı yok, analitik yok."><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="rgba(128,128,128,.3)" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="37.70 100" transform="rotate(135 10 10)"/><circle class="val" data-c="50.27" cx="10" cy="10" r="8" fill="none" stroke="url(#ringGrad)" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="0 100" transform="rotate(135 10 10)"/></svg>Gizlilik</button></div></div>
+        <p class="chdesc" id="chdesc" aria-live="polite">Limitlerin farklı sayfalarda. Artık hepsi menü çubuğunda.</p>
       </div>
     </div>
   </section>
@@ -374,30 +366,29 @@ footer p { margin-top: 18px; max-width: 72em }
   vb.addEventListener("click", function () { hv.paused ? hv.play() : hv.pause(); });
   hv.addEventListener("play", heroState); hv.addEventListener("pause", heroState); heroState();
 
-  // Filmler: kaydırdıkça ortadaki adım etkin olur, film değişir; halka filmin ilerlemesini gösterir
-  var steps = [].slice.call(document.querySelectorAll(".step")), rv = document.getElementById("reelVideo"), cur = -1, inView = false;
+  // Filmler: sekmeye tıklayınca o film; film bitince sıradaki; halka etkin filmin ilerlemesi
+  var tabs = [].slice.call(document.querySelectorAll(".ch")), rv = document.getElementById("reelVideo"), desc = document.getElementById("chdesc"), cur = -1, inView = false;
   function arc(el) { return el.querySelector(".val"); }
-  function activate(i) {
+  function play() { if (inView && !reduce) { var p = rv.play(); if (p && p.catch) p.catch(function () {}); } }
+  function activate(i, first) {
     if (i === cur) return; cur = i;
-    steps.forEach(function (s, k) { s.classList.toggle("on", k === i); s.setAttribute("aria-current", k === i ? "true" : "false"); if (k !== i) arc(s).setAttribute("stroke-dasharray", "0 200"); });
-    var s = steps[i];
+    tabs.forEach(function (t, k) { t.classList.toggle("on", k === i); t.setAttribute("aria-selected", k === i); if (k !== i) arc(t).setAttribute("stroke-dasharray", "0 100"); });
+    var t = tabs[i], bar = t.parentNode;
+    bar.scrollTo({ left: t.offsetLeft - (bar.clientWidth - t.clientWidth) / 2, behavior: reduce ? "auto" : "smooth" });
+    desc.textContent = t.dataset.desc;
+    if (first) { rv.setAttribute("aria-label", t.dataset.alt); return; }
     rv.style.opacity = 0;
-    setTimeout(function () {
-      rv.poster = s.dataset.poster; rv.src = s.dataset.src; rv.setAttribute("aria-label", s.dataset.alt);
-      if (inView && !reduce) { var p = rv.play(); if (p && p.catch) p.catch(function () {}); }
-    }, 180);
+    setTimeout(function () { rv.poster = t.dataset.poster; rv.src = t.dataset.src; rv.setAttribute("aria-label", t.dataset.alt); play(); }, 180);
   }
-  rv.addEventListener("loadeddata", function () { rv.style.opacity = 1; });
+  rv.addEventListener("loadeddata", function () { rv.style.opacity = 1; play(); });
   rv.addEventListener("timeupdate", function () {
     if (cur < 0 || !rv.duration) return;
-    var a = arc(steps[cur]), C = +a.dataset.c, f = rv.currentTime / rv.duration;
-    a.setAttribute("stroke-dasharray", (C * .75 * Math.max(.02, f)) + " 200");
+    var a = arc(tabs[cur]); a.setAttribute("stroke-dasharray", (a.dataset.c * .75 * Math.max(.02, rv.currentTime / rv.duration)) + " 100");
   });
-  steps.forEach(function (s, i) { s.addEventListener("click", function () { s.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" }); activate(i); }); });
-  var stepIO = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) activate(steps.indexOf(e.target)); }); }, { rootMargin: "-45% 0px -45% 0px" });
-  steps.forEach(function (s) { stepIO.observe(s); });
-  new IntersectionObserver(function (es) { inView = es[0].isIntersecting; if (inView && !reduce) { var p = rv.play(); if (p && p.catch) p.catch(function () {}); } else rv.pause(); }, { threshold: .25 }).observe(document.getElementById("filmler"));
-  activate(0);
+  rv.addEventListener("ended", function () { activate((cur + 1) % tabs.length); });
+  tabs.forEach(function (t, i) { t.addEventListener("click", function () { if (i === cur) { rv.currentTime = 0; play(); } else activate(i); }); });
+  new IntersectionObserver(function (es) { inView = es[0].isIntersecting; inView ? play() : rv.pause(); }, { threshold: .35 }).observe(rv);
+  activate(0, true);
 
   // Isı haritası (temsili)
   var heat = document.getElementById("heat"), seed = 7, pal = ["rgba(255,255,255,.07)", "#5b3427", "#94492c", "#d4602f", "#ff7a3d"];
