@@ -4,22 +4,23 @@ Ton: kişisel, kısa, küçük harf, günlük dil. Hikâye: hafta sonu kendine v
 küçük bir uygulama; benzerleri vardı, kendine göre yorumladın; aynı dertten şikayet edenler için paylaşıyorsun.
 Slogan, iki noktalı "işte şu:" açılışları, düzenli özellik listesi ve emoji yok.
 
-- **Medya:** `film/en/` (İngilizce), `film/tr/` (Türkçe). Her tweet'te bir film.
-- **Antigravity:** Tanıtım filminde (`00-launch`) var ama uygulamada yok; thread'de geçmiyor.
+- **Medya:** `film/thread/`: 1. tweet'te tanıtım filminin tamamı (koyu, sesli, 40 sn), alt tweet'lerde aynı filmin sahneleri tek başına.
+  Bu kesimde Antigravity yok (uygulamada desteklenmiyor); Antigravity'li tam sürüm `film/en/00-launch-dark.mp4`.
+- **Film içi yazılar İngilizce.** Türkçe thread için ayrıca Türkçe kesim gerekir.
 - **Link:** yalnızca son tweet'te.
 
 | # | Value | Değer | Film |
 |---|---|---|---|
-| 1 | Why I built it | Neden yaptım | `01-hook` |
-| 2 | Pace forecast | Tempo tahmini | `03-forecast` |
-| 3 | Alerts and reminders | Bildirim ve hatırlatma | `05-remind` |
-| 4 | Two accounts | İki hesap | `06-accounts` |
-| 5 | Sign-in, privacy, small things | Giriş, gizlilik, ufak şeyler | `09-privacy` |
-| 6 | Sharing it | Paylaşım | `10-cta` |
+| 1 | Why I built it | Neden yaptım | `1-launch` |
+| 2 | Pace forecast | Tempo tahmini | `2-tempo` |
+| 3 | Alerts and reminders | Bildirim ve hatırlatma | `3-alerts` |
+| 4 | Two accounts | İki hesap | `4-accounts` |
+| 5 | Sign-in, privacy, small things | Giriş, gizlilik, ufak şeyler | `5-more` |
+| 6 | Sharing it | Paylaşım | `6-outro` |
 
 ---
 
-## 1/ · `01-hook.mp4`
+## 1/ · `1-launch.mp4`
 
 **EN**
 > spent the weekend building a tiny mac app for myself.
@@ -31,13 +32,13 @@ Slogan, iki noktalı "işte şu:" açılışları, düzenli özellik listesi ve 
 >
 > claude code, codex ve cursor'ı aynı anda kullanınca hangisinin limiti ne zaman bitecek hiç bilemiyordum. benzerleri vardı, ben kendime göre yorumladım.
 
-**Film:** a limit message interrupts work, then the menu bar ring opens a popup with Claude and Codex usage.
-**Alt:** A short screen film: after a usage-limit message, the Mac menu bar icon opens AI Limit Tracker with Claude and Codex usage rings.
-**Alt (TR):** Kısa ekran filmi: kullanım limiti mesajından sonra menü çubuğundaki ikon AI Limit Tracker'ı açıyor, Claude ve Codex halkaları görünüyor.
+**Film:** the full launch film (40 s, with sound): menu bar popup with Claude, Codex and Cursor, pace forecast, alerts, reminder, two accounts, card flip, shortcut, sign-in.
+**Alt:** Launch film for AI Limit Tracker, a Mac menu bar app showing Claude, Codex and Cursor usage limits, forecasts, notifications and multiple accounts.
+**Alt (TR):** AI Limit Tracker tanıtım filmi: Claude, Codex ve Cursor kullanım limitlerini menü çubuğunda gösteren Mac uygulaması; tahmin, bildirim ve çoklu hesap.
 
 ---
 
-## 2/ · `03-forecast.mp4`
+## 2/ · `2-tempo.mp4`
 
 **EN**
 > it lives in the menu bar. click it and every limit is right there. it also guesses when you'll run out at your current pace, that's the part i actually look at.
@@ -51,7 +52,7 @@ Slogan, iki noktalı "işte şu:" açılışları, düzenli özellik listesi ve 
 
 ---
 
-## 3/ · `05-remind.mp4`
+## 3/ · `3-alerts.mp4`
 
 **EN**
 > pings me at 75% and 90%. if i'm already out i hit "notify when it opens" and do something else.
@@ -59,13 +60,13 @@ Slogan, iki noktalı "işte şu:" açılışları, düzenli özellik listesi ve 
 **TR**
 > %75 ve %90'da bildirim atıyor. dolduysa "açılınca haber ver" deyip başka işe geçiyorum.
 
-**Film:** right-click a full card, set a reminder, later a notification says the limit is open again.
-**Alt:** Right-clicking a full Claude card sets a reminder; later a notification says the 5-hour limit is open again.
+**Film:** notifications at 75% and 90%, then right-click a full card, set a reminder, later the limit opens again.
+**Alt:** macOS notifications at 75% and 90%; then right-clicking a full Claude card sets a reminder and a notification says the limit is open again.
 **Alt (TR):** Dolu bir Claude kartına sağ tıklanıp hatırlatma kuruluyor; sonra 5 saatlik limitin açıldığını söyleyen bildirim geliyor.
 
 ---
 
-## 4/ · `06-accounts.mp4`
+## 4/ · `4-accounts.mp4`
 
 **EN**
 > i have separate work and personal claude accounts, added both. when one runs out i switch to the other.
@@ -79,7 +80,7 @@ Slogan, iki noktalı "işte şu:" açılışları, düzenli özellik listesi ve 
 
 ---
 
-## 5/ · `09-privacy.mp4`
+## 5/ · `5-more.mp4`
 
 **EN**
 > you sign in once with your own browser, cursor doesn't even need that. tokens stay on your mac, there's no server of mine in between.
@@ -91,13 +92,13 @@ Slogan, iki noktalı "işte şu:" açılışları, düzenli özellik listesi ve 
 >
 > bir de ⌃⌥L ile her yerden açılıyor, karta tıklayınca son 13 haftalık kullanımı gösteriyor.
 
-**Film:** a lock icon, then the providers show as connected.
-**Alt:** A lock icon with the text "Your tokens stay on your Mac", and the providers shown as connected.
-**Alt (TR):** "Token'ların Mac'inde kalır" yazılı kilit simgesi; sağlayıcılar bağlı görünüyor.
+**Film:** a card flips to a 13-week heatmap, ⌃⌥L keys and menu bar styles, then Claude, Codex and Cursor connect.
+**Alt:** A usage card flips to a 13-week heatmap, the Control-Option-L shortcut is pressed, and Claude, Codex and Cursor show as connected.
+**Alt (TR):** Kart dönüp 13 haftalık ısı haritasını gösteriyor, ⌃⌥L kısayoluna basılıyor, Claude, Codex ve Cursor bağlı görünüyor.
 
 ---
 
-## 6/ · `10-cta.mp4`
+## 6/ · `6-outro.mp4`
 
 **EN**
 > seen a lot of people complain about the same thing so figured i'd share it. free, mac only. if you try it, tell me what's missing
@@ -107,9 +108,9 @@ Slogan, iki noktalı "işte şu:" açılışları, düzenli özellik listesi ve 
 > aynı dertten şikayet eden çok kişi görüyorum, o yüzden paylaşayım dedim. ücretsiz, mac'te çalışıyor. deneyen olursa eksiğini yazsın
 > github.com/bahadirnuroglu/ai_limit_tracker
 
-**Film:** the app icon, then the one-line install command.
-**Alt:** The AI Limit Tracker app icon and a one-line install command.
-**Alt (TR):** AI Limit Tracker ikonu ve tek satırlık kurulum komutu.
+**Film:** the app icon, name and "Claude, Codex, Cursor. One menu bar."
+**Alt:** The AI Limit Tracker app icon with the line "Claude, Codex, Cursor. One menu bar."
+**Alt (TR):** AI Limit Tracker ikonu ve "Claude, Codex, Cursor. One menu bar." yazısı.
 
 ---
 
@@ -118,4 +119,4 @@ Slogan, iki noktalı "işte şu:" açılışları, düzenli özellik listesi ve 
 - **Saat:** Salı–Perşembe, TR saatiyle 17:00–19:00 (İngilizce thread için ABD sabahı).
 - **Paylaşım:** tweet'leri thread editörüne sırayla ekle, her birine kendi filmini ve alt metnini koy, tek seferde gönder. 1. tweet'i sabitle.
 - **İlk saat:** gelen yorumlara kendin cevap ver.
-- **Türkçe sürüm:** atacaksan başka bir gün at; filmler `film/tr/` klasöründe.
+- **Türkçe sürüm:** atacaksan başka bir gün at; film içi yazılar İngilizce, istersen Türkçe kesim üretilir.

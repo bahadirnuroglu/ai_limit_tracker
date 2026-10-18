@@ -76,6 +76,7 @@
   const note = (t, b, time) => `<div class="note"><span class="appicon"></span><div><b>${t}</b><span>${b}</span></div><time>${time}</time></div>`;
   const live = () => ({ logo: 'claude', name: 'Claude', plan: 'PRO', chip: pace('1 hour'), chips: [[PERSONAL, 'on'], [WORK]],
     rings: [{ p: 93, tone: 'red', l: H5, r: tm(1, 12) }, { p: 41, tone: 'blue', l: WK, r: td(3, 17) }] });
+  const noAG = hp.includes('noag');   // thread kesimi: Antigravity yok (uygulamada desteklenmiyor)
   // Antigravity: resmi vektör logosu yok; uygulamada da kullanılan nötr kemer simgesi
   LOGO.antigravity = 'M12 2.5c-1.2 0-2.2.8-2.6 1.9L3.2 20.2c-.4 1 .4 2 1.4 1.9 1.3-.1 2.4-.9 2.9-2.1L12 8.6l4.5 11.4c.5 1.2 1.6 2 2.9 2.1 1 .1 1.8-.9 1.4-1.9L14.6 4.4c-.4-1.1-1.4-1.9-2.6-1.9Z';
   const agCard = () => ({ logo: 'antigravity', name: 'Antigravity', plan: 'PRO', chip: pace('4 hours'),
@@ -99,7 +100,7 @@
     <div class="shot" id="s1"><div class="t center" style="top:388px;font-size:84px;display:flex;justify-content:center;align-items:center;gap:24px">
       <span id="meet">Meet</span><img id="ic" src="icon.png" width="104" height="104" style="filter:drop-shadow(0 14px 28px rgba(60,40,90,.18))"><span id="wm"></span></div></div>
     <div class="shot" id="s2"><div class="t center" id="h2" style="top:92px;font-size:76px">Every AI limit.<span class="g"> One glance.</span></div>
-      <div id="pop2" style="position:absolute;left:0;right:0;top:236px;display:flex;justify-content:center"><div style="zoom:2.6">${popup([live(), codex, cursorCard(), agCard()])}</div></div></div>
+      <div id="pop2" style="position:absolute;left:0;right:0;top:236px;display:flex;justify-content:center"><div style="zoom:2.6">${popup(noAG ? [live(), codex, cursorCard()] : [live(), codex, cursorCard(), agCard()])}</div></div></div>
     <div class="shot" id="s3"><div class="t left" id="c3">Knows when<br>you’ll <span class="a">hit the wall.</span></div>
       <div id="card3" style="position:absolute;left:800px;top:330px"><div style="zoom:2.9">${card(plain())}</div></div></div>
     <div class="shot" id="s4"><div class="t left" id="c4">A heads‑up<br>at <span class="a">75% and 90%.</span></div>
@@ -124,17 +125,17 @@
       <div class="panel" id="bar7" style="left:820px;top:200px;width:900px;height:500px;border-radius:30px 0 0 30px"><div class="lwall"></div>
         <div class="mstrip">
         <span id="slot"><span id="slotIn" style="zoom:2.2;display:flex"></span></span><span>Wi‑Fi</span><span>Mon 17:12</span></div></div></div>
-    <div class="shot" id="s8"><div class="t" id="c8" style="left:900px;top:250px;font-size:66px;width:660px">Claude, Codex, Cursor <span class="g">and</span> Antigravity.<span class="ln" id="c8b" style="margin-top:22px;font-size:34px;font-weight:500;letter-spacing:-.012em;color:#86868b;line-height:1.3">Sign in once, in your own browser. Cursor and Antigravity need no sign‑in. Your tokens stay on your Mac.</span></div>
+    <div class="shot" id="s8"><div class="t" id="c8" style="left:900px;top:${noAG ? 300 : 250}px;font-size:${noAG ? 70 : 66}px;width:660px">${noAG ? 'Claude, Codex <span class="g">and</span> Cursor.' : 'Claude, Codex, Cursor <span class="g">and</span> Antigravity.'}<span class="ln" id="c8b" style="margin-top:22px;font-size:34px;font-weight:500;letter-spacing:-.012em;color:#86868b;line-height:1.3">Sign in once, in your own browser. ${noAG ? 'Cursor needs no sign‑in.' : 'Cursor and Antigravity need no sign‑in.'} Your tokens stay on your Mac.</span></div>
       <div id="lst" style="position:absolute;left:-60px;top:240px"><div class="list" style="zoom:1.5;box-shadow:0 30px 80px rgba(40,30,80,.14),0 0 0 1px rgba(0,0,0,.05)">
         <div class="row"><span class="ic">${logo('claude')}</span><span class="lb">Claude<small>Signed in with your browser</small></span><span class="ok">${check}Connected</span></div>
         <div class="row"><span class="ic">${logo('openai')}</span><span class="lb">Codex<small>Signed in with your browser</small></span><span class="ok">${check}Connected</span></div>
         <div class="row"><span class="ic">${logo('cursor')}</span><span class="lb">Cursor<small>Read from the Cursor app</small></span><span class="ok">${check}Connected</span></div>
-        <div class="row"><span class="ic">${logo('antigravity')}</span><span class="lb">Antigravity<small>Read from the Antigravity app</small></span><span class="ok">${check}Connected</span></div></div></div></div>
+        ${noAG ? '' : `<div class="row"><span class="ic">${logo('antigravity')}</span><span class="lb">Antigravity<small>Read from the Antigravity app</small></span><span class="ok">${check}Connected</span></div>`}</div></div></div>
     <div class="shot" id="s9"><div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px">
       <img id="o0" src="icon.png" width="150" height="150" style="filter:drop-shadow(0 20px 40px rgba(60,40,90,.2))">
       <div id="o1" style="font-size:76px;font-weight:650;letter-spacing:-.035em">AI Limit Tracker</div>
       <div id="o2" style="font-size:42px;font-weight:500;letter-spacing:-.02em;min-height:52px"></div>
-      <div id="o3" style="margin-top:6px;display:flex;align-items:center;gap:14px;font-size:24px;color:#86868b;font-weight:500">Free for macOS · ${logo('claude', 'width="24" height="24" fill="#86868b"')}${logo('openai', 'width="24" height="24" fill="#86868b"')}${logo('cursor', 'width="24" height="24" fill="#86868b"')}${logo('antigravity', 'width="24" height="24" fill="#86868b"')}</div></div></div>
+      <div id="o3" style="margin-top:6px;display:flex;align-items:center;gap:14px;font-size:24px;color:#86868b;font-weight:500">Free for macOS · ${logo('claude', 'width="24" height="24" fill="#86868b"')}${logo('openai', 'width="24" height="24" fill="#86868b"')}${logo('cursor', 'width="24" height="24" fill="#86868b"')}${noAG ? '' : logo('antigravity', 'width="24" height="24" fill="#86868b"')}</div></div></div>
     <div class="wash" id="wash"></div>`;
   stage.innerHTML = dk ? sceneHTML.replace(/#1d1d1f/g, '#f5f5f7').replace(/rgba\(0,0,0,.18\)/g, 'rgba(255,255,255,.25)').replace(/rgba\(0,0,0,.14\)/g, 'rgba(255,255,255,.2)') : sceneHTML;
 
@@ -175,7 +176,7 @@
   for (let c = 1; c <= 13; c += 2) E(26.5 + c * .05, 'progress', .45, .9 + c * .045);   // ısı haritası dolar
   [30.2, 30.38].forEach(t => E(t, 'mod')); E(30.56, 'key');                // ⌃ ⌥ L
   [30.6, 31.4, 32.2].forEach(t => E(t, 'change', .6));                     // menü çubuğu stili
-  E(33.8, 'success', .7); E(34.1, 'success', .6, 1.12); E(34.4, 'success', .55, 1.25); E(34.7, 'success', .5, 1.33);                    // bağlandı
+  E(33.8, 'success', .7); E(34.1, 'success', .6, 1.12); E(34.4, 'success', .55, 1.25); if (!noAG) E(34.7, 'success', .5, 1.33);                    // bağlandı
   E(35.25, 'send');                                                        // beyaza geçiş
   E(35.82, 'welcome');
   typing(o2text, 37.1, 1.5);                                                     // kapanış
@@ -194,10 +195,10 @@
     shot($('#s2'), t, 3.1, 7.8);
     showWords(W.h2.slice(0, 3), t, 3.25); showWords(W.h2.slice(3), t, 4.05);
     { const k = eIO(seg(t, 4.5, 5.6)), up = glide(seg(t, 5.5, 7.8)); $('#h2').style.transform = `translateY(${300 * (1 - k) - 160 * up}px) scale(${1.12 - .12 * k})`; $('#h2').style.opacity = 1 - seg(t, 5.7, 6.3); }
-    { const k = eOut(seg(t, 4.6, 6.2)); pop2.style.transform = `translateY(${520 * (1 - k) - 900 * glide(seg(t, 5.5, 7.8))}px)`; pop2.style.opacity = seg(t, 4.6, 5); }
+    { const k = eOut(seg(t, 4.6, 6.2)); pop2.style.transform = `translateY(${520 * (1 - k) - (noAG ? 600 : 900) * glide(seg(t, 5.5, 7.8))}px)`; pop2.style.opacity = seg(t, 4.6, 5); }
     { const c = $$('#pop2 .card'); const [a, b] = c[0].querySelectorAll('.gauge'), [d, e] = c[1].querySelectorAll('.gauge');
       setRing(a, 93, fill(t, 5.4), 'red'); setRing(b, 41, fill(t, 5.5)); setRing(d, 44, fill(t, 5.55)); setRing(e, 23, fill(t, 5.65));
-      const [f1, f2] = c[2].querySelectorAll('.gauge'); setRing(f1, 78, fill(t, 5.7), 'purple'); setRing(f2, 34, fill(t, 5.8)); const [h1, h2] = c[3].querySelectorAll('.gauge'); setRing(h1, 52, fill(t, 5.9), 'blue'); setRing(h2, 27, fill(t, 6.0));
+      const [f1, f2] = c[2].querySelectorAll('.gauge'); setRing(f1, 78, fill(t, 5.7), 'purple'); setRing(f2, 34, fill(t, 5.8)); if (c[3]) { const [h1, h2] = c[3].querySelectorAll('.gauge'); setRing(h1, 52, fill(t, 5.9), 'blue'); setRing(h2, 27, fill(t, 6.0)); }
       setChip(c[0].querySelector('.chip'), pace('22 min'), 'hot'); }
 
     // 3 · Tahmin
@@ -290,5 +291,17 @@
     { const k = eOut(seg(t, 38.8, 39.6)); $('#o3').style.opacity = k; $('#o3').style.transform = `translateY(${12 * (1 - k)}px)`; }
     sway(t);
   };
+  const CLIPS = { tempo: [['s3'], 7.3, 12.7], alerts: [['s4', 's4b'], 11.8, 21.3], accounts: [['s5'], 20.4, 25.5],
+                  more: [['s6', 's7', 's8'], 24.6, 36.2], outro: [['s9'], 35.3, 40.4] };
+  const clip = Object.keys(CLIPS).find(k => hp.includes(k));
+  if (clip) {
+    const [keep, c0, c1] = CLIPS[clip], full = window.frame;
+    window.duration = +(c1 - c0).toFixed(2); window.poster = Math.min(window.duration - .1, 3);
+    window.sfxEvents = sfx.filter(e => e.t >= c0 && e.t < c1).map(e => ({ ...e, t: +(e.t - c0).toFixed(3) }));
+    window.frame = t => {
+      full(t + c0);
+      $$('.shot').forEach(el => { if (!keep.includes(el.id)) el.style.display = 'none'; });
+    };
+  }
   window.frame(window.poster);
 })();
