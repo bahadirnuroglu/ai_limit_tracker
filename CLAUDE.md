@@ -36,7 +36,11 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   (son kullanılan model), frontLimits (satırda 2 halka: kısa pencere + genel/son kullanılan modelden dolu olan, %90+ öne).
 - UsageStore.swift: sağlayıcı durumları (usage[id]), açık sağlayıcılar (enabledSet), sıralama (en dolu üstte),
   yenileme: popup açılınca veri 60 sn'den eskiyse, normalde 5 dk, bir limit %75+ ise 1 dk. Hata olursa eski veri
-  kalır + issue. Claude JSON ayrıştırma; Limit.timeToFull (≈ dolar). Günlük bütçe denendi, kullanıcı istemedi: KALDIRILDI.
+  kalır + issue. Claude JSON ayrıştırma; Limit.timeToFull (≈ dolar).
+  Claude /api/oauth/usage yanıtında five_hour/seven_day dışında ~20 KOD ADLI alan var (harbor_lantern, iguana_necktie…;
+  çoğu null). limit_dollars/used_dollars içerenler "Ek kota · 37 $ / 100 $" (kullanıcıda limit sıfırlanınca açılan 100 $'lık hak),
+  diğer tanınmayanlar "Diğer limit"; ikisi de model = Limit.unnamed, ön yüze yalnızca %90+ çıkar. Yanıtta ayrıca yeni
+  "limits" dizisi (kind/group/percent/severity) ve seven_day_breakdown (Claude Code/Chats/Cowork payı) var, henüz kullanılmıyor. Günlük bütçe denendi, kullanıcı istemedi: KALDIRILDI.
 - WebSession.swift: gizli WKWebView ile claude.ai oturumu; /api/organizations/{id}/usage
   sayfa bağlamından fetch edilir (alanlar: utilization, resets_at). Token'a dokunulmaz.
   Giriş penceresi: üstte "Bu pencere tarayıcından ayrı" notu (arkadaş Safari sandı, Chrome girişi/şifreleri görünmüyordu),

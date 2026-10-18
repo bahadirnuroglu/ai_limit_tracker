@@ -162,7 +162,7 @@ extension ProviderUsage {
         let rest = limits.filter { $0.id != first.id }
         var picked = [first]
         let generalRest = rest.first { $0.model == nil }
-        let recent = rest.filter { $0.model != nil }.max { UsageHistory.lastIncrease($0.id) < UsageHistory.lastIncrease($1.id) }
+        let recent = rest.filter { $0.model != nil && $0.model != Limit.unnamed }.max { UsageHistory.lastIncrease($0.id) < UsageHistory.lastIncrease($1.id) }
         if let second = [generalRest, recent].compactMap({ $0 }).max(by: { $0.percent < $1.percent }) { picked.append(second) }
         if let critical = limits.filter({ $0.percent >= 90 && !picked.map(\.id).contains($0.id) }).max(by: { $0.percent < $1.percent }) {
             picked = [picked[0], critical]

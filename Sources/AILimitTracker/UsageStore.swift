@@ -14,6 +14,8 @@ struct Limit: Identifiable {
 }
 
 extension Limit {
+    /// Anthropic'in kod adlı (ne ölçtüğü belgelenmemiş) sayaçları: ön yüze yalnızca %90+ çıkar
+    static let unnamed = "unnamed"
     /// Pencere başından beri ortalama hızla devam edilirse dolmasına kalan süre.
     /// Sadece belirgin şekilde erken dolacaksa (kalan sürenin %90'ından önce) döner; tam tempoda
     /// giden limit için "dolar" uyarısı gürültü olur. Veri yetersizse (pencerenin ilk %5'i) nil.
@@ -575,6 +577,12 @@ final class UsageStore: ObservableObject {
     }
 
     /// "utilization" alanı olan her pencereyi alır; yeni limit tipleri kendiliğinden görünür.
+    static func usd(_ v: Double) -> String {
+        let f = NumberFormatter(); f.numberStyle = .currency; f.currencyCode = "USD"; f.locale = Locale(identifier: "tr_TR")
+        f.maximumFractionDigits = v.rounded() == v ? 0 : 2
+        return f.string(from: NSNumber(value: v)) ?? "$\(v)"
+    }
+
     static func parseClaude(_ data: Data) -> [Limit] {
         guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return [] }
 
@@ -602,12 +610,25 @@ final class UsageStore: ObservableObject {
                 // seven_day_opus, seven_day_sonnet …: modele özel haftalık
                 model = key.hasPrefix("seven_day_") ? String(key.dropFirst("seven_day_".count)) : key
                 let names = ["opus": "Opus", "sonnet": "Sonnet", "oauth_apps": "Uygulamalar", "routines": "Rutinler",
-                             "extra_usage": "Ekstra"]
+                             "cowork": "Cowork", "extra_usage": "Ekstra"]
                 // Ekstra kullanım: arka yüzde tam adıyla
                 let fullNames = ["extra_usage": "Ekstra kullanım"]
-                let name = names[model ?? key] ?? (model ?? key).replacingOccurrences(of: "_", with: " ").capitalized
-                label = key.hasPrefix("seven_day") ? "Haftalık · \(name)" : (fullNames[key] ?? name)
-                short = name
+                if let name = names[model ?? key] {
+                    label = key.hasPrefix("seven_day") ? "Haftalık · \(name)" : (fullNames[key] ?? name)
+                    short = name
+                } else if let limitUSD = (dict["limit_dollars"] as? NSNumber)?.doubleValue {
+                    // Anthropic'in kod adlı dolar kotası (ör. "harbor_lantern": limit sıfırlanınca açılan 100 $'lık hak);
+                    // adı iç kod adı olduğundan anlaşılır adla, tutarıyla gösterilir
+                    let used = (dict["used_dollars"] as? NSNumber)?.doubleValue ?? util / 100 * limitUSD
+                    label = "Ek kota · \(Self.usd(used)) / \(Self.usd(limitUSD))"
+                    short = "Ek kota"
+                    model = Limit.unnamed
+                } else {
+                    // Tanınmayan kod adlı sayaç: ne ölçtüğü bilinmiyor; arka yüzde "Diğer limit", ön yüze yalnızca %90+ çıkar
+                    label = key.hasPrefix("seven_day") ? "Haftalık · diğer" : "Diğer limit"
+                    short = "Diğer"
+                    model = Limit.unnamed
+                }
                 window = key.hasPrefix("seven_day") ? 604_800 : nil
             }
             return Limit(id: "claude.\(key)", label: label, percent: util, resetsAt: date, window: window,
