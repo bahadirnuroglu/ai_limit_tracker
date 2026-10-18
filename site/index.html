@@ -10,7 +10,8 @@
    270° halka motifi, SF Pro + yuvarlak rakamlar, siyah sinematik zemin. Apple bileşeni kopyası yok. */
 :root {
   color-scheme: dark;
-  --bg: #08080a;
+  --bg: #0c0c10;
+  --line: rgba(255, 255, 255, .085);
   --ink: #f2f2f4;
   --ink-2: #9a9aa2;
   --ink-3: #6b6b73;
@@ -28,9 +29,15 @@
   --holo: linear-gradient(115deg, transparent 20%, rgba(255,130,120,.55) 30%, rgba(255,210,120,.55) 38%, rgba(240,250,150,.5) 45%, rgba(140,235,170,.55) 53%, rgba(120,190,255,.6) 62%, rgba(185,140,255,.6) 71%, transparent 82%);
 }
 * { box-sizing: border-box }
-html { background: var(--bg); scroll-behavior: smooth }
-body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sf); font-size: 17px; line-height: 1.5; letter-spacing: -.016em; -webkit-font-smoothing: antialiased; overflow-x: hidden }
+html { background: radial-gradient(70% 55% at 15% 5%, rgba(255,106,61,.16), transparent 70%), radial-gradient(60% 55% at 85% 15%, rgba(123,84,255,.2), transparent 70%), radial-gradient(80% 60% at 50% 100%, rgba(52,110,255,.08), transparent 70%), var(--bg) fixed; scroll-behavior: smooth }
+body { margin: 0; background: transparent; color: var(--ink); font-family: var(--sf); font-size: 17px; line-height: 1.5; letter-spacing: -.016em; -webkit-font-smoothing: antialiased; overflow-x: hidden }
 a { color: inherit; text-decoration: none }
+
+/* Zemin: yavaş akan renk alanı (WebGL; marka renkleri turuncu/mor/mavi) + üstünde ince film greni.
+   Video dosyası yerine canlı çizilir: hafif, her ekranda keskin. Desteklenmezse aynı renklerle durağan degrade. */
+#bg { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -2; display: block; opacity: 0; transition: opacity 1.4s ease }
+.grain { position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .11; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1.4 -.2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E") }
 h1, h2, h3, p { margin: 0 }
 h1, h2, h3 { text-wrap: balance }
 :focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 8px }
@@ -110,15 +117,38 @@ h1, h2, h3 { text-wrap: balance }
 .head h2 .dim .wi { color: var(--ink-3) }
 .bar { will-change: transform }
 
-/* Özellikler: kutularda uygulamanın gerçek parçaları (koyu temadaki grafit kart, bildirim, bağlı satırları,
-   hesap seçici, Etkinlik kartı, menü çubuğu); her biri ekrana girince canlanır */
-.grid { margin-top: 64px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px }
-.tile { display: flex; flex-direction: column; min-height: 420px; transition: transform .6s cubic-bezier(.2,.8,.2,1) }
+/* Özellikler: ince çizgili ızgara, kesişimlerde nokta; her hücrede uygulamanın gerçek parçasıyla canlı bir sahne
+   (arkasında nokta deseni ve nefes alan ışık, kenarında dolaşan ışık hüzmesi), altında ortalı büyük harf başlık */
+.grid, .priv { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line) }
+.grid { margin-top: 64px }
+.tile, .priv > div { position: relative; isolation: isolate; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); text-align: center;
+  background: radial-gradient(520px circle at var(--sx, 50%) var(--sy, -60%), rgba(255,255,255,var(--sa, 0)), transparent 60%), rgba(14, 14, 19, .55); transition: --sa .4s }
+.tile::before, .tile::after, .priv > div::before, .priv > div::after { content: ""; position: absolute; z-index: 6; width: 8px; height: 8px; border-radius: 50%; background: #34343c; box-shadow: 0 0 0 1px rgba(255,255,255,.06) }
+.tile::before, .priv > div::before { left: -4.5px; top: -4.5px }
+.tile::after, .priv > div::after { right: -3.5px; bottom: -3.5px }
+.tile:hover, .priv > div:hover { --sa: .05 }
+.tile { display: flex; flex-direction: column; min-height: 460px }
 .tile.w2 { grid-column: span 2 }
-.tile .stage { flex: 1; display: grid; place-items: center; padding: 40px 28px 8px; perspective: 1200px }
-.tile .txt { padding: 0 32px 32px }
-.tile h3 { font-size: 21px; font-weight: 650; letter-spacing: -.022em }
-.tile p { margin-top: 6px; color: var(--ink-2); font-size: 16px; line-height: 1.45; max-width: 40ch }
+.tile .stage { position: relative; flex: 1; display: grid; place-items: center; padding: 56px 28px 18px; perspective: 1200px }
+.tile .stage::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background-image: radial-gradient(rgba(255,255,255,.11) 1px, transparent 1.3px); background-size: 14px 14px;
+  -webkit-mask: radial-gradient(55% 60% at 50% 52%, #000 10%, transparent 75%); mask: radial-gradient(55% 60% at 50% 52%, #000 10%, transparent 75%) }
+.tile .stage::after { content: ""; position: absolute; left: 50%; top: 50%; z-index: -1; width: min(80%, 420px); height: 46%; transform: translate(-50%, -50%); pointer-events: none; border-radius: 50%;
+  background: radial-gradient(closest-side, var(--glow, rgba(139,108,255,.22)), transparent); filter: blur(24px); animation: breathe 7s ease-in-out infinite }
+@keyframes breathe { 50% { opacity: .45; transform: translate(-50%, -50%) scale(.85) } }
+.tile .stage > * { text-align: left }
+.tile .txt { padding: 6px 36px 42px }
+.tile h3 { font-size: 14px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #ececf0 }
+.tile p { margin: 10px auto 0; color: var(--ink-2); font-size: 16px; line-height: 1.5; max-width: 40ch }
+@property --sa { syntax: "<number>"; inherits: true; initial-value: 0 }
+/* Kenarda dolaşan ışık: konik degrade yalnızca 1 px çerçevede görünür */
+@property --ba { syntax: "<angle>"; inherits: false; initial-value: 0deg }
+.beam { position: relative }
+.beam::after { content: ""; position: absolute; inset: 0; z-index: 4; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: conic-gradient(from var(--ba), transparent 0 60%, rgba(139,108,255,.5) 70%, #c9bcff 76%, #fff 78%, #ff9f6b 81%, transparent 86%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: beam 7s linear infinite }
+.beam.b2::after { animation-delay: -2.3s } .beam.b3::after { animation-delay: -4.6s }
+@keyframes beam { to { --ba: 360deg } }
 .acard { position: relative; display: flex; justify-content: space-between; gap: 18px; width: min(100%, 440px); padding: 18px 18px 18px 20px; border-radius: 16px; color: #c7c7cc; background: linear-gradient(160deg, #46464b, #303034); box-shadow: 0 30px 60px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.06) }
 .acard::before { content: ""; position: absolute; inset: 5px; border-radius: 11px; border: 1px solid rgba(255,255,255,.1); pointer-events: none }
 .al { display: flex; flex-direction: column; justify-content: space-between; gap: 14px; min-width: 0 }
@@ -189,11 +219,12 @@ h1, h2, h3 { text-wrap: balance }
 .pcard li small { display: block; color: var(--ink-3); font-size: 14px; margin-top: 1px }
 
 /* Gizlilik: üç satır, halka ikonlu */
-.priv { margin-top: 64px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px }
-.priv .metal { padding: 30px }
-.priv svg { width: 34px; height: 34px; color: var(--ink) }
-.priv h3 { margin-top: 22px; font-size: 20px; font-weight: 650; letter-spacing: -.02em }
-.priv p { margin-top: 8px; color: var(--ink-2); font-size: 16px }
+.priv { margin-top: 64px }
+.priv > div { padding: 44px 34px 40px }
+.priv .ic { position: relative; display: grid; place-items: center; width: 58px; height: 58px; margin: 0 auto; border-radius: 16px; background: linear-gradient(160deg, #3a3a40, #222226); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 14px 30px rgba(0,0,0,.45), 0 0 40px rgba(139,108,255,.18) }
+.priv svg { width: 28px; height: 28px; color: var(--ink) }
+.priv h3 { margin-top: 24px; font-size: 14px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase }
+.priv p { margin: 10px auto 0; color: var(--ink-2); font-size: 16px; max-width: 34ch }
 
 /* Kurulum */
 .install { text-align: center }
@@ -216,17 +247,18 @@ footer p { margin-top: 18px; max-width: 72em }
 
 @media (max-width: 980px) {
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)) }
-  .tile.w2 { grid-column: span 2 }
+  .tile.w2, #tBar { grid-column: span 2 }
   .prov, .priv { grid-template-columns: minmax(0, 1fr) }
 }
 
 @media (max-width: 640px) {
   .acard { flex-direction: column; gap: 14px; width: 100% }
-  .tile .stage { padding: 30px 20px 6px }
+  .tile .stage { padding: 40px 20px 26px }
   .tile .txt { padding: 0 24px 26px }
   .bar nav a:not(.silver) { display: none }
   .grid { grid-template-columns: minmax(0, 1fr) }
-  .tile.w2 { grid-column: auto }
+  .tile.w2, #tBar { grid-column: auto }
+  .tile { min-height: 0 }
   .section { padding: 90px 0 }
   .hero { padding-top: 130px }
   .frame { padding: 6px; border-radius: 22px }
@@ -236,6 +268,7 @@ footer p { margin-top: 18px; max-width: 72em }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto }
   .silver::after, .tile { transition: none }
+  .beam::after, .tile .stage::after { animation: none }
 }
 </style>
 
@@ -250,6 +283,8 @@ footer p { margin-top: 18px; max-width: 72em }
   <symbol id="down" viewBox="0 0 24 24"><path d="M12 4v12M6 11l6 6 6-6M5 20h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </defs></svg>
 
+<canvas id="bg" aria-hidden="true"></canvas><div class="grain" aria-hidden="true"></div>
+
 <header class="bar">
   <a class="name" href="#top"><svg width="24" height="24"><use href="#mark"/></svg>AI Limit Tracker</a>
   <nav aria-label="Sayfa">
@@ -260,7 +295,7 @@ footer p { margin-top: 18px; max-width: 72em }
   </nav>
 </header>
 
-<main id="top">
+<main id="top" lang="tr">
   <section class="hero">
     <div class="wrap">
       <svg class="ring-mark" data-in aria-hidden="true"><use href="#mark"/></svg>
@@ -304,41 +339,41 @@ footer p { margin-top: 18px; max-width: 72em }
         <h2>Küçük uygulama.<br><span class="dim">Büyük rahatlık.</span></h2>
       </div>
       <div class="grid">
-        <article class="tile metal w2" data-tile id="tTempo">
-          <div class="stage"><div class="acard"><div class="al"><div class="ah"><svg class="alogo" width="26" height="26" viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg><div><b>Claude</b><small>PRO</small></div></div><span class="achip pu" id="tempoChip">Bu hızla 2 saatte dolar</span></div>
+        <article class="tile w2" id="tTempo" style="--glow:rgba(255,106,61,.2)">
+          <div class="stage"><div class="acard beam"><div class="al"><div class="ah"><svg class="alogo" width="26" height="26" viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg><div><b>Claude</b><small>PRO</small></div></div><span class="achip pu" id="tempoChip">Bu hızla 2 saatte dolar</span></div>
             <div class="arings"><span class="ag" id="tempoG"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="22.25" fill="none" stroke="rgba(255,255,255,.13)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="104.85 200" transform="rotate(135 25 25)"/><circle class="val" data-arc="104.85" data-p="91" cx="25" cy="25" r="22.25" fill="none" stroke="url(#gRed)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="95.41 200" transform="rotate(135 25 25)"/><text x="50%" y="53%" text-anchor="middle" dominant-baseline="middle">91%</text></svg><b>5 saat</b><small>1 sa 12 dk</small></span><span class="ag"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="22.25" fill="none" stroke="rgba(255,255,255,.13)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="104.85 200" transform="rotate(135 25 25)"/><circle class="val" data-arc="104.85" data-p="41" cx="25" cy="25" r="22.25" fill="none" stroke="url(#gBlue)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="42.99 200" transform="rotate(135 25 25)"/><text x="50%" y="53%" text-anchor="middle" dominant-baseline="middle">41%</text></svg><b>Haftalık</b><small>3 g 17 sa</small></span></div></div></div>
           <div class="txt"><h3>Ne zaman dolacağını bilir.</h3><p>Yüzdeyi göstermekle kalmaz; çalışma hızına bakıp limitin ne zaman dolacağını önceden söyler.</p></div>
         </article>
-        <article class="tile metal" data-tile id="tNotif">
+        <article class="tile" id="tNotif" style="--glow:rgba(139,108,255,.24)">
           <div class="stage"><div class="nts">
-            <div class="nt"><span class="nicon"><svg width="22" height="22"><use href="#mark"/></svg></span><div><b>Claude · 5 saat %90</b><span>Limite çok yaklaştın. 1 sa 12 dk sonra sıfırlanır.</span></div><time>şimdi</time></div>
+            <div class="nt beam b3"><span class="nicon"><svg width="22" height="22"><use href="#mark"/></svg></span><div><b>Claude · 5 saat %90</b><span>Limite çok yaklaştın. 1 sa 12 dk sonra sıfırlanır.</span></div><time>şimdi</time></div>
             <div class="nt"><span class="nicon"><svg width="22" height="22"><use href="#mark"/></svg></span><div><b>Codex · Haftalık %75</b><span>Limitin dörtte üçünü kullandın.</span></div><time>40 dk</time></div></div></div>
           <div class="txt"><h3>Dolmadan haber verir.</h3><p>%75'te ve %90'da bildirim, limit yenilenince bir tane daha.</p></div>
         </article>
-        <article class="tile metal" data-tile id="tLogin">
-          <div class="stage"><div class="rows">
+        <article class="tile" id="tLogin" style="--glow:rgba(52,199,89,.14)">
+          <div class="stage"><div class="rows beam b2">
             <div class="rw"><span class="rl"><svg class="" width="20" height="20" viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg></span><span class="rn">Claude<small>Tarayıcında bir kez</small></span><span class="ok"><i></i>Bağlı</span></div>
             <div class="rw"><span class="rl"><svg class="" width="20" height="20" viewBox="0 0 24 24"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg></span><span class="rn">Codex<small>Tarayıcında bir kez</small></span><span class="ok"><i></i>Bağlı</span></div></div></div>
           <div class="txt"><h3>Bir kez giriş yap.</h3><p>Kendi tarayıcında; oturumu bundan sonra uygulama yeniler.</p></div>
         </article>
-        <article class="tile metal" data-tile id="tAcc">
-          <div class="stage"><div class="accw"><div class="seg"><i class="thumb"></i><span class="on">bireysel</span><span>iş</span></div>
+        <article class="tile" id="tAcc" style="--glow:rgba(91,155,255,.2)">
+          <div class="stage"><div class="accw"><div class="seg beam b3"><i class="thumb"></i><span class="on">bireysel</span><span>iş</span></div>
             <div class="arings"><span class="ag" id="accA"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="22.25" fill="none" stroke="rgba(255,255,255,.13)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="104.85 200" transform="rotate(135 25 25)"/><circle class="val" data-arc="104.85" data-p="100" cx="25" cy="25" r="22.25" fill="none" stroke="url(#gRed)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="104.85 200" transform="rotate(135 25 25)"/><text x="50%" y="53%" text-anchor="middle" dominant-baseline="middle">100%</text></svg><b>5 saat</b><small>1 sa 48 dk</small></span><span class="ag" id="accB"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="22.25" fill="none" stroke="rgba(255,255,255,.13)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="104.85 200" transform="rotate(135 25 25)"/><circle class="val" data-arc="104.85" data-p="63" cx="25" cy="25" r="22.25" fill="none" stroke="url(#gBlue)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="66.06 200" transform="rotate(135 25 25)"/><text x="50%" y="53%" text-anchor="middle" dominant-baseline="middle">63%</text></svg><b>Haftalık</b><small>4 g 6 sa</small></span></div>
             <span class="achip hot" id="accChip">Doldu · açılış 19:10</span></div></div>
           <div class="txt"><h3>Biri dolunca öbürü.</h3><p>Bireysel ve iş hesabın aynı kartta; tek dokunuşla geç.</p></div>
         </article>
-        <article class="tile metal" data-tile id="tKeys">
+        <article class="tile" id="tKeys" style="--glow:rgba(255,255,255,.1)">
           <div class="stage"><div class="keys"><span class="key">⌃</span><span class="plus">+</span><span class="key">⌥</span><span class="plus">+</span><span class="key">L</span></div></div>
           <div class="txt"><h3>Her yerden aç.</h3><p>Hangi uygulamada olursan ol, popup bir kısayol uzağında.</p></div>
         </article>
-        <article class="tile metal w2" data-tile id="tHeat">
-          <div class="stage"><div class="hcard"><div class="hh"><svg class="alogo" width="22" height="22" viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg><div><b>Etkinlik</b><small>Claude Code · son 13 hafta</small></div></div>
+        <article class="tile w2" id="tHeat" style="--glow:rgba(255,122,61,.18)">
+          <div class="stage"><div class="hcard beam b2"><div class="hh"><svg class="alogo" width="22" height="22" viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg><div><b>Etkinlik</b><small>Claude Code · son 13 hafta</small></div></div>
             <div class="hm"><span class="mo"><em>Tem</em><em>Ağu</em><em>Eyl</em><em>Eki</em></span><span class="dy"><em>Pzt</em><em></em><em>Çar</em><em></em><em>Cum</em><em></em><em></em></span><div class="heat" id="heat"></div></div>
             <div class="hf"><span>2,4M token · 38 aktif gün</span><span class="leg">Az<i style="background:rgba(255,255,255,.08)"></i><i style="background:#5b3427"></i><i style="background:#94492c"></i><i style="background:#d4602f"></i><i style="background:#ff7a3d"></i>Çok</span></div></div></div>
           <div class="txt"><h3>Ne kadar çalıştığını gör.</h3><p>Karta tıkla: arkasında tüm limitler ve bu Mac'teki Claude Code ile Codex kullanımının ısı haritası.</p></div>
         </article>
-        <article class="tile metal" data-tile id="tBar">
-          <div class="stage"><div class="mbw"><div class="mb"><b>Terminal</b><span class="mbr"><span class="mbi"><span class="st"><svg width="20" height="20"><use href="#mark"/></svg></span><span class="st"><span class="sti"><svg width="18" height="18" viewBox="0 0 50 50"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="22.25" fill="none" stroke="rgba(255,255,255,.13)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="104.85 200" transform="rotate(135 25 25)"/><circle class="val" data-arc="104.85" data-p="91" cx="25" cy="25" r="22.25" fill="none" stroke="url(#gRed)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="95.41 200" transform="rotate(135 25 25)"/></svg><em>91%</em></span></span><span class="st"><span class="sti"><svg class="" width="11" height="11" viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg><svg width="16" height="16" viewBox="0 0 50 50"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="22.25" fill="none" stroke="rgba(255,255,255,.13)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="104.85 200" transform="rotate(135 25 25)"/><circle class="val" data-arc="104.85" data-p="64" cx="25" cy="25" r="22.25" fill="none" stroke="url(#gRed)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="67.10 200" transform="rotate(135 25 25)"/></svg><svg class="" width="11" height="11" viewBox="0 0 24 24"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg><svg width="16" height="16" viewBox="0 0 50 50"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="22.25" fill="none" stroke="rgba(255,255,255,.13)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="104.85 200" transform="rotate(135 25 25)"/><circle class="val" data-arc="104.85" data-p="44" cx="25" cy="25" r="22.25" fill="none" stroke="url(#gBlue)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="46.13 200" transform="rotate(135 25 25)"/></svg></span></span><span class="st"><span class="stb"><i style="--w:64%;--c:#ff7a4d"></i><i style="--w:44%;--c:#f2f2f4"></i></span></span></span><span>17:12</span></span></div>
+        <article class="tile" id="tBar" style="--glow:rgba(139,108,255,.2)">
+          <div class="stage"><div class="mbw"><div class="mb beam"><b>Terminal</b><span class="mbr"><span class="mbi"><span class="st"><svg width="20" height="20"><use href="#mark"/></svg></span><span class="st"><span class="sti"><svg width="18" height="18" viewBox="0 0 50 50"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="22.25" fill="none" stroke="rgba(255,255,255,.13)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="104.85 200" transform="rotate(135 25 25)"/><circle class="val" data-arc="104.85" data-p="91" cx="25" cy="25" r="22.25" fill="none" stroke="url(#gRed)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="95.41 200" transform="rotate(135 25 25)"/></svg><em>91%</em></span></span><span class="st"><span class="sti"><svg class="" width="11" height="11" viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg><svg width="16" height="16" viewBox="0 0 50 50"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="22.25" fill="none" stroke="rgba(255,255,255,.13)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="104.85 200" transform="rotate(135 25 25)"/><circle class="val" data-arc="104.85" data-p="64" cx="25" cy="25" r="22.25" fill="none" stroke="url(#gRed)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="67.10 200" transform="rotate(135 25 25)"/></svg><svg class="" width="11" height="11" viewBox="0 0 24 24"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg><svg width="16" height="16" viewBox="0 0 50 50"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="22.25" fill="none" stroke="rgba(255,255,255,.13)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="104.85 200" transform="rotate(135 25 25)"/><circle class="val" data-arc="104.85" data-p="44" cx="25" cy="25" r="22.25" fill="none" stroke="url(#gBlue)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="46.13 200" transform="rotate(135 25 25)"/></svg></span></span><span class="st"><span class="stb"><i style="--w:64%;--c:#ff7a4d"></i><i style="--w:44%;--c:#f2f2f4"></i></span></span></span><span>17:12</span></span></div>
             <div class="stn"><span class="on">İç içe</span><span>En dolu</span><span>Yan yana</span><span>Barlar</span></div></div></div>
           <div class="txt"><h3>Menü çubuğuna sen karar ver.</h3><p>Dört ikon stili; açık ve koyu temaya uyar.</p></div>
         </article>
@@ -364,9 +399,9 @@ footer p { margin-top: 18px; max-width: 72em }
         <p>Uygulama limitlerini doğrudan kaynağından okur ve hiçbir yere göndermez.</p>
       </div>
       <div class="priv">
-        <div class="metal" data-tile><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h13M13 7l5 5-5 5"/><circle cx="4" cy="12" r="1.5"/></svg><h3>Doğrudan kaynağından.</h3><p>Yalnızca Anthropic, OpenAI ve Cursor'ın kendi adresleriyle konuşur.</p></div>
-        <div class="metal" data-tile><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6Z"/><path d="M9 12l2 2 4-4"/></svg><h3>Araçlarına dokunmaz.</h3><p>Claude Code ve Codex oturumlarını yalnızca okur; kendi oturumu yalnızca senin okuyabildiğin bir dosyada durur.</p></div>
-        <div class="metal" data-tile><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><h3>İmzalı güncellemeler.</h3><p>Yeni sürüm uygulamanın içinden kurulur; kurulmadan önce imzası doğrulanır.</p></div>
+        <div><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h13M13 7l5 5-5 5"/><circle cx="4" cy="12" r="1.5"/></svg></span><h3>Doğrudan kaynağından.</h3><p>Yalnızca Anthropic, OpenAI ve Cursor'ın kendi adresleriyle konuşur.</p></div>
+        <div><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6Z"/><path d="M9 12l2 2 4-4"/></svg></span><h3>Araçlarına dokunmaz.</h3><p>Claude Code ve Codex oturumlarını yalnızca okur; kendi oturumu yalnızca senin okuyabildiğin bir dosyada durur.</p></div>
+        <div><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span><h3>İmzalı güncellemeler.</h3><p>Yeni sürüm uygulamanın içinden kurulur; kurulmadan önce imzası doğrulanır.</p></div>
       </div>
     </div>
   </section>
@@ -403,6 +438,51 @@ footer p { margin-top: 18px; max-width: 72em }
 (function () {
   var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   var PAUSE = '<rect x="2" y="1" width="3.5" height="12" rx="1"/><rect x="8.5" y="1" width="3.5" height="12" rx="1"/>', PLAY = '<path d="M3 1.5v11l9.5-5.5Z"/>';
+
+  // Zemin: alan bükülmüş gürültüden akan renk (yarım çözünürlükte, ~30 fps, sekme gizliyken durur)
+  (function () {
+    var cv = document.getElementById("bg"), gl = cv.getContext("webgl", { antialias: false, alpha: false, powerPreference: "low-power" });
+    if (!gl) return;
+    var fs = "precision mediump float;uniform vec2 r;uniform float t;uniform float y;" +
+      "float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}" +
+      "float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}" +
+      "float fb(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*n(p);p=p*2.03+vec2(1.7,9.2);a*=.5;}return v;}" +
+      "vec3 B(vec2 p,vec2 c,float r,vec3 k){vec2 d=p-c;return k*exp(-dot(d,d)/(r*r));}" +
+      "void main(){vec2 uv=gl_FragCoord.xy/r;vec2 p=(gl_FragCoord.xy-.5*r)/r.y;float T=t*.12;" +
+      "p+=.32*(vec2(fb(p*1.4+vec2(T*.5,0)),fb(p*1.4+vec2(3.1,T*.4)))-.5);p.y+=y;" +
+      "vec3 col=vec3(.05,.05,.066);" +
+      "col+=B(p,vec2(-.62+.22*sin(T*.7),.42+.12*cos(T*.9)),.55,vec3(.46,.17,.07));" +
+      "col+=B(p,vec2(.6+.2*cos(T*.6),.36+.14*sin(T*.8)),.62,vec3(.19,.12,.46));" +
+      "col+=B(p,vec2(.05+.45*sin(T*.35),-.62+.12*cos(T*.5)),.7,vec3(.06,.13,.36));" +
+      "col+=B(p,vec2(-.1+.3*cos(T*.45),.05+.2*sin(T*.55)),.38,vec3(.11,.06,.18));" +
+      "col*=.62+.38*fb(p*2.2-T*.3);" +
+      "col*=1.-.32*length(uv-vec2(.5,.6));" +
+      "col+=(h(gl_FragCoord.xy+t)-.5)/128.;gl_FragColor=vec4(col,1);}";
+    function sh(type, src) { var o = gl.createShader(type); gl.shaderSource(o, src); gl.compileShader(o); return o; }
+    var pr = gl.createProgram();
+    gl.attachShader(pr, sh(gl.VERTEX_SHADER, "attribute vec2 a;void main(){gl_Position=vec4(a,0,1);}"));
+    gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr);
+    if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return;
+    gl.useProgram(pr);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    var uR = gl.getUniformLocation(pr, "r"), uT = gl.getUniformLocation(pr, "t"), uY = gl.getUniformLocation(pr, "y"), last = 0, t0 = performance.now() - 40000;
+    function size() { var k = Math.min(devicePixelRatio || 1, 2) * .5; cv.width = Math.round(innerWidth * k); cv.height = Math.round(innerHeight * k); gl.viewport(0, 0, cv.width, cv.height); gl.uniform2f(uR, cv.width, cv.height); }
+    function draw(now) {
+      gl.uniform1f(uT, (now - t0) / 1000);
+      gl.uniform1f(uY, -scrollY / Math.max(1, document.documentElement.scrollHeight) * 1.2); // kaydırdıkça renk alanı hafifçe kayar
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+    function loop(now) { requestAnimationFrame(loop); if (document.hidden || now - last < 33) return; last = now; draw(now); cv.style.opacity = 1; }
+    size(); addEventListener("resize", function () { size(); if (reduce) draw(t0 + 40000); });
+    if (reduce) { draw(t0 + 40000); cv.style.opacity = 1; } else requestAnimationFrame(loop);
+  })();
+
+  // Özellik hücreleri: imleci izleyen hafif ışık
+  document.querySelectorAll(".tile, .priv > div").forEach(function (c) {
+    c.addEventListener("pointermove", function (e) { var r = c.getBoundingClientRect(); c.style.setProperty("--sx", (e.clientX - r.left) + "px"); c.style.setProperty("--sy", (e.clientY - r.top) + "px"); });
+  });
 
   // Giriş filmi
   var hv = document.getElementById("heroVideo"), vb = document.getElementById("vbtn"), vi = document.getElementById("vIcon");
@@ -540,7 +620,7 @@ footer p { margin-top: 18px; max-width: 72em }
       gsap.to(els, Object.assign({ y: 0, opacity: 1, scale: 1, duration: 1.4, ease: E, stagger: .1, clearProps: "transform" }, opts || {}));
     } });
   }
-  rise(".tile"); rise(".pcard"); rise(".priv .metal");
+  rise(".tile .stage, .tile .txt"); rise(".pcard"); rise(".priv > div > *");
   gsap.utils.toArray(".pcard").forEach(function (c) {
     gsap.from(c.querySelectorAll("li"), { x: -16, opacity: 0, duration: .9, stagger: .07, ease: Q, scrollTrigger: { trigger: c, start: "top 85%" } });
   });
