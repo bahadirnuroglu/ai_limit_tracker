@@ -66,8 +66,16 @@ enum Countdown {
 
 enum ProviderState: Equatable { case loading, ok, needsLogin, error(String) }
 
+/// Haftalık kullanımın bir kaynağa düşen payı (Claude: Claude Code, sohbet, Cowork, diğer)
+struct UsageShare: Hashable {
+    let key: String
+    let name: String
+    let percent: Double
+}
+
 struct ProviderUsage {
     var limits: [Limit] = []
+    var breakdown: [UsageShare]? // haftalık kullanımın dağılımı (yalnızca Claude)
     var state: ProviderState = .loading
     var plan: String?
     var updatedAt: Date?       // son başarılı okuma; eski veri etiketi için
@@ -456,6 +464,7 @@ final class UsageStore: ObservableObject {
         let limits = account.isLocal ? result.limits : result.limits.map { var l = $0; l.id = "\(account.id).\(l.id)"; return l }
         current.limits = limits
         current.note = result.note
+        current.breakdown = result.breakdown
         if result.plan != nil { current.plan = result.plan }
         current.state = .ok
         current.issue = nil
@@ -479,7 +488,7 @@ final class UsageStore: ObservableObject {
             (data, status) = try await ClaudeCodeAuth.usage(token.access)
         }
         guard status == 200 else { throw status == 401 ? SessionError.needsLogin : SessionError.http(status) }
-        return WebSession.Result(plan: token.plan, limits: Self.parseClaude(data), email: token.email)
+        return WebSession.Result(plan: token.plan, limits: Self.parseClaude(data), email: token.email, breakdown: Self.parseClaudeBreakdown(data))
     }
 
     private func ownCodex(_ key: String) async throws -> WebSession.Result {
@@ -523,7 +532,7 @@ final class UsageStore: ObservableObject {
                 do {
                     let (plan, data) = try await ClaudeCodeAuth.fetchUsage(allowPrompt: allowPrompt)
                     source[.claude] = .tool
-                    return WebSession.Result(plan: plan, limits: Self.parseClaude(data), email: email)
+                    return WebSession.Result(plan: plan, limits: Self.parseClaude(data), email: email, breakdown: Self.parseClaudeBreakdown(data))
                 } catch let error as URLError {
                     throw error
                 } catch {
@@ -577,10 +586,16 @@ final class UsageStore: ObservableObject {
     }
 
     /// "utilization" alanı olan her pencereyi alır; yeni limit tipleri kendiliğinden görünür.
-    static func usd(_ v: Double) -> String {
-        let f = NumberFormatter(); f.numberStyle = .currency; f.currencyCode = "USD"; f.locale = Locale(identifier: "tr_TR")
-        f.maximumFractionDigits = v.rounded() == v ? 0 : 2
-        return f.string(from: NSNumber(value: v)) ?? "$\(v)"
+    /// Haftalık kullanımın nereye gittiği (seven_day_breakdown: Claude Code / sohbet / Cowork / diğer payı)
+    static func parseClaudeBreakdown(_ data: Data) -> [UsageShare]? {
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let rows = (root["seven_day_breakdown"] as? [String: Any])?["rows"] as? [[String: Any]] else { return nil }
+        let names = ["claude_code": "Claude Code", "chat": "Sohbet", "cowork": "Cowork", "other": "Diğer"]
+        let shares = rows.compactMap { row -> UsageShare? in
+            guard let key = row["key"] as? String, let p = (row["percent"] as? NSNumber)?.doubleValue else { return nil }
+            return UsageShare(key: key, name: names[key] ?? (row["display_name"] as? String ?? key), percent: p)
+        }
+        return shares.isEmpty ? nil : shares
     }
 
     static func parseClaude(_ data: Data) -> [Limit] {
@@ -616,11 +631,11 @@ final class UsageStore: ObservableObject {
                 if let name = names[model ?? key] {
                     label = key.hasPrefix("seven_day") ? "Haftalık · \(name)" : (fullNames[key] ?? name)
                     short = name
-                } else if let limitUSD = (dict["limit_dollars"] as? NSNumber)?.doubleValue {
+                } else if dict["limit_dollars"] != nil {
                     // Anthropic'in kod adlı dolar kotası (ör. "harbor_lantern": limit sıfırlanınca açılan 100 $'lık hak);
-                    // adı iç kod adı olduğundan anlaşılır adla, tutarıyla gösterilir
-                    let used = (dict["used_dollars"] as? NSNumber)?.doubleValue ?? util / 100 * limitUSD
-                    label = "Ek kota · \(Self.usd(used)) / \(Self.usd(limitUSD))"
+                    // adı iç kod adı olduğundan anlaşılır adla gösterilir
+                    // Dolar tutarı gösterilmez: Anthropic'in iç birimi, kullanıcıdan para kesilmiyor ("37 $" harcama sanılıyordu)
+                    label = "Ek kota"
                     short = "Ek kota"
                     model = Limit.unnamed
                 } else {

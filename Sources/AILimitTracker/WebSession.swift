@@ -18,6 +18,7 @@ final class WebSession: NSObject, NSWindowDelegate, WKUIDelegate {
         var note: String?
         var limits: [Limit]
         var email: String?
+        var breakdown: [UsageShare]? = nil
     }
 
     let provider: ProviderID
@@ -170,7 +171,7 @@ final class WebSession: NSObject, NSWindowDelegate, WKUIDelegate {
         switch provider {
         case .claude:
             let json = try JSONSerialization.data(withJSONObject: usage)
-            return Result(plan: obj["plan"] as? String, limits: UsageStore.parseClaude(json), email: email)
+            return Result(plan: obj["plan"] as? String, limits: UsageStore.parseClaude(json), email: email, breakdown: UsageStore.parseClaudeBreakdown(json))
         case .codex:
             let parsed = CodexProvider.parse(usage)
             return Result(plan: parsed.plan, limits: parsed.limits, email: email)
