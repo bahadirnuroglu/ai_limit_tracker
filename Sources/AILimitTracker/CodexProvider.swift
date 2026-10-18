@@ -64,8 +64,8 @@ enum CodexProvider {
 
     private static func windowName(_ seconds: Double?) -> String {
         guard let s = seconds else { return "Limit" }
-        if s >= 604_800 { return "Haftalık" }
-        if s >= 86_400 { return "\(Int(s / 86_400)) gün" }
-        return "\(Int(s / 3600)) saat"
+        if s >= 604_800 { return L("Haftalık", "Weekly") }
+        if s >= 86_400 { return L("\(Int(s / 86_400)) gün", "\(Int(s / 86_400)) days") }
+        return L("\(Int(s / 3600)) saat", "\(Int(s / 3600)) hours")
     }
 }

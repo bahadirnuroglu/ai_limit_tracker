@@ -105,23 +105,23 @@ struct PopoverView: View {
             switch updater.phase {
             case .idle:
                 Image(systemName: "sparkles").font(.system(size: 11, weight: .medium))
-                Text("Yeni sürüm \(release.version) hazır").font(.system(size: 12, weight: .medium))
+                Text(L("Yeni sürüm \(release.version) hazır", "Version \(release.version) is ready")).font(.system(size: 12, weight: .medium))
                 Spacer()
-                BadgeButton(title: "Güncelle", icon: "arrow.down.circle", spinning: false) { updater.install() }
-                    .help("İndirir, kurar ve yeniden başlatır")
+                BadgeButton(title: L("Güncelle", "Update"), icon: "arrow.down.circle", spinning: false) { updater.install() }
+                    .help(L("İndirir, kurar ve yeniden başlatır", "Downloads, installs and relaunches"))
             case .downloading(let fraction):
                 ProgressView(value: fraction).progressViewStyle(.linear).frame(width: 90)
-                Text("İndiriliyor %\(Int(fraction * 100))").font(.system(size: 12, weight: .medium)).monospacedDigit()
+                Text(L("İndiriliyor %\(Int(fraction * 100))", "Downloading \(Int(fraction * 100))%")).font(.system(size: 12, weight: .medium)).monospacedDigit()
                 Spacer()
             case .installing:
                 ProgressView().controlSize(.small)
-                Text("Kuruluyor, birazdan yeniden açılacak…").font(.system(size: 12, weight: .medium))
+                Text(L("Kuruluyor, birazdan yeniden açılacak…", "Installing, relaunching in a moment…")).font(.system(size: 12, weight: .medium))
                 Spacer()
             case .failed(let message):
                 Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 11))
                 Text(message).font(.system(size: 11, weight: .medium)).lineLimit(2)
                 Spacer()
-                BadgeButton(title: "Sayfayı aç", icon: "arrow.up.right", spinning: false) { updater.openReleasePage() }
+                BadgeButton(title: L("Sayfayı aç", "Open page"), icon: "arrow.up.right", spinning: false) { updater.openReleasePage() }
             }
         }
         .foregroundStyle(palette.ink)
@@ -137,19 +137,19 @@ struct PopoverView: View {
     private var footer: some View {
         HStack(spacing: 5) {
             if let t = store.lastUpdated {
-                Text("Güncellendi \(t.formatted(date: .omitted, time: .shortened))")
+                Text(L("Güncellendi", "Updated") + " " + t.formatted(date: .omitted, time: .shortened))
                     .font(.system(size: 11, weight: .regular))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .fixedSize()
             }
             Spacer()
-            BadgeButton(title: "Ayarlar", icon: "gearshape", spinning: false) {
+            BadgeButton(title: L("Ayarlar", "Settings"), icon: "gearshape", spinning: false) {
                 Onboarding.show(store: store, loginItem: loginItem, settings: true)
             }
-            .help("Sağlayıcılar, açılışta başlatma, tanılama")
-            BadgeButton(title: "Yenile", icon: "arrow.clockwise", spinning: store.isRefreshing) { store.refresh() }
-            BadgeButton(title: "Çık", icon: "power", spinning: false) { NSApp.terminate(nil) }
+            .help(L("Sağlayıcılar, açılışta başlatma, tanılama", "Providers, launch at login, diagnostics"))
+            BadgeButton(title: L("Yenile", "Refresh"), icon: "arrow.clockwise", spinning: store.isRefreshing) { store.refresh() }
+            BadgeButton(title: L("Çık", "Quit"), icon: "power", spinning: false) { NSApp.terminate(nil) }
         }
         .padding(.horizontal, 6)
         .padding(.top, 2)
@@ -299,7 +299,7 @@ private struct ProviderCard: View {
         .contentShape(shape)
         .onTapGesture(perform: onTap)
         .contextMenu { reminderMenu }
-        .help(showBack ? "Ön yüze dön" : "Tüm limitler ve etkinlik")
+        .help(showBack ? L("Ön yüze dön", "Back to front") : L("Tüm limitler ve etkinlik", "All limits and activity"))
         .onContinuousHover { phase in
             switch phase {
             case .active(let point): hover = point; NSCursor.pointingHand.set()
@@ -322,7 +322,8 @@ private struct ProviderCard: View {
         // VoiceOver: kart tek öğe; durum cümle olarak okunur, ipucunun düzeltmesi eylem olarak sunulur
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilitySummary)
-        .accessibilityHint(showBack ? "Ön yüze dönmek için çift dokun" : "Tüm limitleri ve etkinliği görmek için çift dokun")
+        .accessibilityHint(showBack ? L("Ön yüze dönmek için çift dokun", "Double-tap to return to the front")
+                                     : L("Tüm limitleri ve etkinliği görmek için çift dokun", "Double-tap to see all limits and activity"))
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { onTap() }
         .accessibilityActions {
@@ -418,8 +419,8 @@ private struct ProviderCard: View {
                     // Boş durum: hesap bağlı ama henüz limit penceresi yok (hiç kullanılmamış)
                     VStack(alignment: .trailing, spacing: 3) {
                         Image(systemName: "checkmark.circle").font(.system(size: 18, weight: .regular))
-                        Text("Henüz kullanılmadı").font(.system(size: 12, weight: .semibold))
-                        Text("Tüm limitler boş").font(.system(size: 10.5, weight: .regular))
+                        Text(L("Henüz kullanılmadı", "Not used yet")).font(.system(size: 12, weight: .semibold))
+                        Text(L("Tüm limitler boş", "All limits are empty")).font(.system(size: 10.5, weight: .regular))
                     }
                     .multilineTextAlignment(.trailing)
                     .padding(.trailing, 4)
@@ -436,14 +437,14 @@ private struct ProviderCard: View {
 
     private var accessibilitySummary: String {
         var parts = [accounts.isEmpty && heading == nil ? id.name : title]
-        if let plan = usage.plan { parts.append("\(plan) planı") }
+        if let plan = usage.plan { parts.append(L("\(plan) planı", "\(plan) plan")) }
         for limit in showBack ? usage.limits : front {
-            var text = "\(limit.label) yüzde \(Int(limit.percent.rounded()))"
-            if let reset = limit.resetsAt { text += ", \(Countdown.text(to: reset)) sonra sıfırlanır" }
+            var text = L("\(limit.label) yüzde \(Int(limit.percent.rounded()))", "\(limit.label) \(Int(limit.percent.rounded())) percent")
+            if let reset = limit.resetsAt { text += L(", \(Countdown.text(to: reset)) sonra sıfırlanır", ", resets in \(Countdown.text(to: reset))") }
             parts.append(text)
         }
-        if let chip { parts.append(chip.text.replacingOccurrences(of: "≈", with: "yaklaşık")) }
-        if usage.isStale, let at = usage.updatedAt { parts.append("Son veri \(Ago.text(at))") }
+        if let chip { parts.append(chip.text.replacingOccurrences(of: "≈", with: L("yaklaşık", "about"))) }
+        if usage.isStale, let at = usage.updatedAt { parts.append(L("Son veri \(Ago.text(at))", "Last data \(Ago.text(at))")) }
         if let accountLine { parts.append(accountLine) }
         if let issue = usage.issue { parts.append(issue.text) }
         return parts.joined(separator: ". ")
@@ -471,7 +472,7 @@ private struct ProviderCard: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .help(account.full ? "\(account.name): doldu" : account.name)
+                .help(account.full ? L("\(account.name): doldu", "\(account.name): full") : account.name)
             }
         }
         .padding(2)
@@ -484,12 +485,12 @@ private struct ProviderCard: View {
         guard accounts.count > 1 else { return nil }
         let others = accounts.filter { $0.id != selected }
         if accounts.first(where: { $0.id == selected })?.full == true, let free = others.first(where: { !$0.full }) {
-            return "\(free.longName) kullanılabilir"
+            return L("\(free.longName) kullanılabilir", "\(free.longName) available")
         }
         guard let full = others.filter(\.full).min(by: { ($0.opensAt ?? .distantFuture) < ($1.opensAt ?? .distantFuture) }) else {
             return nil
         }
-        return "\(full.longName) doldu" + (full.opensAt.map { " · \(Countdown.opens(at: $0))" } ?? "")
+        return L("\(full.longName) doldu", "\(full.longName) full") + (full.opensAt.map { " · \(Countdown.opens(at: $0))" } ?? "")
     }
 
     /// Plan; eski veride "· 12 dk önce"
@@ -506,14 +507,14 @@ private struct ProviderCard: View {
     private var chip: Chip? {
         if let full = usage.limits.filter({ $0.percent >= 100 }).min(by: { ($0.resetsAt ?? .distantFuture) < ($1.resetsAt ?? .distantFuture) }) {
             let reset = full.resetsAt.map { " · \(Countdown.opens(at: $0))" } ?? ""
-            return Chip(text: "Doldu\(reset)", color: palette.alert)
+            return Chip(text: L("Doldu", "Full") + reset, color: palette.alert)
         }
         let soon = usage.limits.compactMap { l in l.timeToFull.map { (l, $0) } }.min { $0.1 < $1.1 }
         guard let (limit, eta) = soon else {
             return usage.note.map { Chip(text: $0, color: palette.ink) }
         }
         let color = limit.percent >= 90 ? palette.alert : palette.notice
-        return Chip(text: "Bu hızla \(Countdown.within(seconds: eta)) dolar", color: color)
+        return Chip(text: L("Bu hızla \(Countdown.within(seconds: eta)) dolar", "Full \(Countdown.within(seconds: eta)) at this pace"), color: color)
     }
 
     private func chipView(_ chip: Chip) -> some View {
@@ -571,32 +572,35 @@ private struct ProviderCard: View {
             case .limits:
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(usage.limits) { limit in MiniLimitRow(limit: limit) }
-                    if usage.limits.isEmpty { Text("Henüz veri yok.").font(.system(size: 10)) }
+                    if usage.limits.isEmpty { Text(L("Henüz veri yok.", "No data yet.")).font(.system(size: 10)) }
                 }
                 .opacity(staticPart)
             case .activity:
                 if let source = activitySource {
                     Heatmap(values: activity ?? [:], source: source, interactive: interactive,
-                            unit: isLocalAccount ? nil : { "%\(Int((Double($0) / 100).rounded())) limit kullanımı" })
+                            unit: isLocalAccount ? nil : { L("%\(Int((Double($0) / 100).rounded())) limit kullanımı", "\(Int((Double($0) / 100).rounded()))% of limit used") })
                     HStack(spacing: 4) {
                         if let activity {
                             let total = activity.values.reduce(0, +)
                             if isLocalAccount {
-                                Text(total > 0 ? "\(source.title) · \(TokenFormat.short(total)) token · \(activity.count) gün" : "Bu Mac'te \(source.title) kaydı yok")
+                                Text(total > 0 ? L("\(source.title) · \(TokenFormat.short(total)) token · \(activity.count) gün",
+                                                   "\(source.title) · \(TokenFormat.short(total)) tokens · \(activity.count) days")
+                                     : L("Bu Mac'te \(source.title) kaydı yok", "No \(source.title) logs on this Mac"))
                             } else if total > 0 {
-                                Text("Bu hesap · \(activity.count) aktif gün")
+                                Text(L("Bu hesap · \(activity.count) aktif gün", "This account · \(activity.count) active days"))
                             } else {
-                                Text(AccountActivity.since(account: selected).map { "Kayıt başlangıcı: \($0.formatted(.dateTime.day().month(.abbreviated)))" } ?? "Bu hesabın etkinliği kaydediliyor")
+                                Text(AccountActivity.since(account: selected).map { L("Kayıt başlangıcı: ", "Recording since ") + $0.formatted(.dateTime.day().month(.abbreviated)) }
+                                     ?? L("Bu hesabın etkinliği kaydediliyor", "Recording this account's activity"))
                             }
                         } else {
-                            Text("Kayıtlar okunuyor…")
+                            Text(L("Kayıtlar okunuyor…", "Reading logs…"))
                         }
                         Spacer()
-                        Text("Az")
+                        Text(L("Az", "Less"))
                         ForEach(0..<5, id: \.self) { i in
                             RoundedRectangle(cornerRadius: 2).fill(Heatmap.fill(level: i, source: source)).frame(width: 8, height: 8)
                         }
-                        Text("Çok")
+                        Text(L("Çok", "More"))
                     }
                     .font(.system(size: 11, weight: .regular))
                     .opacity(staticPart)
@@ -604,11 +608,11 @@ private struct ProviderCard: View {
             }
 
             HStack {
-                Text("Geri dönmek için tıkla").font(.system(size: 11, weight: .regular)).opacity(staticPart)
+                Text(L("Geri dönmek için tıkla", "Click to go back")).font(.system(size: 11, weight: .regular)).opacity(staticPart)
                 Spacer()
                 if let url = id.usageURL {
-                    BadgeButton(title: "Kullanım", icon: "arrow.up.right", spinning: false) { NSWorkspace.shared.open(url) }
-                        .help("\(id.name) kullanım sayfasını aç")
+                    BadgeButton(title: L("Kullanım", "Usage"), icon: "arrow.up.right", spinning: false) { NSWorkspace.shared.open(url) }
+                        .help(L("\(id.name) kullanım sayfasını aç", "Open the \(id.name) usage page"))
                         .opacity(interactive ? 1 : 0)
                 }
             }
@@ -621,8 +625,8 @@ private struct ProviderCard: View {
     /// "Limitler / Etkinlik" seçici (etkinlik kaydı olmayan sağlayıcıda tek sekme)
     private var segment: some View {
         HStack(spacing: 0) {
-            segButton("Limitler", .limits)
-            if activitySource != nil { segButton("Etkinlik", .activity) }
+            segButton(L("Limitler", "Limits"), .limits)
+            if activitySource != nil { segButton(L("Etkinlik", "Activity"), .activity) }
         }
         .padding(2)
         .background(palette.subtle, in: RoundedRectangle(cornerRadius: 7))
@@ -649,20 +653,21 @@ private struct ProviderCard: View {
     /// Sağ tık: her limit için "açılınca haber ver" (Ayarlar → Bildirimler'den kapatılabilir)
     @ViewBuilder private var reminderMenu: some View {
         if !accounts.isEmpty {
-            Button { onManageAccounts() } label: { Label("Hesapları Adlandır…", systemImage: "pencil") }
+            Button { onManageAccounts() } label: { Label(L("Hesapları Adlandır…", "Name Accounts…"), systemImage: "pencil") }
             Divider()
         }
         if NotificationPrefs.isOn(.reminders) {
             let limits = usage.limits.filter { ($0.resetsAt ?? .distantPast) > Date() }
             if limits.isEmpty {
-                Text("Hatırlatma kurulacak limit yok")
+                Text(L("Hatırlatma kurulacak limit yok", "No limit to set a reminder for"))
             } else {
                 ForEach(limits) { limit in
                     let on = notifier.hasReminder(limit)
                     Button {
                         notifier.toggleReminder(provider: title, limit: limit)
                     } label: {
-                        Label(on ? "\(limit.label) hatırlatmasını kaldır" : "\(limit.label) açılınca haber ver",
+                        Label(on ? L("\(limit.label) hatırlatmasını kaldır", "Remove \(limit.label) reminder")
+                                 : L("\(limit.label) açılınca haber ver", "Notify when \(limit.label) opens"),
                               systemImage: on ? "bell.slash" : "bell")
                     }
                 }
@@ -725,7 +730,7 @@ private struct RingGauge: View {
             .frame(width: size, height: size)
             HStack(spacing: 2) {
                 if notifier.hasReminder(limit) {
-                    Image(systemName: "bell.fill").font(.system(size: 8)).help("Açılınca haber verilecek")
+                    Image(systemName: "bell.fill").font(.system(size: 8)).help(L("Açılınca haber verilecek", "You'll be notified when it opens"))
                 }
                 Text(limit.short ?? limit.label).font(.system(size: 10.5, weight: .medium)).lineLimit(1)
             }
@@ -734,7 +739,8 @@ private struct RingGauge: View {
                 .font(.system(size: 10, weight: .regular)).lineLimit(1)
         }
         .frame(width: 62)
-        .help(limit.resetsAt.map { "\(limit.label): %\(Int(limit.percent.rounded())) · \(Countdown.text(to: $0)) sonra sıfırlanır" } ?? limit.label)
+        .help(limit.resetsAt.map { L("\(limit.label): %\(Int(limit.percent.rounded())) · \(Countdown.text(to: $0)) sonra sıfırlanır",
+                                      "\(limit.label): \(Int(limit.percent.rounded()))% · resets in \(Countdown.text(to: $0))") } ?? limit.label)
     }
 }
 
@@ -779,7 +785,7 @@ private struct MiniLimitRow: View {
             }
             GaugeBar(value: min(max(limit.percent / 100, 0), 1), colors: limit.colors, sparkle: false, height: 7)
             if let reset = limit.resetsAt {
-                Text("\(Countdown.text(to: reset)) sonra sıfırlanır").font(.system(size: 11, weight: .regular))
+                Text(L("\(Countdown.text(to: reset)) sonra sıfırlanır", "Resets in \(Countdown.text(to: reset))")).font(.system(size: 11, weight: .regular))
             }
         }
     }
@@ -827,7 +833,7 @@ private struct Heatmap: View {
             VStack(alignment: .trailing, spacing: gap) {
                 Color.clear.frame(width: 1, height: 11)
                 ForEach(0..<7, id: \.self) { row in
-                    Text(["Pzt", "", "Çar", "", "Cum", "", ""][row])
+                    Text((Lang.isTR ? ["Pzt", "", "Çar", "", "Cum", "", ""] : ["Mon", "", "Wed", "", "Fri", "", ""])[row])
                         .font(.system(size: 10.5, weight: .regular))
                         .frame(height: cell)
                 }
@@ -858,7 +864,7 @@ private struct Heatmap: View {
                                 .overlay(alignment: week < 3 ? .bottomLeading : week > Self.weeks - 4 ? .bottomTrailing : .bottom) {
                                     if isHovered {
                                         CellTip(text: date.formatted(.dateTime.day().month(.abbreviated).weekday(.abbreviated))
-                                                + " · " + (tokens > 0 ? (unit?(tokens) ?? "\(TokenFormat.short(tokens)) token") : "etkinlik yok"))
+                                                + " · " + (tokens > 0 ? (unit?(tokens) ?? L("\(TokenFormat.short(tokens)) token", "\(TokenFormat.short(tokens)) tokens")) : L("etkinlik yok", "no activity")))
                                             .offset(y: -(cell + 5))
                                             .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .bottom)))
                                     }
@@ -1126,9 +1132,9 @@ extension Limit {
 enum Ago {
     static func text(_ date: Date) -> String {
         let s = max(Int(-date.timeIntervalSinceNow), 0)
-        if s < 60 { return "az önce" }
-        if s < 3600 { return "\(s / 60) dk önce" }
-        if s < 86_400 { return "\(s / 3600) sa önce" }
-        return "\(s / 86_400) g önce"
+        if s < 60 { return L("az önce", "just now") }
+        if s < 3600 { return L("\(s / 60) dk önce", "\(s / 60) min ago") }
+        if s < 86_400 { return L("\(s / 3600) sa önce", "\(s / 3600) h ago") }
+        return L("\(s / 86_400) g önce", "\(s / 86_400) d ago")
     }
 }

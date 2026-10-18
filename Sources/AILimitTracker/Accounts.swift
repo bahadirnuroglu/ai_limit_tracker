@@ -26,7 +26,7 @@ struct Account: Codable, Identifiable, Hashable {
         switch provider {
         case .claude: return ClaudeCodeAuth.isAvailable ? "Claude Code" : "claude.ai"
         case .codex: return "Codex CLI"
-        case .cursor: return "Cursor uygulaması"
+        case .cursor: return L("Cursor uygulaması", "Cursor app")
         }
     }
 }

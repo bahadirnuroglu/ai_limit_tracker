@@ -48,7 +48,7 @@ enum Onboarding {
             let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 560, height: 500),
                              styleMask: [.titled, .closable], backing: .buffered, defer: false)
             w.isReleasedWhenClosed = false
-            w.title = "AI Limit Tracker Ayarları"
+            w.title = L("AI Limit Tracker Ayarları", "AI Limit Tracker Settings")
             w.center()
             return w
         }()
@@ -99,7 +99,7 @@ private struct SetupAssistant: View {
             Divider()
             HStack(spacing: 10) {
                 if step != .welcome && step != .done {
-                    Button("Geri") { go(-1) }
+                    Button(L("Geri", "Back")) { go(-1) }
                         .keyboardShortcut(.cancelAction)
                         .controlSize(.large)
                 }
@@ -130,9 +130,9 @@ private struct SetupAssistant: View {
 
     private var primaryTitle: String {
         switch step {
-        case .welcome: return "Başla"
-        case .done: return "Popup'ı Göster"
-        default: return "Devam"
+        case .welcome: return L("Başla", "Get Started")
+        case .done: return L("Popup'ı Göster", "Show Popup")
+        default: return L("Devam", "Continue")
         }
     }
 
@@ -140,7 +140,7 @@ private struct SetupAssistant: View {
         if step == .connect {
             let waiting = store.enabled.filter { !store.anyConnected($0) }.count
             if waiting > 0 {
-                Text("\(waiting) sağlayıcı bağlı değil · sonra da bağlayabilirsin")
+                Text(L("\(waiting) sağlayıcı bağlı değil · sonra da bağlayabilirsin", "\(waiting) not connected · you can connect later"))
                     .font(.callout).foregroundStyle(.secondary)
             }
         }
@@ -206,18 +206,22 @@ private struct SymbolTile: View {
 private struct WelcomePage: View {
     var body: some View {
         VStack(spacing: 28) {
-            PageHeader(title: "AI Limit Tracker'a Hoş Geldin",
-                       subtitle: "Claude, Codex ve Cursor limitlerini menü çubuğunda tek bakışta gör.") {
+            PageHeader(title: L("AI Limit Tracker'a Hoş Geldin", "Welcome to AI Limit Tracker"),
+                       subtitle: L("Claude, Codex ve Cursor limitlerini menü çubuğunda tek bakışta gör.",
+                                   "See your Claude, Codex and Cursor limits at a glance in the menu bar.")) {
                 Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 96, height: 96)
                     .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
             }
             VStack(alignment: .leading, spacing: 18) {
-                feature("gauge.with.dots.needle.50percent", .orange, "Tüm limitler tek yerde",
-                        "5 saatlik ve haftalık pencereler, sıfırlanmaya kalan süre ve bu tempoyla ne zaman dolacağı.")
-                feature("bell.badge.fill", .red, "Limite takılmadan haber al",
-                        "Limite yaklaşınca ve limit yenilenince bildirim; hangilerini alacağını sen seçersin.")
-                feature("lock.fill", .blue, "Verilerin sende kalır",
-                        "Sadece bağladığın hizmetlerle ve bu Mac'teki uygulamalarla konuşur, başka sunucuya veri göndermez.")
+                feature("gauge.with.dots.needle.50percent", .orange, L("Tüm limitler tek yerde", "Every limit in one place"),
+                        L("5 saatlik ve haftalık pencereler, sıfırlanmaya kalan süre ve bu tempoyla ne zaman dolacağı.",
+                          "5-hour and weekly windows, time until reset, and when you'll run out at this pace."))
+                feature("bell.badge.fill", .red, L("Limite takılmadan haber al", "Hear about it before you hit the wall"),
+                        L("Limite yaklaşınca ve limit yenilenince bildirim; hangilerini alacağını sen seçersin.",
+                          "Notifications as you near a limit and when it resets; you choose which ones."))
+                feature("lock.fill", .blue, L("Verilerin sende kalır", "Your data stays with you"),
+                        L("Sadece bağladığın hizmetlerle ve bu Mac'teki uygulamalarla konuşur, başka sunucuya veri göndermez.",
+                          "Talks only to the services you connect and the apps on this Mac. Nothing goes to any other server."))
             }
             .frame(maxWidth: 400)
             Spacer()
@@ -240,8 +244,9 @@ private struct ToolsPage: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            PageHeader(title: "Hangi araçları kullanıyorsun?",
-                       subtitle: "Bu Mac'te bulduklarımızı açtık. Sonradan Ayarlar'dan değiştirebilirsin.") {
+            PageHeader(title: L("Hangi araçları kullanıyorsun?", "Which tools do you use?"),
+                       subtitle: L("Bu Mac'te bulduklarımızı açtık. Sonradan Ayarlar'dan değiştirebilirsin.",
+                                   "We turned on the ones found on this Mac. You can change this later in Settings.")) {
                 SymbolTile(symbol: "square.stack.3d.up.fill", color: .indigo)
             }
             Form {
@@ -266,15 +271,17 @@ private struct ConnectPage: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            PageHeader(title: "Hesaplarını bağla",
-                       subtitle: "Her araç için bir kez giriş yap: tarayıcında açılır, oradaki Google oturumun ya da kayıtlı şifrelerin kullanılır. Sonra bağlantı hep açık kalır.") {
+            PageHeader(title: L("Hesaplarını bağla", "Connect your accounts"),
+                       subtitle: L("Her araç için bir kez giriş yap: tarayıcında açılır, oradaki Google oturumun ya da kayıtlı şifrelerin kullanılır. Sonra bağlantı hep açık kalır.",
+                                   "Sign in once for each tool. It opens in your browser, so your Google session or saved passwords work there. After that the connection stays on.")) {
                 SymbolTile(symbol: "link", color: .blue)
             }
             Form {
                 Section {
                     ForEach(store.enabled) { id in ConnectRow(id: id, store: store) }
                 } footer: {
-                    Text("Aynı araçta birden çok hesabın mı var? Kurulumdan sonra Ayarlar → Sağlayıcılar → Hesap Ekle ile ekleyebilir, popup'ta aralarında geçebilirsin.")
+                    Text(L("Aynı araçta birden çok hesabın mı var? Kurulumdan sonra Ayarlar → Sağlayıcılar → Hesap Ekle ile ekleyebilir, popup'ta aralarında geçebilirsin.",
+                           "More than one account for the same tool? After setup, add them in Settings → Providers → Add Account and switch between them in the popup."))
                         .font(.callout).foregroundStyle(.secondary)
                 }
             }
@@ -293,8 +300,9 @@ private struct NotificationsPage: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            PageHeader(title: "Bildirimler",
-                       subtitle: "Hangi anlarda haber vermemizi istediğini seç. Hiçbiri gürültü yapmaz: her eşik, her pencerede bir kez gelir.") {
+            PageHeader(title: L("Bildirimler", "Notifications"),
+                       subtitle: L("Hangi anlarda haber vermemizi istediğini seç. Hiçbiri gürültü yapmaz: her eşik, her pencerede bir kez gelir.",
+                                   "Choose when you want to hear from us. None of them get noisy: each threshold fires once per window.")) {
                 SymbolTile(symbol: "bell.badge.fill", color: .red)
             }
             Form {
@@ -302,8 +310,9 @@ private struct NotificationsPage: View {
                     HStack {
                         Label {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Bildirim izni")
-                                Text(authorized == true ? "macOS bildirimlerine izin verildi." : "Bildirimlerin gelmesi için macOS izni gerekiyor.")
+                                Text(L("Bildirim izni", "Notification permission"))
+                                Text(authorized == true ? L("macOS bildirimlerine izin verildi.", "macOS notifications are allowed.")
+                                     : L("Bildirimlerin gelmesi için macOS izni gerekiyor.", "macOS needs your permission to show notifications."))
                                     .font(.callout).foregroundStyle(.secondary)
                             }
                         } icon: { Image(systemName: "app.badge") }
@@ -311,14 +320,14 @@ private struct NotificationsPage: View {
                         if authorized == true {
                             Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).font(.title3)
                         } else {
-                            Button("İzin Ver") {
+                            Button(L("İzin Ver", "Allow")) {
                                 Notifier.shared.requestPermission { granted in Task { @MainActor in authorized = granted } }
                             }
                             .buttonStyle(.borderedProminent)
                         }
                     }
                 }
-                Section("Haber ver") {
+                Section(L("Haber ver", "Notify me")) {
                     NotificationToggles(prefs: $prefs)
                 }
             }
@@ -353,8 +362,9 @@ private struct GeneralPage: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            PageHeader(title: "Her zaman elinin altında",
-                       subtitle: "Mac açılınca kendiliğinden başlasın, istediğin yerden bir kısayolla açılsın.") {
+            PageHeader(title: L("Her zaman elinin altında", "Always within reach"),
+                       subtitle: L("Mac açılınca kendiliğinden başlasın, istediğin yerden bir kısayolla açılsın.",
+                                   "Start it with your Mac and open it from anywhere with a shortcut.")) {
                 SymbolTile(symbol: "menubar.arrow.up.rectangle", color: .teal)
             }
             Form {
@@ -362,8 +372,8 @@ private struct GeneralPage: View {
                     Toggle(isOn: Binding(get: { loginItem.enabled }, set: { if $0 != loginItem.enabled { loginItem.toggle() } })) {
                         Label {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Mac açılınca başlat")
-                                Text("Önerilir; limitlerini her zaman menü çubuğunda görürsün.").font(.callout).foregroundStyle(.secondary)
+                                Text(L("Mac açılınca başlat", "Launch at login"))
+                                Text(L("Önerilir; limitlerini her zaman menü çubuğunda görürsün.", "Recommended, so your limits are always in the menu bar.")).font(.callout).foregroundStyle(.secondary)
                             }
                         } icon: { Image(systemName: "power") }
                     }
@@ -371,8 +381,8 @@ private struct GeneralPage: View {
                     HStack {
                         Label {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Kısayol")
-                                Text("Popup'ı her uygulamadan açar ve kapatır.").font(.callout).foregroundStyle(.secondary)
+                                Text(L("Kısayol", "Shortcut"))
+                                Text(L("Popup'ı her uygulamadan açar ve kapatır.", "Opens and closes the popup from any app.")).font(.callout).foregroundStyle(.secondary)
                             }
                         } icon: { Image(systemName: "command") }
                         Spacer()
@@ -395,8 +405,9 @@ private struct DonePage: View {
     var body: some View {
         let connected = store.enabled.filter { store.anyConnected($0) }.count
         VStack(spacing: 22) {
-            PageHeader(title: "Hazırsın",
-                       subtitle: "\(connected) sağlayıcı bağlı. AI Limit Tracker menü çubuğunun sağ üstünde, halka simgesiyle duruyor.") {
+            PageHeader(title: L("Hazırsın", "You're all set"),
+                       subtitle: L("\(connected) sağlayıcı bağlı. AI Limit Tracker menü çubuğunun sağ üstünde, halka simgesiyle duruyor.",
+                                   "\(connected) connected. AI Limit Tracker lives at the top right of the menu bar, as a ring icon.")) {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 64))
                     .foregroundStyle(.green)
@@ -410,14 +421,14 @@ private struct DonePage: View {
                 Image(nsImage: store.menuIcon)
                     .padding(5)
                     .background(Color.accentColor.opacity(0.18), in: RoundedRectangle(cornerRadius: 6))
-                Text("Çar 17:54").font(.system(size: 12, weight: .medium))
+                Text(L("Çar 17:54", "Wed 17:54")).font(.system(size: 12, weight: .medium))
             }
             .padding(.horizontal, 14).frame(height: 32)
             .background(.bar, in: RoundedRectangle(cornerRadius: 8))
             .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
             .frame(maxWidth: 360)
             HStack(spacing: 6) {
-                Text("Ya da her yerden").foregroundStyle(.secondary)
+                Text(L("Ya da her yerden", "Or from anywhere")).foregroundStyle(.secondary)
                 KeyCaps(keys: ["⌃", "⌥", "L"])
             }
             .font(.callout)
@@ -437,10 +448,10 @@ private struct SettingsView: View {
 
     var body: some View {
         TabView(selection: $tab) {
-            providers.tabItem { Label("Sağlayıcılar", systemImage: "square.stack.3d.up") }.tag(0)
-            MenuBarSettings(store: store).tabItem { Label("Menü Çubuğu", systemImage: "menubar.rectangle") }.tag(1)
-            notifications.tabItem { Label("Bildirimler", systemImage: "bell.badge") }.tag(2)
-            general.tabItem { Label("Genel", systemImage: "gearshape") }.tag(3)
+            providers.tabItem { Label(L("Sağlayıcılar", "Providers"), systemImage: "square.stack.3d.up") }.tag(0)
+            MenuBarSettings(store: store).tabItem { Label(L("Menü Çubuğu", "Menu Bar"), systemImage: "menubar.rectangle") }.tag(1)
+            notifications.tabItem { Label(L("Bildirimler", "Notifications"), systemImage: "bell.badge") }.tag(2)
+            general.tabItem { Label(L("Genel", "General"), systemImage: "gearshape") }.tag(3)
         }
         .frame(width: 560, height: 500)
     }
@@ -458,19 +469,22 @@ private struct SettingsView: View {
                             ForEach(accounts) { account in AccountRow(account: account, store: store) }
                         }
                         Button { store.addAccount(id) } label: {
-                            Label(accounts.count > 1 ? "Hesap Ekle…" : "Başka bir \(id.name) hesabı ekle…",
+                            Label(accounts.count > 1 ? L("Hesap Ekle…", "Add Account…") : L("Başka bir \(id.name) hesabı ekle…", "Add another \(id.name) account…"),
                                   systemImage: "plus.circle.fill")
                         }
                         .buttonStyle(.borderless)
                         .foregroundStyle(.tint)
                         .padding(.leading, 40)
                         .help(ToolLogin.isAvailable(id)
-                              ? "Varsayılan tarayıcında açılır; tarayıcıda o an açık olan \(id.name) hesabı eklenir. Önce tarayıcıda eklemek istediğin hesaba geç."
-                              : "\(id.webHost) girişiyle ikinci bir hesap bağlar; oturumlar birbirinden ayrı tutulur")
+                              ? L("Varsayılan tarayıcında açılır; tarayıcıda o an açık olan \(id.name) hesabı eklenir. Önce tarayıcıda eklemek istediğin hesaba geç.",
+                                  "Opens in your default browser and adds the \(id.name) account signed in there. Switch to the account you want to add first.")
+                              : L("\(id.webHost) girişiyle ikinci bir hesap bağlar; oturumlar birbirinden ayrı tutulur",
+                                  "Connects another account by signing in to \(id.webHost); sessions are kept separate"))
                     }
                 } footer: {
                     if id == ProviderID.allCases.last {
-                        Text("Birden çok hesapta popup'taki kartın sol altında hesap çipleri çıkar; kart her açılışta şu an kullanabileceğin hesapla gelir. Kapalı sağlayıcılar popup'ta ve menü çubuğunda gösterilmez.")
+                        Text(L("Birden çok hesapta popup'taki kartın sol altında hesap çipleri çıkar; kart her açılışta şu an kullanabileceğin hesapla gelir. Kapalı sağlayıcılar popup'ta ve menü çubuğunda gösterilmez.",
+                               "With several accounts, chips appear at the bottom left of the card in the popup, and the card opens with the account you can use right now. Providers that are off don't show in the popup or the menu bar."))
                             .font(.callout).foregroundStyle(.secondary)
                     }
                 }
@@ -486,19 +500,20 @@ private struct SettingsView: View {
     private var general: some View {
         Form {
             Section {
-                Toggle("Mac açılınca başlat", isOn: Binding(get: { loginItem.enabled },
+                Toggle(L("Mac açılınca başlat", "Launch at login"), isOn: Binding(get: { loginItem.enabled },
                                                            set: { if $0 != loginItem.enabled { loginItem.toggle() } }))
-                LabeledContent("Kısayol") { KeyCaps(keys: ["⌃", "⌥", "L"]) }
+                LabeledContent(L("Kısayol", "Shortcut")) { KeyCaps(keys: ["⌃", "⌥", "L"]) }
             }
             Section {
                 UpdateRow(updater: .shared)
                 HStack {
-                    Button("Tanılama Bilgisini Kopyala") { copyDiagnostics() }
+                    Button(L("Tanılama Bilgisini Kopyala", "Copy Diagnostics")) { copyDiagnostics() }
                     Spacer()
-                    Button("Kurulumu Yeniden Başlat", action: restartSetup)
+                    Button(L("Kurulumu Yeniden Başlat", "Run Setup Again"), action: restartSetup)
                 }
             } footer: {
-                Text("Tanılama bilgisi sürüm, macOS ve her sağlayıcının durumunu içerir; token ya da hesap bilgisi içermez.")
+                Text(L("Tanılama bilgisi sürüm, macOS ve her sağlayıcının durumunu içerir; token ya da hesap bilgisi içermez.",
+                       "Diagnostics include the app version, macOS and each provider's status. No tokens or account details."))
                     .font(.callout).foregroundStyle(.secondary)
             }
         }
@@ -538,9 +553,9 @@ private struct NotificationsSettings: View {
             if authorized == false {
                 Section {
                     HStack {
-                        Text("Bildirimlere izin verilmemiş.").foregroundStyle(.secondary)
+                        Text(L("Bildirimlere izin verilmemiş.", "Notifications aren't allowed.")).foregroundStyle(.secondary)
                         Spacer()
-                        Button("İzin Ver") {
+                        Button(L("İzin Ver", "Allow")) {
                             Notifier.shared.requestPermission { granted in
                                 Task { @MainActor in
                                     authorized = granted
@@ -554,7 +569,7 @@ private struct NotificationsSettings: View {
                     }
                 }
             }
-            Section("Haber ver") { NotificationToggles(prefs: $prefs) }
+            Section(L("Haber ver", "Notify me")) { NotificationToggles(prefs: $prefs) }
         }
         .formStyle(.grouped)
         .task { authorized = await Notifier.shared.isAuthorized() }
@@ -590,50 +605,59 @@ private struct ConnectRow: View {
     }
 
     private var detail: String {
-        if !enabled { return "Popup'ta gösterilmiyor" }
+        if !enabled { return L("Popup'ta gösterilmiyor", "Hidden from the popup") }
         if wantsOneTimeLogin && !tool.running.contains(id) {
             return id == .claude
-                ? "Bir kez giriş yap (Pro ya da Max hesabı); bağlantı hep açık kalır. Varsayılan tarayıcında açılır."
-                : "Bir kez giriş yap; bağlantı hep açık kalır. Varsayılan tarayıcında açılır."
+                ? L("Bir kez giriş yap (Pro ya da Max hesabı); bağlantı hep açık kalır. Varsayılan tarayıcında açılır.",
+                    "Sign in once (Pro or Max account) and the connection stays on. Opens in your default browser.")
+                : L("Bir kez giriş yap; bağlantı hep açık kalır. Varsayılan tarayıcında açılır.",
+                    "Sign in once and the connection stays on. Opens in your default browser.")
         }
         if usage.isConnected {
-            let first = usage.frontLimits.first.map { "\($0.short ?? $0.label) %\(Int($0.percent.rounded()))" }
+            let first = usage.frontLimits.first.map { "\($0.short ?? $0.label) " + L("%\(Int($0.percent.rounded()))", "\(Int($0.percent.rounded()))%") }
             return [usage.plan, first].compactMap { $0 }.joined(separator: " · ")
         }
         if let issue = usage.issue { return issue.text }
         switch id {
         case .claude:
             return ClaudeCodeAuth.isAvailable
-                ? "Claude Code oturumu kullanılır. macOS bir kez Mac parolanı isteyecek; Her Zaman İzin Ver'i seç."
-                : ToolLogin.isAvailable(.claude) ? "Giriş Yap varsayılan tarayıcında açılır (Pro ya da Max hesabı)."
-                : "Claude Code girişliyse kendiliğinden okunur; yoksa claude.ai ile bir kez giriş yap."
+                ? L("Claude Code oturumu kullanılır. macOS bir kez Mac parolanı isteyecek; Her Zaman İzin Ver'i seç.",
+                    "Uses your Claude Code session. macOS will ask for your Mac password once; choose Always Allow.")
+                : ToolLogin.isAvailable(.claude) ? L("Giriş Yap varsayılan tarayıcında açılır (Pro ya da Max hesabı).",
+                                                     "Sign In opens in your default browser (Pro or Max account).")
+                : L("Claude Code girişliyse kendiliğinden okunur; yoksa claude.ai ile bir kez giriş yap.",
+                    "Read automatically if Claude Code is signed in; otherwise sign in to claude.ai once.")
         case .codex:
-            return CodexCLI.isLoggedIn ? "Codex CLI girişi kullanılır, şifre gerekmez."
-                : ToolLogin.isAvailable(.codex) ? "Giriş Yap tarayıcında açılır; oradaki Google oturumun kullanılır."
-                : "Codex CLI girişliyse kendiliğinden okunur; yoksa chatgpt.com ile bir kez giriş yap."
+            return CodexCLI.isLoggedIn ? L("Codex CLI girişi kullanılır, şifre gerekmez.", "Uses your Codex CLI sign-in, no password needed.")
+                : ToolLogin.isAvailable(.codex) ? L("Giriş Yap tarayıcında açılır; oradaki Google oturumun kullanılır.",
+                                                    "Sign In opens in your browser, using your Google session there.")
+                : L("Codex CLI girişliyse kendiliğinden okunur; yoksa chatgpt.com ile bir kez giriş yap.",
+                    "Read automatically if Codex CLI is signed in; otherwise sign in to chatgpt.com once.")
         case .cursor:
-            return CursorProvider.isInstalled ? "Cursor'daki oturum kullanılır, şifre gerekmez."
-                : "Cursor uygulaması girişliyse kendiliğinden okunur; yoksa cursor.com ile bir kez giriş yap."
+            return CursorProvider.isInstalled ? L("Cursor'daki oturum kullanılır, şifre gerekmez.", "Uses your Cursor session, no password needed.")
+                : L("Cursor uygulaması girişliyse kendiliğinden okunur; yoksa cursor.com ile bir kez giriş yap.",
+                    "Read automatically if the Cursor app is signed in; otherwise sign in to cursor.com once.")
         }
     }
 
     @ViewBuilder private var trailing: some View {
         if usage.isConnected && !wantsOneTimeLogin {
-            Label("Bağlı", systemImage: "checkmark.circle.fill")
+            Label(L("Bağlı", "Connected"), systemImage: "checkmark.circle.fill")
                 .labelStyle(.titleAndIcon).foregroundStyle(.green).font(.callout.weight(.medium))
         } else if tool.running.contains(id) {
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
-                Text("Tarayıcıda devam et").font(.callout).foregroundStyle(.secondary)
-                Button("Vazgeç") { tool.cancel(id) }.controlSize(.small)
+                Text(L("Tarayıcıda devam et", "Continue in your browser")).font(.callout).foregroundStyle(.secondary)
+                Button(L("Vazgeç", "Cancel")) { tool.cancel(id) }.controlSize(.small)
             }
         } else if busy || (usage.state == .loading && usage.issue == nil && store.isRefreshing) {
             ProgressView().controlSize(.small)
         } else if wantsOneTimeLogin || (needsLogin && ToolLogin.isAvailable(id)) {
             // Aracın kendi girişi varsayılan tarayıcıda (Chrome'daki Google oturumu); uygulama penceresi altta bağlantı
-            Button("Giriş Yap") { store.toolLogin(id) }
+            Button(L("Giriş Yap", "Sign In")) { store.toolLogin(id) }
                 .buttonStyle(.borderedProminent).controlSize(.small)
-                .help("Varsayılan tarayıcında \(ToolLogin.toolName(id)) girişi açılır; oradaki Google oturumun ve kayıtlı şifrelerin kullanılır.")
+                .help(L("Varsayılan tarayıcında \(ToolLogin.toolName(id)) girişi açılır; oradaki Google oturumun ve kayıtlı şifrelerin kullanılır.",
+                         "Opens the \(ToolLogin.toolName(id)) sign-in in your default browser, using your Google session and saved passwords there."))
         } else if let (title, action) = primaryAction {
             Button(title, action: action).buttonStyle(.borderedProminent).controlSize(.small)
         }
@@ -657,11 +681,11 @@ private struct ConnectRow: View {
             return (title, { run { store.perform(action, account: .local(id)) } })
         }
         if id == .claude && ClaudeCodeAuth.isAvailable {
-            return ("İzin Ver", { run { store.reload(.claude, allowPrompt: true) } })
+            return (L("İzin Ver", "Allow"), { run { store.reload(.claude, allowPrompt: true) } })
         }
-        if hasLocalSession { return ("Tekrar Dene", { run { store.reload(id) } }) }
+        if hasLocalSession { return (L("Tekrar Dene", "Try Again"), { run { store.reload(id) } }) }
         // Yerel oturum yoksa sitenin girişi (Google/Apple dahil); pencere kapanınca veri gelir
-        return ("Giriş Yap", { store.login(.local(id)) })
+        return (L("Giriş Yap", "Sign In"), { store.login(.local(id)) })
     }
 
     /// Kısa bekleme göstergesi; sonuç store'dan gelir
@@ -690,9 +714,10 @@ private struct MenuBarSettings: View {
                 }
                 .padding(.vertical, 6)
             } header: {
-                Text("Simge")
+                Text(L("Simge", "Icon"))
             } footer: {
-                Text("Önizlemeler şu anki limitlerinle çizilir. Hangi sağlayıcıların gösterileceğini Sağlayıcılar sekmesinden seçebilirsin.")
+                Text(L("Önizlemeler şu anki limitlerinle çizilir. Hangi sağlayıcıların gösterileceğini Sağlayıcılar sekmesinden seçebilirsin.",
+                       "Previews are drawn with your current limits. Choose which providers to show in the Providers tab."))
                     .font(.callout).foregroundStyle(.secondary)
             }
         }
@@ -760,7 +785,7 @@ private struct UpdateRow: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Sürüm \(version)")
+                Text(L("Sürüm \(version)", "Version \(version)"))
                 Text(status).font(.callout).foregroundStyle(updater.checkFailed ? .orange : .secondary)
             }
             Spacer()
@@ -771,9 +796,9 @@ private struct UpdateRow: View {
                 if updater.isChecking {
                     ProgressView().controlSize(.small)
                 } else if let release = updater.available {
-                    Button("\(release.version) Sürümüne Güncelle") { updater.install() }.buttonStyle(.borderedProminent)
+                    Button(L("\(release.version) Sürümüne Güncelle", "Update to \(release.version)")) { updater.install() }.buttonStyle(.borderedProminent)
                 } else {
-                    Button("Güncellemeleri Denetle") { Task { await updater.check() } }
+                    Button(L("Güncellemeleri Denetle", "Check for Updates")) { Task { await updater.check() } }
                 }
             }
         }
@@ -781,16 +806,16 @@ private struct UpdateRow: View {
 
     private var status: String {
         switch updater.phase {
-        case .downloading(let f): return "İndiriliyor %\(Int(f * 100))"
-        case .installing: return "Kuruluyor, birazdan yeniden açılacak…"
+        case .downloading(let f): return L("İndiriliyor %\(Int(f * 100))", "Downloading \(Int(f * 100))%")
+        case .installing: return L("Kuruluyor, birazdan yeniden açılacak…", "Installing, relaunching in a moment…")
         case .failed(let message): return message
         case .idle: break
         }
-        if updater.isChecking { return "Denetleniyor…" }
-        if updater.checkFailed { return "Denetlenemedi. İnternet bağlantını kontrol edip tekrar dene." }
-        if let release = updater.available { return "Yeni sürüm hazır: \(release.version). İndirip kurar ve yeniden açılır." }
-        if let at = updater.lastSuccess { return "En son sürümü kullanıyorsun · son kontrol \(at.formatted(date: .omitted, time: .shortened))" }
-        return "Yeni sürümler kendiliğinden denetlenir."
+        if updater.isChecking { return L("Denetleniyor…", "Checking…") }
+        if updater.checkFailed { return L("Denetlenemedi. İnternet bağlantını kontrol edip tekrar dene.", "Couldn't check. Check your internet connection and try again.") }
+        if let release = updater.available { return L("Yeni sürüm hazır: \(release.version). İndirip kurar ve yeniden açılır.", "Version \(release.version) is ready. It downloads, installs and relaunches.") }
+        if let at = updater.lastSuccess { return L("En son sürümü kullanıyorsun · son kontrol ", "You're up to date · last checked ") + at.formatted(date: .omitted, time: .shortened) }
+        return L("Yeni sürümler kendiliğinden denetlenir.", "New versions are checked automatically.")
     }
 }
 
@@ -812,7 +837,7 @@ private struct AccountRow: View {
                 .frame(width: 24, height: 24)
                 .background(.quaternary.opacity(0.7), in: Circle())
             VStack(alignment: .leading, spacing: 1) {
-                TextField("", text: $name, prompt: Text("Hesap \(store.number(account))"))
+                TextField("", text: $name, prompt: Text(L("Hesap \(store.number(account))", "Account \(store.number(account))")))
                     .labelsHidden()
                     .multilineTextAlignment(.leading)
                     .textFieldStyle(.plain)
@@ -825,11 +850,11 @@ private struct AccountRow: View {
             Spacer(minLength: 8)
             status
             Menu {
-                Button("Yeniden Adlandır") { editing = true }
+                Button(L("Yeniden Adlandır", "Rename")) { editing = true }
                 if !account.isLocal {
-                    Button("Yeniden Giriş Yap") { store.login(account) }
+                    Button(L("Yeniden Giriş Yap", "Sign In Again")) { store.login(account) }
                     Divider()
-                    Button("Hesabı Kaldır…", role: .destructive) { confirmRemove = true }
+                    Button(L("Hesabı Kaldır…", "Remove Account…"), role: .destructive) { confirmRemove = true }
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
@@ -841,19 +866,19 @@ private struct AccountRow: View {
         .padding(.leading, 40)
         .onAppear { name = account.name ?? "" }
         .onChange(of: editing) { _, now in if !now { store.rename(account, to: name) } }
-        .confirmationDialog("\(store.longLabel(account)) kaldırılsın mı?", isPresented: $confirmRemove) {
-            Button("Kaldır", role: .destructive) { store.remove(account) }
+        .confirmationDialog(L("\(store.longLabel(account)) kaldırılsın mı?", "Remove \(store.longLabel(account))?"), isPresented: $confirmRemove) {
+            Button(L("Kaldır", "Remove"), role: .destructive) { store.remove(account) }
         } message: {
-            Text("Bu hesabın oturumu uygulamadan silinir. Tekrar eklemek için yeniden giriş yapman gerekir.")
+            Text(L("Bu hesabın oturumu uygulamadan silinir. Tekrar eklemek için yeniden giriş yapman gerekir.", "This account's session is removed from the app. To add it again, you'll need to sign in again."))
         }
     }
 
     @ViewBuilder private var status: some View {
         if usage.isConnected, let worst = usage.limits.max(by: { $0.percent < $1.percent }) {
-            Text(worst.percent >= 100 ? "Doldu" : "%\(Int(worst.percent.rounded()))")
+            Text(worst.percent >= 100 ? L("Doldu", "Full") : L("%\(Int(worst.percent.rounded()))", "\(Int(worst.percent.rounded()))%"))
                 .font(.callout.weight(.medium).monospacedDigit())
                 .foregroundStyle(worst.percent >= 90 ? .orange : .secondary)
-                .help("En dolu limit: \(worst.label)")
+                .help(L("En dolu limit: \(worst.label)", "Fullest limit: \(worst.label)"))
         } else if let issue = usage.issue, let title = issue.actionTitle, let action = issue.action {
             Button(title) { store.perform(action, account: account) }.controlSize(.small)
         } else if usage.state == .loading {
@@ -906,9 +931,9 @@ extension ProviderID {
     /// Kurulumdaki "araç seçimi" satırında görünen algılama sonucu
     var detectionText: String {
         switch self {
-        case .claude: return ClaudeCodeAuth.isAvailable ? "Claude Code bulundu" : "claude.ai hesabınla bağlanır"
-        case .codex: return CodexCLI.isLoggedIn ? "Codex CLI girişi bulundu" : "chatgpt.com hesabınla bağlanır"
-        case .cursor: return CursorProvider.isInstalled ? "Cursor bulundu" : "cursor.com hesabınla bağlanır"
+        case .claude: return ClaudeCodeAuth.isAvailable ? L("Claude Code bulundu", "Claude Code found") : L("claude.ai hesabınla bağlanır", "Connects with your claude.ai account")
+        case .codex: return CodexCLI.isLoggedIn ? L("Codex CLI girişi bulundu", "Codex CLI sign-in found") : L("chatgpt.com hesabınla bağlanır", "Connects with your chatgpt.com account")
+        case .cursor: return CursorProvider.isInstalled ? L("Cursor bulundu", "Cursor found") : L("cursor.com hesabınla bağlanır", "Connects with your cursor.com account")
         }
     }
 }

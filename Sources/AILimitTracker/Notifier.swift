@@ -11,19 +11,21 @@ enum NotificationPrefs {
 
         var title: String {
             switch self {
-            case .at75: return "Limitin %75'ine ulaşınca"
-            case .at90: return "Limitin %90'ına ulaşınca"
-            case .reset: return "Limit yenilenince"
-            case .reminders: return "İstediğin limit açılınca"
+            case .at75: return L("Limitin %75'ine ulaşınca", "When a limit hits 75%")
+            case .at90: return L("Limitin %90'ına ulaşınca", "When a limit hits 90%")
+            case .reset: return L("Limit yenilenince", "When a limit resets")
+            case .reminders: return L("İstediğin limit açılınca", "When a limit you pick opens")
             }
         }
 
         var detail: String {
             switch self {
-            case .at75: return "Hızını ayarlaman için erken uyarı"
-            case .at90: return "Limite çok yaklaştığında"
-            case .reset: return "Yüksek kullandığın limit sıfırlanınca, devam edebileceğini bildirir"
-            case .reminders: return "Bir karta sağ tıklayıp \"açılınca haber ver\" seçerek tek seferlik hatırlatma kurarsın"
+            case .at75: return L("Hızını ayarlaman için erken uyarı", "An early heads-up so you can pace yourself")
+            case .at90: return L("Limite çok yaklaştığında", "When you're very close to the limit")
+            case .reset: return L("Yüksek kullandığın limit sıfırlanınca, devam edebileceğini bildirir",
+                                 "Tells you when a heavily used limit resets, so you can keep going")
+            case .reminders: return L("Bir karta sağ tıklayıp \"açılınca haber ver\" seçerek tek seferlik hatırlatma kurarsın",
+                                     "Right-click a card and choose \"Notify when … opens\" for a one-time reminder")
             }
         }
 
@@ -66,8 +68,8 @@ final class Notifier: NSObject, ObservableObject, UNUserNotificationCenterDelega
         } else if let reset = limit.resetsAt, reset > Date() {
             requestPermission { _ in }
             let content = UNMutableNotificationContent()
-            content.title = "\(provider) · \(limit.label) açıldı"
-            content.body = "Hatırlatmanı istemiştin, kaldığın yerden devam edebilirsin."
+            content.title = L("\(provider) · \(limit.label) açıldı", "\(provider) · \(limit.label) is open again")
+            content.body = L("Hatırlatmanı istemiştin, kaldığın yerden devam edebilirsin.", "You asked for a reminder. Pick up where you left off.")
             content.sound = .default
             let trigger = UNTimeIntervalNotificationTrigger(timeInterval: reset.timeIntervalSinceNow + 30, repeats: false)
             center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
@@ -116,9 +118,13 @@ final class Notifier: NSObject, ObservableObject, UNUserNotificationCenterDelega
         // Kapalı türün bildirimi gönderilmez; eşik yine kaydedilir ki açınca eskiler birden gelmesin
         guard NotificationPrefs.isOn(level == 90 ? .at90 : .at75) else { return }
 
-        var body = level == 90 ? "Limite çok yaklaştın." : "Limitin dörtte üçünü kullandın."
-        if let reset = limit.resetsAt { body += " \(Countdown.text(to: reset)) sonra sıfırlanır." }
-        send(id: "level.\(limit.id)", title: "\(provider) · \(limit.label) %\(Int(limit.percent.rounded()))", body: body)
+        var body = level == 90 ? L("Limite çok yaklaştın.", "You’re very close to the limit.")
+                               : L("Limitin dörtte üçünü kullandın.", "You’ve used three quarters of your limit.")
+        if let reset = limit.resetsAt {
+            body += L(" \(Countdown.text(to: reset)) sonra sıfırlanır.", " Resets in \(Countdown.text(to: reset)).")
+        }
+        let percent = Int(limit.percent.rounded())
+        send(id: "level.\(limit.id)", title: "\(provider) · \(limit.label) " + L("%\(percent)", "\(percent)%"), body: body)
     }
 
     private func scheduleReset(provider: String, limit: Limit) {
@@ -128,8 +134,8 @@ final class Notifier: NSObject, ObservableObject, UNUserNotificationCenterDelega
             return
         }
         let content = UNMutableNotificationContent()
-        content.title = "\(provider) · \(limit.label) limitin yenilendi"
-        content.body = "Kaldığın yerden devam edebilirsin."
+        content.title = L("\(provider) · \(limit.label) limitin yenilendi", "\(provider) · \(limit.label) limit reset")
+        content.body = L("Kaldığın yerden devam edebilirsin.", "Pick up right where you left off.")
         content.sound = .default
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: reset.timeIntervalSinceNow + 30, repeats: false)
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))

@@ -104,8 +104,8 @@ enum ActivityLoader {
 enum TokenFormat {
     static func short(_ n: Int) -> String {
         switch n {
-        case 1_000_000...: return String(format: "%.1fM", Double(n) / 1_000_000).replacingOccurrences(of: ".", with: ",")
-        case 1_000...: return String(format: "%.1fK", Double(n) / 1_000).replacingOccurrences(of: ".", with: ",")
+        case 1_000_000...: return String(format: "%.1fM", Double(n) / 1_000_000).replacingOccurrences(of: ".", with: L(",", "."))
+        case 1_000...: return String(format: "%.1fK", Double(n) / 1_000).replacingOccurrences(of: ".", with: L(",", "."))
         default: return "\(n)"
         }
     }

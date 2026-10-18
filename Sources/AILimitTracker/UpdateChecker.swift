@@ -78,7 +78,7 @@ final class UpdateChecker: ObservableObject {
                 try await Task.detached { try Self.replaceApp(at: target, fromDMG: file, version: version) }.value
                 relaunch(target)
             } catch {
-                phase = .failed("Güncellenemedi. Sürüm sayfasından indirebilirsin.")
+                phase = .failed(L("Güncellenemedi. Sürüm sayfasından indirebilirsin.", "Couldn't update. You can download it from the release page."))
             }
         }
     }

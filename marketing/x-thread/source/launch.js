@@ -310,5 +310,16 @@
       $$('.shot').forEach(el => { if (!keep.includes(el.id)) el.style.display = 'none'; });
     };
   }
+  // Durağan kare (README görseli): popup başlığın altında tam boy, üç kart dolu
+  if (hp.includes('still')) {
+    const full = window.frame; window.duration = 2; window.poster = 1.9; window.sfxEvents = [];
+    $('#pop2 > div').style.zoom = 1.55;
+    window.frame = () => {
+      full(7.2);
+      $$('.shot').forEach(el => { el.style.display = el.id === 's2' ? '' : 'none'; });
+      $('#s2').style.transform = 'none'; $('#s2').style.opacity = 1; $('#s2').style.filter = 'none';
+      $('#h2').style.transform = 'none'; $('#h2').style.opacity = 1; pop2.style.transform = 'none'; pop2.style.opacity = 1;
+    };
+  }
   window.frame(window.poster);
 })();

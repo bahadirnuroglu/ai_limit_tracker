@@ -1,101 +1,114 @@
 # AI Limit Tracker
 
-Claude, Codex ve Cursor kullanım limitlerini macOS menü çubuğunda tek bakışta gösteren küçük bir uygulama.
-Limite takılmadan önce haber verir, limit yenilenince "devam edebilirsin" der.
+A small macOS menu bar app that shows your Claude, Codex and Cursor usage limits at a glance.
+It warns you before you hit a limit, guesses when you'll run out at your current pace, and tells you when a limit opens again.
 
-<p align="center"><img src="docs/screenshot.png" width="900" alt="AI Limit Tracker: açık ve koyu temada limit kartları, kartın arka yüzünde etkinlik haritası"></p>
+<p align="center"><img src="docs/hero.png" width="820" alt="AI Limit Tracker popup: Claude, Codex and Cursor cards with usage rings and a 'Full in 22 min at this pace' forecast"></p>
 
-<sub>Görseldeki değerler örnektir.</sub>
+<sub>Values in the image are examples.</sub>
 
-## Kur
+## Install
 
-**En kısa yol (Terminal):** tek satır; uyarı ekranı çıkmaz, en son sürümü indirip Applications'a kurar ve açar.
+**One line in Terminal:** no security prompt; downloads the latest version, installs it to Applications and opens it.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/bahadirnuroglu/ai_limit_tracker/main/install.sh | bash
 ```
 
-Script kurmadan önce uygulamanın kimliğini ve imzasını doğrular; içeriğini [buradan](install.sh) görebilirsin.
+The script checks the app's identity and signature before installing; you can read it [here](install.sh).
 
-**Ya da dmg ile:** **[Son sürümü indir →](https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest)** (`AI-Limit-Tracker-x.y.z.dmg`)
+**Or with the dmg:** **[Download the latest version →](https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest)** (`AI-Limit-Tracker-x.y.z.dmg`)
 
-1. dmg'yi aç, **AI Limit Tracker**'ı **Applications** klasörüne sürükle.
-2. Applications'tan aç. "Apple doğrulayamadı" uyarısı çıkarsa **Bitti** de, sonra
-   **Sistem Ayarları → Gizlilik ve Güvenlik → Yine de Aç**. Uygulama Apple Developer hesabıyla imzalı olmadığı
-   için bu adım sadece ilk açılışta gerekir.
-3. Kurulum asistanı açılır: kullandığın araçları seç, bağla, hangi bildirimleri alacağını belirle.
+1. Open the dmg and drag **AI Limit Tracker** to **Applications**.
+2. Open it from Applications. If macOS says it can't verify the app, click **Done**, then go to
+   **System Settings → Privacy & Security → Open Anyway**. The app isn't signed with an Apple Developer account,
+   so this is needed only on first launch.
+3. The setup assistant opens: pick the tools you use, connect them, and choose which notifications you want.
 
-macOS 14 (Sonoma) ve üstü · Apple Silicon ve Intel. Yeni sürüm çıkınca popup'ta **Güncelle**'ye basman yeterli:
-uygulama kendini indirip kurar ve yeniden açılır, "Yine de Aç" adımı tekrar gerekmez.
+macOS 14 (Sonoma) or later · Apple silicon and Intel · free. The interface follows your Mac's language (English or Turkish).
+When a new version is out, click **Update** in the popup: the app downloads, installs and reopens itself, no "Open Anyway" again.
 
-## Neler yapar
+## What it does
 
-- **Üç sağlayıcı:** Claude, Codex, Cursor. Çoğu, bu Mac'te zaten açık olan oturumdan okunur;
-  şifre gerekmez.
-- **Halka kartlar:** Her sağlayıcı tek satır: 5 saatlik limit ve son kullandığın modelin limiti.
-  %90'ı geçen limit her zaman öne çıkar; bu tempoyla sıfırlanmadan dolacaksa "≈ 12 sa sonra dolar" yazar.
-- **Birden fazla hesap:** Aynı sağlayıcıya ikinci (üçüncü…) hesabı ekle; kartın altındaki çiplerle hesaplar
-  arasında geç. Kart her açılışta şu an kullanabileceğin hesapla gelir, dolan hesabın ne zaman açılacağını yazar.
-  Hesaplara Ayarlar → Sağlayıcılar'dan ad verebilirsin (İş, Kişisel…).
-- **Kartın arka yüzü:** Karta tıkla, döner: tüm limitler ve GitHub tarzı 13 haftalık etkinlik haritası
-  (Claude Code ve Codex CLI kayıtlarından).
-- **Veri gelmezse:** Son veri soluk ve yaşıyla kalır; altında sebep ve tek düğmelik çözüm
-  ("Cursor oturumunun süresi dolmuş · Cursor'u aç").
-- **Bildirimler:** %75, %90 ve limit yenilenince; hangilerini alacağını sen seçersin.
-- **Menü çubuğu:** 1–2 sağlayıcıda iç içe halkalar, daha fazlasında limite en yakın olanın halkası.
-  <kbd>⌃</kbd><kbd>⌥</kbd><kbd>L</kbd> popup'ı her yerden açar.
-- **macOS'a uyum:** Açık temada gümüş, koyu temada grafit kartlar; macOS 26'da Liquid Glass;
-  Hareketi azalt, Saydamlığı azalt ve VoiceOver desteği. Mac açılınca kendiliğinden başlar.
+- **Three providers:** Claude, Codex and Cursor. You sign in once, in your default browser, through Claude Code's and
+  Codex CLI's own sign-in; after that the app keeps the connection fresh by itself. Without those tools you sign in to
+  claude.ai or chatgpt.com in an app window instead. Cursor is read from the Cursor app, no sign-in needed.
+- **Ring cards:** one row per provider with the 5-hour window and the limit that matters most (weekly, or the model you
+  used last). A limit over 90% always comes first, and if you'll run out before the reset at your current pace the card
+  says so: "Full in 2 hours at this pace".
+- **Multiple accounts:** add a second (third…) account for the same provider and switch with the chips on the card.
+  When one account is full, the card shows when it opens again and which account is still available.
+  Name them in Settings (Work, Personal…).
+- **Card back:** click a card to flip it: every limit, plus a GitHub-style 13-week activity heatmap
+  (from Claude Code and Codex CLI logs on your Mac; for added accounts, from the app's own readings).
+- **Notifications:** at 75%, at 90% and when a limit resets; you choose which. Right-click a card and pick
+  **Notify when … opens** for a one-time reminder.
+- **When data stops coming:** the last data stays, faded and labeled with its age, with the reason and a one-click fix
+  underneath ("Your Cursor session expired. · Open Cursor").
+- **Menu bar:** four icon styles (the last two providers you used as nested rings, the fullest provider, side by side,
+  or bars). <kbd>⌃</kbd><kbd>⌥</kbd><kbd>L</kbd> opens the popup from anywhere.
+- **At home on macOS:** silver cards in light mode, graphite in dark mode, Liquid Glass on macOS 26, and support for
+  Reduce Motion, Reduce Transparency and VoiceOver. Can launch at login.
 
-## Veriler nereden geliyor
+## Where the data comes from
 
-Her şey senin hesabınla ve senin Mac'inde; üçüncü bir sunucuya hiçbir şey gönderilmez.
+Everything runs with your own accounts, on your Mac. Nothing is sent to a third-party server; the only other request is
+the update check against GitHub.
 
-| | Kaynak |
+| | Source |
 |---|---|
-| Claude | Claude Code kuruluysa onun oturumu (`api.anthropic.com/api/oauth/usage`, macOS bir kez Anahtar Zinciri izni ister); yoksa uygulama içindeki claude.ai girişi. |
-| Codex | Codex CLI'nin `~/.codex/auth.json` girişi → `chatgpt.com/backend-api/wham/usage`. |
-| Cursor | Cursor uygulamasının kendi oturumu (salt okunur) → `cursor.com/api/usage-summary`. |
-| Ek hesaplar | Uygulama içindeki giriş penceresi (claude.ai, chatgpt.com, cursor.com); her hesabın çerezleri ayrı kutuda durur. |
-| Etkinlik haritası | Bu Mac'teki Claude Code (`~/.claude/projects`) ve Codex CLI (`~/.codex/sessions`) kayıtları. |
+| Claude | The app's own session from the one-time sign-in (`api.anthropic.com/api/oauth/usage`); otherwise Claude Code's session (read only) or the in-app claude.ai sign-in. |
+| Codex | The app's own session or Codex CLI's `~/.codex/auth.json` (read only) → `chatgpt.com/backend-api/wham/usage`. |
+| Cursor | The Cursor app's own session (read only) → `cursor.com/api/usage-summary`. |
+| Extra accounts | Browser sign-in (Claude, Codex) or the in-app sign-in window; each account's cookies live in a separate store. |
+| Activity heatmap | Claude Code (`~/.claude/projects`) and Codex CLI (`~/.codex/sessions`) logs on your Mac. |
 
-Sorun yaşarsan **Ayarlar → Genel → Tanılama Bilgisini Kopyala** ile durumu paylaşabilirsin; token ya da hesap
-bilgisi içermez.
+Tokens from the one-time sign-in are kept in the app's own file
+(`~/Library/Application Support/AI Limit Tracker/sessions.json`, readable only by you). Claude Code's and Codex CLI's
+own credentials are never changed.
 
-> Resmi bir uygulama değildir; Anthropic, OpenAI ya da Anysphere ile bağlantısı yoktur. Kullanılan
-> adresler belgesizdir ve değişebilir; değişirse kartta ipucu çıkar ve uygulamanın güncellenmesi gerekir.
+If something goes wrong, **Settings → General → Copy Diagnostics** copies a status report that contains no tokens or
+account details.
 
-## Kaynaktan derleme
+> Unofficial; not affiliated with Anthropic, OpenAI or Anysphere. The endpoints it reads are undocumented and may
+> change. If they do, the card shows a hint and the app needs an update.
 
-Xcode Command Line Tools yeterli (Xcode projesi yok, SwiftPM kullanılmıyor):
+## Build from source
+
+Xcode Command Line Tools are enough (no Xcode project, no SwiftPM):
 
 ```bash
-bash build-app.sh --install   # derler, ad-hoc imzalar, /Applications'a kurar ve açar
-bash build-dmg.sh             # dist/AI-Limit-Tracker-<sürüm>.dmg (Finder'a simge yerleşimi yaptırır)
+bash build-app.sh --install   # builds, signs, installs to /Applications and opens
+bash build-dmg.sh             # dist/AI-Limit-Tracker-<version>.dmg (lets Finder lay out the icons)
 ```
 
-Uygulama ikonu `tools/make-icon.swift` ile çizilir: `bash tools/make-icon.sh`.
+The app icon is drawn by `tools/make-icon.swift`: `bash tools/make-icon.sh`.
 
-### Yeni sürüm yayınlama
+### Releasing a new version
 
-1. `Info.plist` içinde `CFBundleShortVersionString` ve `CFBundleVersion`'ı artır, commit'le.
-2. `bash release.sh`: `main`'i gönderir, dmg'yi derler, `v<sürüm>` etiketiyle GitHub sürümü açar ve dmg'yi ekler.
-   Token Anahtar Zinciri'nde `ailimit-github` adıyla durur (sadece bu depo, Contents: Read and write).
+1. Bump `CFBundleShortVersionString` and `CFBundleVersion` in `Info.plist` and commit.
+2. `bash release.sh`: pushes `main`, builds the dmg, creates a `v<version>` GitHub release and attaches the dmg.
+   The token lives in the Keychain as `ailimit-github` (this repository only, Contents: Read and write).
+
+## License
+
+[MIT](LICENSE)
 
 ---
 
 <details>
-<summary><b>English</b></summary>
+<summary><b>Türkçe</b></summary>
 
-AI Limit Tracker is a macOS menu bar app that shows your Claude, Codex and Cursor usage limits at a
-glance, supports multiple accounts per provider, warns you at 75% / 90% (you choose which), estimates when a limit will run out at your current pace, notifies
-you when it resets, and flips each card to all limits plus a GitHub-style 13-week activity heatmap built from local
-Claude Code / Codex CLI logs. Most providers are read from sessions already on your Mac, no password needed.
+AI Limit Tracker; Claude, Codex ve Cursor kullanım limitlerini macOS menü çubuğunda tek bakışta gösteren küçük bir
+uygulama. Limite takılmadan önce haber verir, bu tempoyla ne zaman dolacağını söyler, limit açılınca bildirir.
+Aynı sağlayıcıda birden çok hesap, kartın arkasında tüm limitler ve 13 haftalık etkinlik haritası, %75 / %90 /
+yenilenme bildirimleri, karta sağ tıklayıp "açılınca haber ver" ve <kbd>⌃</kbd><kbd>⌥</kbd><kbd>L</kbd> kısayolu var.
+Arayüz Mac'in diline uyar (Türkçe ya da İngilizce).
 
-Install with one line in Terminal (no Gatekeeper prompt):
+Terminal'de tek satırla kur (uyarı ekranı çıkmaz):
 `curl -fsSL https://raw.githubusercontent.com/bahadirnuroglu/ai_limit_tracker/main/install.sh | bash`
-or download the latest `.dmg` from [Releases](https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest),
-drag the app to Applications, then allow it once in System Settings → Privacy & Security → Open Anyway
-(the app is ad-hoc signed). Requires macOS 14+. Unofficial; not affiliated with Anthropic, OpenAI or Anysphere.
+ya da [Sürümler](https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest) sayfasından dmg'yi indir,
+uygulamayı Applications'a sürükle, ilk açılışta **Sistem Ayarları → Gizlilik ve Güvenlik → Yine de Aç** de.
+macOS 14 ve üstü, ücretsiz. Resmi bir uygulama değildir; Anthropic, OpenAI ya da Anysphere ile bağlantısı yoktur.
 
 </details>

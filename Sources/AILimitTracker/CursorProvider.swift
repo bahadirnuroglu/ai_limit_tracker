@@ -51,21 +51,21 @@ enum CursorProvider {
 
         var limits: [Limit] = []
         if let total {
-            limits.append(Limit(id: "cursor.plan", label: "Aylık dahil kullanım", percent: total, resetsAt: end,
-                                window: window, short: "Aylık"))
+            limits.append(Limit(id: "cursor.plan", label: L("Aylık dahil kullanım", "Monthly included usage"), percent: total, resetsAt: end,
+                                window: window, short: L("Aylık", "Monthly")))
         }
         if let auto = num("autoPercentUsed") {
-            limits.append(Limit(id: "cursor.auto", label: "Auto ve Composer", percent: auto, resetsAt: end,
+            limits.append(Limit(id: "cursor.auto", label: L("Auto ve Composer", "Auto and Composer"), percent: auto, resetsAt: end,
                                 window: window, model: "auto", short: "Auto"))
         }
         if let api = num("apiPercentUsed") {
-            limits.append(Limit(id: "cursor.api", label: "API modelleri", percent: api, resetsAt: end,
+            limits.append(Limit(id: "cursor.api", label: L("API modelleri", "API models"), percent: api, resetsAt: end,
                                 window: window, model: "api", short: "API"))
         }
         let note: String? = {
             guard let used, let limit, limit > 0 else { return nil }
             let f = NumberFormatter()
-            f.numberStyle = .currency; f.currencyCode = "USD"; f.locale = Locale(identifier: "tr_TR")
+            f.numberStyle = .currency; f.currencyCode = "USD"; f.locale = Locale(identifier: Lang.isTR ? "tr_TR" : "en_US")
             f.maximumFractionDigits = 2
             return "\(f.string(from: NSNumber(value: used / 100)) ?? "") / \(f.string(from: NSNumber(value: limit / 100)) ?? "")"
         }()

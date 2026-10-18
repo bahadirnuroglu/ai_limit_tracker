@@ -5,6 +5,10 @@ macOS menü çubuğu uygulaması: Claude, Codex ve Cursor kullanım limitlerini 
 NOT: Tanıtım filmi (marketing/x-thread/source/launch.*) Antigravity'yi de gösteriyor; kullanıcı 2026-10-18'de
 "sadece filmde göster" dedi (uygulamada yok, logo resmi değil, nötr kemer).
 Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıfırdan yazma, mevcut kodu düzenle.
+Uygulama İKİ DİLLİ (v0.3.15'ten beri): her arayüz metni L("Türkçe", "English") ile yazılır (Localization.swift; Mac'in ilk
+dili tr ise Türkçe, değilse İngilizce, açılışta bir kez okunur). Yeni metin eklerken iki dili de yaz. İngilizce terimler
+tanıtım filmiyle aynı ("Full in 22 min at this pace", "5 hours", "Weekly", "Notify when 5 hours opens"). Tanılama metni
+Türkçe kalır (geliştirici okur). README İngilizce (sonda kısa Türkçe özet), lisans MIT.
 
 ## Derleme
 - HER ZAMAN: `bash build-app.sh --install` (derler, imzalar, /Applications'a kurar, yeniden açar)
@@ -110,6 +114,12 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   Ayarlar → Menü Çubuğu: 2×2 seçim kartı, her kartta gerçek veriyle çizilmiş ikon (store.menuIcon(style:)).
   Ayarlar son açılan sekmeyi hatırlar (@AppStorage "settingsTab").
 - BrandLogos.swift: Claude/OpenAI/Cursor logoları (Simple Icons SVG path'i + küçük SVG ayrıştırıcı)
+- Localization.swift: Lang.isTR + L(tr, en). Info.plist CFBundleDevelopmentRegion en, CFBundleLocalizations [en, tr]
+  (sistem pencereleri de dile uyar). Görsel kontrol: kaynakları (App.swift hariç) scratchpad'e kopyalayıp UsageStore
+  kopyasında init/refresh/refreshIfStale/reload'ı boşaltan küçük bir @main düzenekle örnek veriyi çizip cacheDisplay ile PNG
+  al (-AppleLanguages '(en)'); boşaltmazsan popup onAppear'da GERÇEK oturumla veri çeker.
+- docs/hero.png (README görseli): marketing/x-thread/source/launch.html#en-dark-noag-still; VW=3200 VH=1800 snapvid
+  ile video, sonra frame ile kare (snapvid'in poster PNG'si bulanık duvar kâğıdını çizmiyor).
 - tools/make-icon.sh: AppIcon.icns'i üretir (tools/make-icon.swift: kartlarla aynı gümüş metal + hologram zemin,
   iç içe iki halka: dış turuncu, iç grafit)
 

@@ -35,32 +35,32 @@ enum Countdown {
     static func text(seconds: TimeInterval) -> String {
         let total = max(Int(seconds), 0)
         let d = total / 86_400, h = (total % 86_400) / 3600, m = (total % 3600) / 60
-        if d > 0 { return "\(d) g \(h) sa" }
-        if h > 0 { return "\(h) sa \(m) dk" }
-        return "\(m) dk"
+        if d > 0 { return L("\(d) g \(h) sa", "\(d) d \(h) h") }
+        if h > 0 { return L("\(h) sa \(m) dk", "\(h) h \(m) m") }
+        return L("\(m) dk", "\(m) m")
     }
 
-    /// Dar etiketler için açılış zamanı: 24 saat içindeyse saat ("açılış 15:20"), değilse "3 g sonra"
+    /// Dar etiketler için açılış zamanı: 24 saat içindeyse saat ("açılış 15:20" / "opens 15:20"), değilse "3 g sonra açılır"
     static func opens(at date: Date) -> String {
         date.timeIntervalSinceNow < 86_400
-            ? "açılış \(date.formatted(date: .omitted, time: .shortened))"
-            : "\(short(seconds: date.timeIntervalSinceNow)) sonra açılır"
+            ? L("açılış ", "opens ") + date.formatted(date: .omitted, time: .shortened)
+            : L("\(short(seconds: date.timeIntervalSinceNow)) sonra açılır", "opens in \(short(seconds: date.timeIntervalSinceNow))")
     }
 
     /// Sadece en büyük birim: "12 sa", "3 g", "40 dk" (dar yerler için)
     static func short(seconds: TimeInterval) -> String {
         let total = max(Int(seconds), 0)
-        if total >= 86_400 { return "\(total / 86_400) g" }
-        if total >= 3600 { return "\(total / 3600) sa" }
-        return "\(max(total / 60, 1)) dk"
+        if total >= 86_400 { return L("\(total / 86_400) g", "\(total / 86_400) d") }
+        if total >= 3600 { return L("\(total / 3600) sa", "\(total / 3600) h") }
+        return L("\(max(total / 60, 1)) dk", "\(max(total / 60, 1)) min")
     }
 
-    /// "2 saatte", "40 dakikada", "3 günde" (kart etiketi: "Bu hızla 2 saatte dolar")
+    /// "2 saatte", "40 dakikada", "3 günde" / "in 2 hours", "in 40 min" (kart etiketi: "Bu hızla 2 saatte dolar")
     static func within(seconds: TimeInterval) -> String {
         let total = max(Int(seconds), 0)
-        if total >= 86_400 { return "\(total / 86_400) günde" }
-        if total >= 3600 { return "\(total / 3600) saatte" }
-        return "\(max(total / 60, 1)) dakikada"
+        if total >= 86_400 { let n = total / 86_400; return L("\(n) günde", n == 1 ? "in 1 day" : "in \(n) days") }
+        if total >= 3600 { let n = total / 3600; return L("\(n) saatte", n == 1 ? "in 1 hour" : "in \(n) hours") }
+        return L("\(max(total / 60, 1)) dakikada", "in \(max(total / 60, 1)) min")
     }
 }
 
@@ -189,7 +189,7 @@ final class UsageStore: ObservableObject {
     func label(_ account: Account) -> String { account.customName ?? "\(number(account))" }
 
     /// Cümle içindeki ad: verilen ad ya da "Hesap 2"
-    func longLabel(_ account: Account) -> String { account.customName ?? "Hesap \(number(account))" }
+    func longLabel(_ account: Account) -> String { account.customName ?? L("Hesap \(number(account))", "Account \(number(account))") }
 
     /// Bildirim başlığı: tek hesapta "Claude", birden çoğunda "Claude · İş" / "Claude · Hesap 2"
     func title(_ account: Account) -> String {
@@ -213,7 +213,7 @@ final class UsageStore: ObservableObject {
         }
         let session = session(for: account)
         session.onLoginWindowClosed = { [weak self] in Task { await self?.finishAdding(account) } }
-        session.showLogin(title: "Yeni \(id.name) hesabı · \(id.webHost) girişi")
+        session.showLogin(title: L("Yeni \(id.name) hesabı · \(id.webHost) girişi", "New \(id.name) account · sign in to \(id.webHost)"))
     }
 
     private func finishAdding(_ account: Account) async {
@@ -263,10 +263,12 @@ final class UsageStore: ObservableObject {
 
     private func duplicateAlert(_ email: String, browser: Bool) {
         let alert = NSAlert()
-        alert.messageText = "Bu hesap zaten ekli"
+        alert.messageText = L("Bu hesap zaten ekli", "This account is already added")
         alert.informativeText = browser
-            ? "\(email) bu listede var. Tarayıcında başka hesaba geçip Hesap Ekle'yi tekrar dene."
-            : "\(email) bu listede var. Başka bir hesapla giriş yapmak için Hesap Ekle'yi tekrar dene."
+            ? L("\(email) bu listede var. Tarayıcında başka hesaba geçip Hesap Ekle'yi tekrar dene.",
+                "\(email) is already in the list. Switch to another account in your browser, then try Add Account again.")
+            : L("\(email) bu listede var. Başka bir hesapla giriş yapmak için Hesap Ekle'yi tekrar dene.",
+                "\(email) is already in the list. To sign in with a different account, try Add Account again.")
         alert.runModal()
     }
 
@@ -431,7 +433,8 @@ final class UsageStore: ObservableObject {
             // Eski veri kalır, uyarı çıkmaz; veri hiç yoksa kısa bir not
             var current = usage(of: account)
             if current.limits.isEmpty {
-                current.issue = Issue(text: "\(account.provider.name) kısa süreliğine sınır koydu; birkaç dakika içinde tekrar denenecek.", action: nil)
+                current.issue = Issue(text: L("\(account.provider.name) kısa süreliğine sınır koydu; birkaç dakika içinde tekrar denenecek.",
+                                                 "\(account.provider.name) is limiting requests for now; trying again in a few minutes."), action: nil)
                 usage[account.id] = current
             }
         } catch {
@@ -440,7 +443,7 @@ final class UsageStore: ObservableObject {
             if account.isLocal {
                 current.issue = Issue.from(error, provider: account.provider)
             } else if case SessionError.needsLogin = error {
-                current.issue = Issue(text: "\(longLabel(account)) oturumu kapanmış.", action: .login)
+                current.issue = Issue(text: L("\(longLabel(account)) oturumu kapanmış.", "\(longLabel(account)) was signed out."), action: .login)
             } else {
                 current.issue = Issue.from(error, provider: account.provider)
             }
@@ -598,35 +601,35 @@ final class UsageStore: ObservableObject {
             var model: String?
             var short: String?
             switch key {
-            case "five_hour": label = "5 saat"; window = 18_000
-            case "seven_day": label = "Haftalık"; window = 604_800
+            case "five_hour": label = L("5 saat", "5 hours"); window = 18_000
+            case "seven_day": label = L("Haftalık", "Weekly"); window = 604_800
             default:
                 // seven_day_opus, seven_day_sonnet …: modele özel haftalık
                 model = key.hasPrefix("seven_day_") ? String(key.dropFirst("seven_day_".count)) : key
-                let names = ["opus": "Opus", "sonnet": "Sonnet", "oauth_apps": "Uygulamalar", "routines": "Rutinler",
-                             "cowork": "Cowork", "extra_usage": "Ekstra"]
+                let names = ["opus": "Opus", "sonnet": "Sonnet", "oauth_apps": L("Uygulamalar", "Apps"), "routines": L("Rutinler", "Routines"),
+                             "cowork": "Cowork", "extra_usage": L("Ekstra", "Extra")]
                 // Ekstra kullanım: arka yüzde tam adıyla
-                let fullNames = ["extra_usage": "Ekstra kullanım"]
+                let fullNames = ["extra_usage": L("Ekstra kullanım", "Extra usage")]
                 if let name = names[model ?? key] {
-                    label = key.hasPrefix("seven_day") ? "Haftalık · \(name)" : (fullNames[key] ?? name)
+                    label = key.hasPrefix("seven_day") ? L("Haftalık · \(name)", "Weekly · \(name)") : (fullNames[key] ?? name)
                     short = name
                 } else if dict["limit_dollars"] != nil {
                     // Anthropic'in kod adlı dolar kotası (ör. "harbor_lantern": limit sıfırlanınca açılan 100 $'lık hak);
                     // adı iç kod adı olduğundan anlaşılır adla gösterilir
                     // Dolar tutarı gösterilmez: Anthropic'in iç birimi, kullanıcıdan para kesilmiyor ("37 $" harcama sanılıyordu)
-                    label = "Ek kota"
-                    short = "Ek kota"
+                    label = L("Ek kota", "Bonus quota")
+                    short = L("Ek kota", "Bonus")
                     model = Limit.unnamed
                 } else {
                     // Tanınmayan kod adlı sayaç: ne ölçtüğü bilinmiyor; arka yüzde "Diğer limit", ön yüze yalnızca %90+ çıkar
-                    label = key.hasPrefix("seven_day") ? "Haftalık · diğer" : "Diğer limit"
-                    short = "Diğer"
+                    label = key.hasPrefix("seven_day") ? L("Haftalık · diğer", "Weekly · other") : L("Diğer limit", "Other limit")
+                    short = L("Diğer", "Other")
                     model = Limit.unnamed
                 }
                 window = key.hasPrefix("seven_day") ? 604_800 : nil
             }
             return Limit(id: "claude.\(key)", label: label, percent: util, resetsAt: date, window: window,
-                         model: model, short: short, caption: key == "extra_usage" ? "kullanım" : nil)
+                         model: model, short: short, caption: key == "extra_usage" ? L("kullanım", "usage") : nil)
         }
         .sorted { a, b in
             let ia = order.firstIndex { a.id == "claude.\($0)" } ?? Int.max

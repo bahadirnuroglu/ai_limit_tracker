@@ -11,19 +11,19 @@ enum MenuBarStyle: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .recentTwo: return "Son kullanılan iki"
-        case .mostFull: return "En dolu"
-        case .sideBySide: return "Yan yana"
-        case .bars: return "Barlar"
+        case .recentTwo: return L("Son kullanılan iki", "Last two used")
+        case .mostFull: return L("En dolu", "Fullest")
+        case .sideBySide: return L("Yan yana", "Side by side")
+        case .bars: return L("Barlar", "Bars")
         }
     }
 
     var detail: String {
         switch self {
-        case .recentTwo: return "En son kullandığın iki sağlayıcı, iç içe halkalar"
-        case .mostFull: return "Limite en yakın sağlayıcı, ortasında logosu"
-        case .sideBySide: return "Her sağlayıcı kendi halkası ve logosuyla"
-        case .bars: return "Her sağlayıcı için ince bir bar"
+        case .recentTwo: return L("En son kullandığın iki sağlayıcı, iç içe halkalar", "The two providers you used last, as nested rings")
+        case .mostFull: return L("Limite en yakın sağlayıcı, ortasında logosu", "The provider closest to its limit, logo in the middle")
+        case .sideBySide: return L("Her sağlayıcı kendi halkası ve logosuyla", "Each provider with its own ring and logo")
+        case .bars: return L("Her sağlayıcı için ince bir bar", "A thin bar for each provider")
         }
     }
 }
@@ -160,7 +160,7 @@ enum MenuIcon {
     /// "1:20" (saat:dakika) ya da "2g"
     private static func clock(_ date: Date) -> String {
         let s = max(Int(date.timeIntervalSinceNow), 0)
-        if s >= 86_400 { return "\(s / 86_400)g" }
+        if s >= 86_400 { return L("\(s / 86_400)g", "\(s / 86_400)d") }
         return String(format: "%d:%02d", s / 3600, (s % 3600) / 60)
     }
 

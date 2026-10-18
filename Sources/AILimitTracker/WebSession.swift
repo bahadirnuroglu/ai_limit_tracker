@@ -53,7 +53,7 @@ final class WebSession: NSObject, NSWindowDelegate, WKUIDelegate {
         popup.uiDelegate = self
         let window = NSWindow(contentRect: popup.frame, styleMask: [.titled, .closable, .resizable],
                               backing: .buffered, defer: false)
-        window.title = "Giriş"
+        window.title = L("Giriş", "Sign In")
         window.isReleasedWhenClosed = false
         window.contentView = popup
         if let parent = loginWindow { window.setFrameTopLeftPoint(NSPoint(x: parent.frame.midX - size.width / 2, y: parent.frame.maxY - 40)) }
@@ -210,7 +210,7 @@ final class WebSession: NSObject, NSWindowDelegate, WKUIDelegate {
             w.center()
             loginWindow = w
         }
-        loginWindow?.title = title ?? "\(provider.webHost) girişi · AI Limit Tracker"
+        loginWindow?.title = title ?? L("\(provider.webHost) girişi", "Sign in to \(provider.webHost)") + " · AI Limit Tracker"
         banner.done = false
         loginOpen = true
         webView.load(URLRequest(url: loginURL))
@@ -264,11 +264,12 @@ private struct LoginBanner: View {
                 .frame(width: 28)
             VStack(alignment: .leading, spacing: 2) {
                 if state.done {
-                    Text("Giriş tamam").font(.headline)
-                    Text("Limitlerin geliyor, pencere kapanıyor…").foregroundStyle(.secondary)
+                    Text(L("Giriş tamam", "Signed in")).font(.headline)
+                    Text(L("Limitlerin geliyor, pencere kapanıyor…", "Your limits are on the way, closing this window…")).foregroundStyle(.secondary)
                 } else {
-                    Text("Bu pencere tarayıcından ayrı").font(.headline)
-                    Text("Chrome ya da Safari'deki girişin ve kayıtlı şifrelerin burada görünmez. \(host) hesabına bir kez giriş yapman yeter: oturum hatırlanır, giriş bitince pencere kendiliğinden kapanır.")
+                    Text(L("Bu pencere tarayıcından ayrı", "This window is separate from your browser")).font(.headline)
+                    Text(L("Chrome ya da Safari'deki girişin ve kayıtlı şifrelerin burada görünmez. \(host) hesabına bir kez giriş yapman yeter: oturum hatırlanır, giriş bitince pencere kendiliğinden kapanır.",
+                            "Your Chrome or Safari sign-ins and saved passwords don't show up here. Sign in to \(host) once: the session is remembered and this window closes by itself when you're done."))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -276,7 +277,7 @@ private struct LoginBanner: View {
             .font(.callout)
             Spacer(minLength: 8)
             if !state.done {
-                Button("Kapat", action: close).controlSize(.regular)
+                Button(L("Kapat", "Close"), action: close).controlSize(.regular)
             }
         }
         .padding(.horizontal, 16)
