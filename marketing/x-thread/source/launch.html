@@ -16,7 +16,8 @@ html, body { margin: 0; width: 1600px; height: 900px; overflow: hidden; backgrou
 .shot { position: absolute; inset: 0; overflow: hidden }
 .t { position: absolute; font-weight: 600; letter-spacing: -.02em; line-height: 1.05; z-index: 10 }
 .t .g { color: #86868b }
-.t .a .wd, .t .a:not(:has(.wd)) { background: linear-gradient(90deg, #6e5ce7, #e8463a 60%, #ff9500); -webkit-background-clip: text; background-clip: text; color: transparent }
+/* Vurgu kelimeleri düz renk (renk geçişli yazı kullanıcı isteğiyle kaldırıldı) */
+.t .a .wd, .t .a { color: inherit }
 .t .ln { display: block }
 .wd { display: inline-block; white-space: pre }
 .left { left: 120px; top: 50%; transform: translateY(-50%); font-size: 74px; width: 620px }
@@ -28,13 +29,13 @@ html, body { margin: 0; width: 1600px; height: 900px; overflow: hidden; backgrou
 .panel .mbar { background: rgba(255,255,255,.55); color: #1d1d1f }
 .mstrip { position: absolute; left: 0; right: 0; top: 0; height: 120px; background: rgba(255,255,255,.55); -webkit-backdrop-filter: blur(30px); display: flex; align-items: center; gap: 44px; padding-left: 44px; font-size: 34px; font-weight: 500; color: #1d1d1f; letter-spacing: -.01em }
 #slot { display: grid; place-items: center; min-width: 180px; height: 76px; border-radius: 16px; background: rgba(0,0,0,.1) }
-/* ---- Koyu sürüm: siyah zemin, kısık renk bulutu, grafit kartlar (comp.css .dk), Sonoma koyu duvar kâğıdı ---- */
+/* ---- Koyu sürüm: akşama çekilmiş Tahoe zemin, grafit kartlar (comp.css .dk) ---- */
 .dk html, .dk body { background: #000 }
 .dk #stage { color: #f5f5f7 }
-.dk .bg { background: url(wall/sonoma-dark.jpg) 55% 35% / cover; filter: blur(60px) saturate(1.2) }
-.dk .veil { background: rgba(0,0,0,.6) }
-.dk .t .a .wd { background: linear-gradient(90deg, #9b8cff, #ff6a55 60%, #ffb340); -webkit-background-clip: text; background-clip: text; color: transparent }
-.dk .lwall { background: linear-gradient(rgba(0,0,0,.12), rgba(0,0,0,.12)), url(wall/sonoma-dark.jpg) 60% 30% / cover }
+/* Koyu: Tahoe Day akşama çekilmiş (lacivert perde + karartma); Apple'ın gece duvar kâğıdı bu Mac'te yok */
+.dk .bg { background: linear-gradient(rgba(6,12,34,.55), rgba(6,12,34,.55)), url(wall/tahoe-day.jpg) 40% 45% / cover; filter: blur(60px) saturate(1.1) }
+.dk .veil { background: rgba(0,0,0,.5) }
+.dk .lwall { background: linear-gradient(rgba(4,10,30,.45), rgba(4,10,30,.45)), url(wall/tahoe-day.jpg) 30% 40% / cover }
 .dk .panel { box-shadow: 0 40px 100px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.1) }
 .dk .panel .mbar { background: rgba(0,0,0,.35); color: #fff }
 .dk .mstrip { background: rgba(30,30,34,.6); color: #f5f5f7 }
