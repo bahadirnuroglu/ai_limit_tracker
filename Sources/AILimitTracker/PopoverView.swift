@@ -572,7 +572,6 @@ private struct ProviderCard: View {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(usage.limits) { limit in MiniLimitRow(limit: limit) }
                     if usage.limits.isEmpty { Text("Henüz veri yok.").font(.system(size: 10)) }
-                    if let shares = usage.breakdown, shares.contains(where: { $0.percent > 0 }) { WeekShares(shares: shares) }
                 }
                 .opacity(staticPart)
             case .activity:
@@ -783,46 +782,6 @@ private struct MiniLimitRow: View {
                 Text("\(Countdown.text(to: reset)) sonra sıfırlanır").font(.system(size: 11, weight: .regular))
             }
         }
-    }
-}
-
-/// Bu hafta kullanımın nereye gittiği: tek parçalı oran çubuğu + payı olan kaynaklar
-private struct WeekShares: View {
-    let shares: [UsageShare]
-
-    static func color(_ key: String) -> Color {
-        switch key {
-        case "claude_code": return Color(red: 0.851, green: 0.467, blue: 0.341)  // Claude turuncusu
-        case "chat": return Color(red: 0.42, green: 0.36, blue: 0.91)            // mor
-        case "cowork": return Color(red: 0.23, green: 0.53, blue: 0.97)          // mavi
-        default: return Color.gray
-        }
-    }
-
-    var body: some View {
-        let used = shares.filter { $0.percent > 0 }
-        let total = max(used.map(\.percent).reduce(0, +), 1)
-        VStack(alignment: .leading, spacing: 5) {
-            Text("Bu hafta nereye gitti").font(.system(size: 12.5, weight: .medium))
-            GeometryReader { geo in
-                HStack(spacing: 2) {
-                    ForEach(used, id: \.self) { s in
-                        Capsule().fill(Self.color(s.key)).frame(width: max(4, (geo.size.width - CGFloat(used.count - 1) * 2) * s.percent / total))
-                    }
-                }
-            }
-            .frame(height: 7)
-            HStack(spacing: 10) {
-                ForEach(used, id: \.self) { s in
-                    HStack(spacing: 4) {
-                        Circle().fill(Self.color(s.key)).frame(width: 6, height: 6)
-                        Text("\(s.name) %\(Int(s.percent.rounded()))")
-                    }
-                }
-            }
-            .font(.system(size: 11, weight: .regular))
-        }
-        .padding(.top, 2)
     }
 }
 

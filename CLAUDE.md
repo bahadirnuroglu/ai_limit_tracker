@@ -40,8 +40,8 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   Claude /api/oauth/usage yanıtında five_hour/seven_day dışında ~20 KOD ADLI alan var (harbor_lantern, iguana_necktie…;
   çoğu null). limit_dollars içerenler "Ek kota" (kullanıcıda limit sıfırlanınca açılan 100 $'lık hak; dolar GÖSTERİLMEZ, harcama sanılıyordu),
   diğer tanınmayanlar "Diğer limit"; ikisi de model = Limit.unnamed, ön yüze yalnızca %90+ çıkar. Yanıtta ayrıca yeni
-  "limits" dizisi (kind/group/percent/severity) var, kullanılmıyor. seven_day_breakdown → ProviderUsage.breakdown → kart arkası
-  Limitler sekmesinde "Bu hafta nereye gitti" (WeekShares: oran çubuğu + Claude Code / Sohbet / Cowork / Diğer payı). Günlük bütçe denendi, kullanıcı istemedi: KALDIRILDI.
+  "limits" dizisi (kind/group/percent/severity) ve seven_day_breakdown (Claude Code / sohbet / Cowork payı) var, kullanılmıyor
+  ("Bu hafta nereye gitti" çubuğu eklendi, kullanıcı gereksiz bulup KALDIRTTI). Günlük bütçe denendi, kullanıcı istemedi: KALDIRILDI.
 - WebSession.swift: gizli WKWebView ile claude.ai oturumu; /api/organizations/{id}/usage
   sayfa bağlamından fetch edilir (alanlar: utilization, resets_at). Token'a dokunulmaz.
   Giriş penceresi: üstte "Bu pencere tarayıcından ayrı" notu (arkadaş Safari sandı, Chrome girişi/şifreleri görünmüyordu),
