@@ -7,13 +7,14 @@
 /* Tanıtım filmi: açık, havadar zemin (çok hafif hologram renk bulutu), solda büyük başlık + sağda kenardan taşan ürün,
    kelime kelime / harf harf yazılan tipografi, beyaza bulanıklaşan geçişler; ürün uygulamanın açık temasındaki gümüş kartlar */
 html, body { margin: 0; width: 1600px; height: 900px; overflow: hidden; background: #fbfbfd }
-#stage { position: relative; width: 1600px; height: 900px; overflow: hidden; color: #1d1d1f; font-family: var(--sf); -webkit-font-smoothing: antialiased; letter-spacing: -.02em }
-.bg { position: absolute; inset: -10%; background:
-  radial-gradient(38% 42% at 30% 35%, rgba(190,170,255,.28), transparent 70%),
-  radial-gradient(34% 40% at 72% 62%, rgba(255,190,160,.26), transparent 70%),
-  radial-gradient(30% 34% at 60% 20%, rgba(160,225,255,.22), transparent 70%), #fbfbfd }
+/* Yazı: Apple tanıtımlarının dili — SF Pro Display; başlık Semibold, harf aralığı -0,02 em, satır 1,05; ikinci cümle #86868b */
+#stage { position: relative; width: 1600px; height: 900px; overflow: hidden; color: #1d1d1f; font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; font-synthesis: none; letter-spacing: -.015em }
+/* Zemin: macOS duvar kâğıdı, yoğun bulanık + okunurluk perdesi (masaüstü sahnelerindeki net duvar kâğıdıyla aynı) */
+.bg { position: absolute; inset: -12%; background: url(wall/tahoe-day.jpg) 40% 45% / cover; filter: blur(60px) saturate(1.25) }
+.veil { position: absolute; inset: 0; background: rgba(250,250,252,.62) }
 .shot { position: absolute; inset: 0; overflow: hidden }
-.t { position: absolute; font-weight: 600; letter-spacing: -.03em; line-height: 1.06; z-index: 10 }
+.t { position: absolute; font-weight: 600; letter-spacing: -.02em; line-height: 1.05; z-index: 10 }
 .t .g { color: #86868b }
 .t .a .wd, .t .a:not(:has(.wd)) { background: linear-gradient(90deg, #6e5ce7, #e8463a 60%, #ff9500); -webkit-background-clip: text; background-clip: text; color: transparent }
 .t .ln { display: block }
@@ -30,7 +31,8 @@ html, body { margin: 0; width: 1600px; height: 900px; overflow: hidden; backgrou
 /* ---- Koyu sürüm: siyah zemin, kısık renk bulutu, grafit kartlar (comp.css .dk), Sonoma koyu duvar kâğıdı ---- */
 .dk html, .dk body { background: #000 }
 .dk #stage { color: #f5f5f7 }
-.dk .bg { background: radial-gradient(38% 42% at 30% 35%, rgba(120,90,255,.2), transparent 70%), radial-gradient(34% 40% at 72% 62%, rgba(255,110,70,.14), transparent 70%), radial-gradient(30% 34% at 60% 20%, rgba(80,170,255,.12), transparent 70%), #000 }
+.dk .bg { background: url(wall/sonoma-dark.jpg) 55% 35% / cover; filter: blur(60px) saturate(1.2) }
+.dk .veil { background: rgba(0,0,0,.6) }
 .dk .t .a .wd { background: linear-gradient(90deg, #9b8cff, #ff6a55 60%, #ffb340); -webkit-background-clip: text; background-clip: text; color: transparent }
 .dk .lwall { background: linear-gradient(rgba(0,0,0,.12), rgba(0,0,0,.12)), url(wall/sonoma-dark.jpg) 60% 30% / cover }
 .dk .panel { box-shadow: 0 40px 100px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.1) }

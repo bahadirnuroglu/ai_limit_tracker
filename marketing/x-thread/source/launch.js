@@ -96,7 +96,7 @@
     () => `<span style="display:flex;gap:6px;align-items:center">${logo('claude', 'width="13" height="13" fill="#e8643c"')}${ring(64, 'red', 20, 3, false)}${logo('openai', 'width="13" height="13" fill="#1d1d1f"')}${ring(44, 'blue', 20, 3, false)}</span>`,
     () => `<span style="display:flex;flex-direction:column;gap:5px;width:52px"><i style="display:block;height:5px;border-radius:3px;background:linear-gradient(90deg,#e8643c 64%,rgba(0,0,0,.14) 64%)"></i><i style="display:block;height:5px;border-radius:3px;background:linear-gradient(90deg,#1d1d1f 44%,rgba(0,0,0,.14) 44%)"></i></span>`];
 
-  const sceneHTML = `<div class="bg" id="bg"></div>
+  const sceneHTML = `<div class="bg" id="bg"></div><div class="veil"></div>
     <div class="shot" id="s1"><div class="t center" style="top:388px;font-size:84px;display:flex;justify-content:center;align-items:center;gap:24px">
       <span id="meet">Meet</span><img id="ic" src="icon.png" width="104" height="104" style="filter:drop-shadow(0 14px 28px rgba(60,40,90,.18))"><span id="wm"></span></div></div>
     <div class="shot" id="s2"><div class="t center" id="h2" style="top:92px;font-size:76px">Every AI limit.<span class="g"> One glance.</span></div>
@@ -133,8 +133,8 @@
         ${noAG ? '' : `<div class="row"><span class="ic">${logo('antigravity')}</span><span class="lb">Antigravity<small>Read from the Antigravity app</small></span><span class="ok">${check}Connected</span></div>`}</div></div></div>
     <div class="shot" id="s9"><div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px">
       <img id="o0" src="icon.png" width="150" height="150" style="filter:drop-shadow(0 20px 40px rgba(60,40,90,.2))">
-      <div id="o1" style="font-size:76px;font-weight:650;letter-spacing:-.035em">AI Limit Tracker</div>
-      <div id="o2" style="font-size:42px;font-weight:500;letter-spacing:-.02em;min-height:52px"></div>
+      <div id="o1" style="font-size:76px;font-weight:600;letter-spacing:-.02em">AI Limit Tracker</div>
+      <div id="o2" style="font-size:40px;font-weight:500;letter-spacing:-.012em;min-height:52px;color:#86868b"></div>
       <div id="o3" style="margin-top:6px;display:flex;align-items:center;gap:14px;font-size:24px;color:#86868b;font-weight:500">Free for macOS · ${logo('claude', 'width="24" height="24" fill="#86868b"')}${logo('openai', 'width="24" height="24" fill="#86868b"')}${logo('cursor', 'width="24" height="24" fill="#86868b"')}${noAG ? '' : logo('antigravity', 'width="24" height="24" fill="#86868b"')}</div></div></div>
     <div class="wash" id="wash"></div>`;
   stage.innerHTML = dk ? sceneHTML.replace(/#1d1d1f/g, '#f5f5f7').replace(/rgba\(0,0,0,.18\)/g, 'rgba(255,255,255,.25)').replace(/rgba\(0,0,0,.14\)/g, 'rgba(255,255,255,.2)') : sceneHTML;
@@ -284,7 +284,7 @@
     // Beyaz geçiş kaldırıldı: kapanış da aynı akışla gelir
 
     // 9 · Kapanış: ikon, ad, yazılan slogan, ücretsiz
-    shot($('#s9'), t, 35.6, 40.6, .4, .01);
+    shot($('#s9'), t, 35.6, 42);
     { const k = spring(t - 35.8, .6, .65); $('#o0').style.opacity = seg(t, 35.8, 36); $('#o0').style.transform = `translateY(${30 * (1 - Math.min(1, k))}px) scale(${.6 + .4 * k})`; }
     { const k = eOut(seg(t, 36.3, 37.1)); $('#o1').style.opacity = k; $('#o1').style.filter = `blur(${10 * (1 - k)}px)`; $('#o1').style.transform = `translateY(${16 * (1 - k)}px)`; }
     type($('#o2'), o2text, t, 37.1, 1.5);
