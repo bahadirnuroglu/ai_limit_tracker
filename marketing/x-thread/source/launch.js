@@ -313,7 +313,7 @@
   // Durağan kare (README görseli): popup başlığın altında tam boy, üç kart dolu
   if (hp.includes('still')) {
     const full = window.frame; window.duration = 2; window.poster = 1.9; window.sfxEvents = [];
-    $('#pop2 > div').style.zoom = 1.55;
+    $('#pop2 > div').style.zoom = hp.includes('social') ? 1.35 : 1.55;   // social: GitHub paylaşım görseli (2:1 kırpılır)
     window.frame = () => {
       full(7.2);
       $$('.shot').forEach(el => { el.style.display = el.id === 's2' ? '' : 'none'; });

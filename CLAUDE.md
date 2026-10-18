@@ -118,7 +118,8 @@ Türkçe kalır (geliştirici okur). README İngilizce (sonda kısa Türkçe öz
   (sistem pencereleri de dile uyar). Görsel kontrol: kaynakları (App.swift hariç) scratchpad'e kopyalayıp UsageStore
   kopyasında init/refresh/refreshIfStale/reload'ı boşaltan küçük bir @main düzenekle örnek veriyi çizip cacheDisplay ile PNG
   al (-AppleLanguages '(en)'); boşaltmazsan popup onAppear'da GERÇEK oturumla veri çeker.
-- docs/hero.png (README görseli): marketing/x-thread/source/launch.html#en-dark-noag-still; VW=3200 VH=1800 snapvid
+- docs/hero.png (README görseli): marketing/x-thread/source/launch.html#en-dark-noag-still (GitHub paylaşım görseli
+  marketing/social-preview.jpg: #en-dark-noag-still-social, 2560×1440 → ortadan 2:1 kırp → 1280×640); VW=3200 VH=1800 snapvid
   ile video, sonra frame ile kare (snapvid'in poster PNG'si bulanık duvar kâğıdını çizmiyor).
 - tools/make-icon.sh: AppIcon.icns'i üretir (tools/make-icon.swift: kartlarla aynı gümüş metal + hologram zemin,
   iç içe iki halka: dış turuncu, iç grafit)
@@ -147,7 +148,7 @@ Türkçe kalır (geliştirici okur). README İngilizce (sonda kısa Türkçe öz
   her onAppear'da pencere alphaValue'yu 0->1 (0.18 sn) yapar. Her açılışta oynadığı log ile doğrulandı.
 
 ## Durum
-- YAYINDA: v0.3.14 (2026-10-18; Claude'un kod adlı sayaçları "Ek kota" / "Diğer limit", ön yüze yalnızca %90+; v0.3.1 ilk sabit sertifikalı sürüm). Yeni sürüm: Info.plist sürümünü artır, commit, `bash release.sh`.
+- YAYINDA: v0.3.15 (2026-10-18; İngilizce arayüz, İngilizce README + MIT lisansı; v0.3.1 ilk sabit sertifikalı sürüm). Yeni sürüm: Info.plist sürümünü artır, commit, `bash release.sh`.
   Kullanıcı işler bitince TOPLU sürüm istiyor. Token: Anahtar Zinciri "ailimit-github" (fine-grained, sadece
   ai_limit_tracker, Contents: Read and write + Metadata); kullanıcı terminale yapıştırarak kaydeder, sohbete değil.
 - Endpoint'ler dahili ve belgesiz; değişebilir.
