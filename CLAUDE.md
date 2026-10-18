@@ -123,6 +123,8 @@ kalıbı, her şeyi anlatan uzun cümleler YOK (kullanıcı "ai slop" buldu, iki
 - docs/hero.png (README görseli): marketing/x-thread/source/launch.html#en-dark-noag-still (GitHub paylaşım görseli
   marketing/social-preview.jpg: #en-dark-noag-still-social, 2560×1440 → ortadan 2:1 kırp → 1280×640); VW=3200 VH=1800 snapvid
   ile video, sonra frame ile kare (snapvid'in poster PNG'si bulanık duvar kâğıdını çizmiyor).
+  Filmlerde (launch.html .bg, film.html .desk) büyük, her karede ölçeklenen zemin katmanında will-change: transform ŞART:
+  yoksa WKWebView anlık görüntüsü bazı kareleri zeminsiz (siyah) yakalıyor, video yanıp sönüyor (kullanıcı fark etti).
 - tools/make-icon.sh: AppIcon.icns'i üretir (tools/make-icon.swift: kartlarla aynı gümüş metal + hologram zemin,
   iç içe iki halka: dış turuncu, iç grafit)
 
