@@ -137,7 +137,7 @@ Kullanıcı Türkçe konuşur, kısa iterasyonlarla çalışır; her turda sıf�
   her onAppear'da pencere alphaValue'yu 0->1 (0.18 sn) yapar. Her açılışta oynadığı log ile doğrulandı.
 
 ## Durum
-- YAYINDA: v0.3.13 (2026-10-18; Etkinlik her hesapta, ek hesaplar kendi ısı haritasını tutar; landing sayfası site/; v0.3.1 ilk sabit sertifikalı sürüm). Yeni sürüm: Info.plist sürümünü artır, commit, `bash release.sh`.
+- YAYINDA: v0.3.14 (2026-10-18; Claude'un kod adlı sayaçları "Ek kota" / "Diğer limit", ön yüze yalnızca %90+; v0.3.1 ilk sabit sertifikalı sürüm). Yeni sürüm: Info.plist sürümünü artır, commit, `bash release.sh`.
   Kullanıcı işler bitince TOPLU sürüm istiyor. Token: Anahtar Zinciri "ailimit-github" (fine-grained, sadece
   ai_limit_tracker, Contents: Read and write + Metadata); kullanıcı terminale yapıştırarak kaydeder, sohbete değil.
 - Endpoint'ler dahili ve belgesiz; değişebilir.
