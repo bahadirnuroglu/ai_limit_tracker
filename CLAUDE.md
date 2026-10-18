@@ -9,6 +9,8 @@ Uygulama İKİ DİLLİ (v0.3.15'ten beri): her arayüz metni L("Türkçe", "Engl
 dili tr ise Türkçe, değilse İngilizce, açılışta bir kez okunur). Yeni metin eklerken iki dili de yaz. İngilizce terimler
 tanıtım filmiyle aynı ("Full in 22 min at this pace", "5 hours", "Weekly", "Notify when 5 hours opens"). Tanılama metni
 Türkçe kalır (geliştirici okur). README İngilizce (sonda kısa Türkçe özet), lisans MIT.
+Dışa dönük metinler (README, sürüm notu, tweet) kısa ve kişisel: kalın etiketli açıklama listeleri, "X: şunu yapar"
+kalıbı, her şeyi anlatan uzun cümleler YOK (kullanıcı "ai slop" buldu, iki kez yeniden yazıldı).
 
 ## Derleme
 - HER ZAMAN: `bash build-app.sh --install` (derler, imzalar, /Applications'a kurar, yeniden açar)

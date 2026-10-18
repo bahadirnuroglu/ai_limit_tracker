@@ -43,12 +43,9 @@ BODY=$(VERSION="$VERSION" REPO="$REPO" NOTES="${NOTES:-}" python3 -c '
 import json, os
 v, repo, notes = os.environ["VERSION"], os.environ["REPO"], os.environ["NOTES"].strip()
 body = (notes + "\n\n" if notes else "") + (
-    "**Install:** one line in Terminal (no security prompt):\n\n"
     "```bash\ncurl -fsSL https://raw.githubusercontent.com/" + repo + "/main/install.sh | bash\n```\n\n"
-    "Or open the dmg and drag AI Limit Tracker to Applications. On first launch: "
-    "System Settings → Privacy & Security → Open Anyway.\n\n"
-    "**Kurulum:** Terminal’de yukarıdaki tek satır ya da dmg’yi aç, uygulamayı Applications’a sürükle; "
-    "ilk açılışta Sistem Ayarları → Gizlilik ve Güvenlik → Yine de Aç.")
+    "Or open the dmg and drag the app to Applications. First launch: System Settings → Privacy & Security → Open Anyway.\n\n"
+    "Kurulum yukarıdaki tek satır ya da dmg. dmg ile ilk açılışta Sistem Ayarları → Gizlilik ve Güvenlik → Yine de Aç.")
 print(json.dumps({"tag_name": "v" + v, "target_commitish": "main", "name": "AI Limit Tracker " + v, "body": body}))
 ')
 UPLOAD=$(curl -fsS "${AUTH[@]}" -X POST "$API/releases" -d "$BODY" \
