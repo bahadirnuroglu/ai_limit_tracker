@@ -291,15 +291,22 @@
     { const k = eOut(seg(t, 38.8, 39.6)); $('#o3').style.opacity = k; $('#o3').style.transform = `translateY(${12 * (1 - k)}px)`; }
     sway(t);
   };
-  const CLIPS = { tempo: [['s3'], 7.3, 12.7], alerts: [['s4', 's4b'], 11.8, 21.3], accounts: [['s5'], 20.4, 25.5],
-                  more: [['s6', 's7', 's8'], 24.6, 36.2], outro: [['s9'], 35.3, 40.4] };
+  // Klipler: thread için birleşik sahneler + her özelliğin tek sahnesi (her pencere giriş/çıkış kaymasını kapsar)
+  const CLIPS = { menu: [['s2', 's3'], 2.8, 12.7], tempo: [['s3'], 7.3, 12.7], alerts: [['s4', 's4b'], 11.8, 21.3],
+                  accounts: [['s5'], 20.4, 25.5], more: [['s6', 's7', 's8'], 24.6, 36.2, [35.2, 1.8]], outro: [['s9'], 35.3, 40.4],
+                  popup: [['s2'], 2.8, 8.2], notify: [['s4'], 11.8, 16.9], remind: [['s4b'], 16.0, 21.3],
+                  flip: [['s6'], 24.6, 29.3], keys: [['s7'], 28.4, 33.5], signin: [['s8'], 32.6, 36.2, [35.2, 1.8]] };
+  // Bekleme [an, sn]: filmde hemen sonraki sahneye akan yazı tek başına okunacak kadar kalsın diye o anda zaman
+  // sn saniye boyunca yalnızca HOLD kadar ilerler (tam donmaz, hologram ve salınım canlı kalır)
+  const HOLD = .1;
   const clip = Object.keys(CLIPS).find(k => hp.includes(k));
   if (clip) {
-    const [keep, c0, c1] = CLIPS[clip], full = window.frame;
-    window.duration = +(c1 - c0).toFixed(2); window.poster = Math.min(window.duration - .1, 3);
-    window.sfxEvents = sfx.filter(e => e.t >= c0 && e.t < c1).map(e => ({ ...e, t: +(e.t - c0).toFixed(3) }));
+    const [keep, c0, c1, [h0, hs] = [c1, 0]] = CLIPS[clip], full = window.frame, extra = hs ? hs - HOLD : 0;
+    const film = u => { const f = c0 + u; return f < h0 ? f : f < h0 + hs ? h0 + HOLD * (f - h0) / hs : f - extra; };
+    window.duration = +(c1 - c0 + extra).toFixed(2); window.poster = Math.min(window.duration - .1, 3);
+    window.sfxEvents = sfx.filter(e => e.t >= c0 && e.t < c1).map(e => ({ ...e, t: +(e.t - c0 + (e.t >= h0 ? extra : 0)).toFixed(3) }));
     window.frame = t => {
-      full(t + c0);
+      full(film(t));
       $$('.shot').forEach(el => { if (!keep.includes(el.id)) el.style.display = 'none'; });
     };
   }

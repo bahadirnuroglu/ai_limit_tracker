@@ -4,15 +4,19 @@ Ton: kişisel, kısa, küçük harf, günlük dil. Hikâye: hafta sonu kendine v
 küçük bir uygulama; benzerleri vardı, kendine göre yorumladın; aynı dertten şikayet edenler için paylaşıyorsun.
 Slogan, iki noktalı "işte şu:" açılışları, düzenli özellik listesi ve emoji yok.
 
-- **Medya:** `film/thread/`: 1. tweet'te tanıtım filminin tamamı (koyu, sesli, 40 sn), alt tweet'lerde aynı filmin sahneleri tek başına.
+- **Medya:** `film/thread/`: 1. tweet'te tanıtım filminin tamamı (koyu, sesli, 40 sn), alt tweet'lerde aynı filmin o özelliği
+  anlatan sahneleri tek başına (boş duvar kâğıdından kayarak girip çıkar, kendi sesleriyle).
   Bu kesimde Antigravity yok (uygulamada desteklenmiyor); Antigravity'li tam sürüm `film/en/00-launch-dark.mp4`.
+- **Tek tek sahneler:** `film/thread/scenes/` (1-popup, 2-tempo, 3-notify, 4-remind, 5-accounts, 6-flip, 7-keys, 8-signin,
+  9-outro). Cevaplarda tek bir özelliği göstermek ya da bir tweet'in klibini değiştirmek için.
+- **Üretim:** `source/launch.html#en-dark-noag-<klip>`; klipler `launch.js` içindeki CLIPS (sahneler, pencere, bekleme).
 - **Film içi yazılar İngilizce.** Türkçe thread için ayrıca Türkçe kesim gerekir.
 - **Link:** yalnızca son tweet'te.
 
 | # | Value | Değer | Film |
 |---|---|---|---|
 | 1 | Why I built it | Neden yaptım | `1-launch` |
-| 2 | Pace forecast | Tempo tahmini | `2-tempo` |
+| 2 | Menu bar and pace forecast | Menü çubuğu ve tempo tahmini | `2-menu` |
 | 3 | Alerts and reminders | Bildirim ve hatırlatma | `3-alerts` |
 | 4 | Two accounts | İki hesap | `4-accounts` |
 | 5 | Sign-in, privacy, small things | Giriş, gizlilik, ufak şeyler | `5-more` |
@@ -38,7 +42,7 @@ Slogan, iki noktalı "işte şu:" açılışları, düzenli özellik listesi ve 
 
 ---
 
-## 2/ · `2-tempo.mp4`
+## 2/ · `2-menu.mp4`
 
 **EN**
 > it lives in the menu bar. click it and every limit is right there. it also guesses when you'll run out at your current pace, that's the part i actually look at.
@@ -46,9 +50,9 @@ Slogan, iki noktalı "işte şu:" açılışları, düzenli özellik listesi ve 
 **TR**
 > menü bara oturuyor, tıklayınca hepsinin limiti orada. bu hızla gidersem ne zaman dolacağını da söylüyor, en çok ona bakıyorum.
 
-**Film:** the ring climbs to 91% and the forecast drops to 22 minutes.
-**Alt:** A Claude usage card: the 5-hour ring climbs to 91% and the forecast changes to "Full in 22 min at this pace".
-**Alt (TR):** Claude kartı: 5 saatlik halka %91'e çıkıyor, tahmin "Bu hızla 22 dakikada dolar" oluyor.
+**Film:** the popup opens with Claude, Codex and Cursor, then the ring climbs to 91% and the forecast drops to 22 minutes.
+**Alt:** The menu bar popup lists Claude, Codex and Cursor limits as rings; then a Claude card climbs to 91% and the forecast changes to "Full in 22 min at this pace".
+**Alt (TR):** Menü çubuğu popup'ı Claude, Codex ve Cursor limitlerini halkalarla gösteriyor; sonra Claude kartı %91'e çıkıyor, tahmin "Bu hızla 22 dakikada dolar" oluyor.
 
 ---
 
