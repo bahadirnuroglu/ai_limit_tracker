@@ -1,41 +1,35 @@
 # X thread: AI Limit Tracker
 
-Ton: birinci tekil şahıs, kendi derdini anlatan bir geliştirici. Hikâye: hafta sonu kendine verdiğin challenge, kendi ihtiyacından
-çıkan bir araç, benzerleri vardı ama kendine göre yaptın, aynı dertten şikayet edenler için paylaşıyorsun.
-Slogan, "Meet…", üçlü sıralama, "zero downtime" gibi pazarlama dili yok.
+Ton: kişisel, kısa, küçük harf, günlük dil. Hikâye: hafta sonu kendine verdiğin challenge, kendi ihtiyacından çıkan
+küçük bir uygulama; benzerleri vardı, kendine göre yorumladın; aynı dertten şikayet edenler için paylaşıyorsun.
+Slogan, iki noktalı "işte şu:" açılışları, düzenli özellik listesi ve emoji yok.
 
-- **Medya:** `film/en/` (İngilizce thread), `film/tr/` (Türkçe thread). Her tweet'te bir film.
-- **Antigravity:** Tanıtım filminde (`00-launch`) var ama uygulamada yok; thread'de geçmiyor. Tanıtım filmini thread'de kullanacaksan bunu unutma.
+- **Medya:** `film/en/` (İngilizce), `film/tr/` (Türkçe). Her tweet'te bir film.
+- **Antigravity:** Tanıtım filminde (`00-launch`) var ama uygulamada yok; thread'de geçmiyor.
 - **Link:** yalnızca son tweet'te.
 
 | # | Value | Değer | Film |
 |---|---|---|---|
 | 1 | Why I built it | Neden yaptım | `01-hook` |
-| 2 | All limits in one place | Hepsi tek yerde | `02-one` |
-| 3 | Pace forecast | Tempo tahmini | `03-forecast` |
-| 4 | Alerts and reminders | Bildirim ve hatırlatma | `05-remind` |
-| 5 | Two accounts | İki hesap | `06-accounts` |
-| 6 | Small things | Küçük detaylar | `07-flip` |
-| 7 | Privacy | Gizlilik | `09-privacy` |
-| 8 | Free, feedback | Ücretsiz, geri bildirim | `10-cta` |
+| 2 | Pace forecast | Tempo tahmini | `03-forecast` |
+| 3 | Alerts and reminders | Bildirim ve hatırlatma | `05-remind` |
+| 4 | Two accounts | İki hesap | `06-accounts` |
+| 5 | Sign-in, privacy, small things | Giriş, gizlilik, ufak şeyler | `09-privacy` |
+| 6 | Sharing it | Paylaşım | `10-cta` |
 
 ---
 
 ## 1/ · `01-hook.mp4`
 
 **EN**
-> Gave myself a weekend challenge: a small Mac app for a problem I keep hitting.
+> spent the weekend building a tiny mac app for myself.
 >
-> I use Claude Code, Codex and Cursor together and never know which limit is about to run out.
->
-> Tools like this exist, but I wanted one that fits how I work. So I made my own 👇
+> i use claude code, codex and cursor at the same time and never know which one's about to hit its limit. there are apps like this, i just made my own version.
 
 **TR**
-> Hafta sonu kendime bir challenge verdim: sürekli yaşadığım bir derdi çözen bir Mac uygulaması.
+> hafta sonu kendime bir challenge verdim, kendi ihtiyacımdan çıkan küçük bir mac uygulaması yaptım.
 >
-> Claude Code, Codex ve Cursor'ı birlikte kullanıyorum, hangisinin limiti dolmak üzere hiç bilmiyorum.
->
-> Benzerleri vardı ama kendi kullanımıma uyan bir tane istedim, ben de yaptım 👇
+> claude code, codex ve cursor'ı aynı anda kullanınca hangisinin limiti ne zaman bitecek hiç bilemiyordum. benzerleri vardı, ben kendime göre yorumladım.
 
 **Film:** a limit message interrupts work, then the menu bar ring opens a popup with Claude and Codex usage.
 **Alt:** A short screen film: after a usage-limit message, the Mac menu bar icon opens AI Limit Tracker with Claude and Codex usage rings.
@@ -43,35 +37,13 @@ Slogan, "Meet…", üçlü sıralama, "zero downtime" gibi pazarlama dili yok.
 
 ---
 
-## 2/ · `02-one.mp4`
+## 2/ · `03-forecast.mp4`
 
 **EN**
-> It sits in the menu bar. One click and I see every limit in one place: the 5-hour window, the weekly cap, Cursor's monthly quota.
->
-> Before this I had three tabs open just to check.
+> it lives in the menu bar. click it and every limit is right there. it also guesses when you'll run out at your current pace, that's the part i actually look at.
 
 **TR**
-> Menü çubuğunda duruyor. Tek tıkla hepsinin limitini tek yerde görüyorum: 5 saatlik pencere, haftalık limit, Cursor'ın aylık kotası.
->
-> Önceden sadece bakmak için üç sekme açıyordum.
-
-**Film:** separate usage windows merge into one popup.
-**Alt:** Separate usage windows for Claude, Codex and a work account merge into a single AI Limit Tracker popup.
-**Alt (TR):** Claude, Codex ve iş hesabının ayrı kullanım pencereleri tek bir AI Limit Tracker popup'ında birleşiyor.
-
----
-
-## 3/ · `03-forecast.mp4`
-
-**EN**
-> The part I use the most: it looks at how fast I'm going and tells me something like "full in 40 min at this pace".
->
-> I glance at it before starting anything long.
-
-**TR**
-> En çok işime yarayan kısmı şu: o anki hızıma bakıp "bu hızla 40 dakikada dolar" gibi bir şey söylüyor.
->
-> Uzun bir işe başlamadan önce bir bakıyorum.
+> menü bara oturuyor, tıklayınca hepsinin limiti orada. bu hızla gidersem ne zaman dolacağını da söylüyor, en çok ona bakıyorum.
 
 **Film:** the ring climbs to 91% and the forecast drops to 22 minutes.
 **Alt:** A Claude usage card: the 5-hour ring climbs to 91% and the forecast changes to "Full in 22 min at this pace".
@@ -79,17 +51,13 @@ Slogan, "Meet…", üçlü sıralama, "zero downtime" gibi pazarlama dili yok.
 
 ---
 
-## 4/ · `05-remind.mp4`
+## 3/ · `05-remind.mp4`
 
 **EN**
-> It pings me at 75% and 90%.
->
-> If I'm already out, I right-click the card, pick "notify when it opens" and go do something else. It tells me when I can continue.
+> pings me at 75% and 90%. if i'm already out i hit "notify when it opens" and do something else.
 
 **TR**
-> %75'te ve %90'da bildirim atıyor.
->
-> Zaten dolduysa karta sağ tıklayıp "açılınca haber ver" diyorum, başka işe geçiyorum. Devam edebileceğim zaman haber veriyor.
+> %75 ve %90'da bildirim atıyor. dolduysa "açılınca haber ver" deyip başka işe geçiyorum.
 
 **Film:** right-click a full card, set a reminder, later a notification says the limit is open again.
 **Alt:** Right-clicking a full Claude card sets a reminder; later a notification says the 5-hour limit is open again.
@@ -97,17 +65,13 @@ Slogan, "Meet…", üçlü sıralama, "zero downtime" gibi pazarlama dili yok.
 
 ---
 
-## 5/ · `06-accounts.mp4`
+## 4/ · `06-accounts.mp4`
 
 **EN**
-> I have two Claude accounts, one personal and one for work.
->
-> When one runs out I can see right there whether the other one has room.
+> i have separate work and personal claude accounts, added both. when one runs out i switch to the other.
 
 **TR**
-> İki Claude hesabım var, biri kişisel biri iş.
->
-> Biri dolunca diğerinde yer var mı, orada görüyorum.
+> iş ve kişisel claude hesabım ayrı, ikisini de ekledim. biri dolunca öbürüne geçiyorum.
 
 **Film:** the personal account fills up, the work account is highlighted as available.
 **Alt:** Two Claude accounts: the personal one fills up while the work account at 8% is marked available.
@@ -115,31 +79,17 @@ Slogan, "Meet…", üçlü sıralama, "zero downtime" gibi pazarlama dili yok.
 
 ---
 
-## 6/ · `07-flip.mp4`
+## 5/ · `09-privacy.mp4`
 
 **EN**
-> Small things I added for myself: ⌃⌥L opens it from anywhere, and clicking a card flips it to show every limit plus how much I've used over the last 13 weeks.
+> you sign in once with your own browser, cursor doesn't even need that. tokens stay on your mac, there's no server of mine in between.
+>
+> also ⌃⌥L opens it from anywhere and clicking a card shows the last 13 weeks of usage.
 
 **TR**
-> Kendim için eklediğim küçük şeyler: ⌃⌥L ile her yerden açılıyor, karta tıklayınca dönüp bütün limitleri ve son 13 haftada ne kadar kullandığımı gösteriyor.
-
-**Film:** a card flips over to a 13-week activity heatmap.
-**Alt:** A usage card flips over to show a 13-week activity heatmap.
-**Alt (TR):** Bir kullanım kartı dönüyor, arkasında 13 haftalık kullanım ısı haritası görünüyor.
-
----
-
-## 7/ · `09-privacy.mp4`
-
-**EN**
-> You sign in once with your own browser and that's it. Cursor doesn't even need that.
+> girişi bir kez kendi tarayıcından yapıyorsun, cursor'da ona da gerek yok. token'lar mac'te kalıyor, arada benim bir sunucum yok.
 >
-> Tokens stay on your Mac. There's no server of mine in between.
-
-**TR**
-> Bir kez kendi tarayıcınla giriş yapıyorsun, o kadar. Cursor'da buna da gerek yok.
->
-> Token'lar Mac'inde kalıyor. Arada benim bir sunucum yok.
+> bir de ⌃⌥L ile her yerden açılıyor, karta tıklayınca son 13 haftalık kullanımı gösteriyor.
 
 **Film:** a lock icon, then the providers show as connected.
 **Alt:** A lock icon with the text "Your tokens stay on your Mac", and the providers shown as connected.
@@ -147,18 +97,14 @@ Slogan, "Meet…", üçlü sıralama, "zero downtime" gibi pazarlama dili yok.
 
 ---
 
-## 8/ · `10-cta.mp4`
+## 6/ · `10-cta.mp4`
 
 **EN**
-> I built it for myself, but I doubt I'm the only one with this problem, so here it is. Free, macOS 14 and up.
->
-> If you try it, tell me what's missing 🙏
+> seen a lot of people complain about the same thing so figured i'd share it. free, mac only. if you try it, tell me what's missing
 > github.com/bahadirnuroglu/ai_limit_tracker
 
 **TR**
-> Kendim için yaptım ama bu derdi yaşayan tek kişi olduğumu sanmıyorum, o yüzden paylaşıyorum. Ücretsiz, macOS 14 ve üstü.
->
-> Denerseniz eksik gördüğünüzü yazın 🙏
+> aynı dertten şikayet eden çok kişi görüyorum, o yüzden paylaşayım dedim. ücretsiz, mac'te çalışıyor. deneyen olursa eksiğini yazsın
 > github.com/bahadirnuroglu/ai_limit_tracker
 
 **Film:** the app icon, then the one-line install command.
@@ -170,6 +116,6 @@ Slogan, "Meet…", üçlü sıralama, "zero downtime" gibi pazarlama dili yok.
 ## Paylaşım notları
 
 - **Saat:** Salı–Perşembe, TR saatiyle 17:00–19:00 (İngilizce thread için ABD sabahı).
-- **Paylaşım:** 8 tweet'i thread editörüne sırayla ekle, her birine kendi filmini ve alt metnini koy, tek seferde gönder. 1. tweet'i sabitle.
-- **İlk saat:** Gelen yorumlara kendin cevap ver.
-- **Türkçe sürüm:** Atacaksan başka bir gün at; filmler `film/tr/` klasöründe.
+- **Paylaşım:** tweet'leri thread editörüne sırayla ekle, her birine kendi filmini ve alt metnini koy, tek seferde gönder. 1. tweet'i sabitle.
+- **İlk saat:** gelen yorumlara kendin cevap ver.
+- **Türkçe sürüm:** atacaksan başka bir gün at; filmler `film/tr/` klasöründe.
