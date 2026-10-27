@@ -62,7 +62,8 @@ enum OwnAuth {
         cache[key] = nil
         absent.insert(key)
         var all = readAll()
-        all[key] = nil
+        // Kayıt yoksa dosyaya dokunma (gereksiz yazma, aynı anda yenilenen başka bir token'ı ezebilir)
+        guard all.removeValue(forKey: key) != nil else { return }
         writeAll(all)
     }
 

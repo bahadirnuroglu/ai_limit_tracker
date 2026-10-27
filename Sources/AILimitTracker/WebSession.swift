@@ -145,6 +145,24 @@ final class WebSession: NSObject, NSWindowDelegate, WKUIDelegate {
         }
     }
 
+    /// Çıkış: bu sağlayıcının sitelerine ait çerez ve depolamayı çerez kutusundan siler, sayfayı boşaltır.
+    /// Yalnızca bu uygulamanın kutusu; kullanıcının tarayıcısına dokunulmaz.
+    func signOut() async {
+        loginWindow?.close()
+        webView.stopLoading()
+        webView.load(URLRequest(url: URL(string: "about:blank")!))
+        let domains: [String] = switch provider {
+        case .claude: ["claude.ai", "claude.com", "anthropic.com"]
+        case .codex: ["chatgpt.com", "openai.com"]
+        case .cursor: ["cursor.com", "cursor.sh"]
+        }
+        let store = webView.configuration.websiteDataStore
+        let types = WKWebsiteDataStore.allWebsiteDataTypes()
+        let records = await store.dataRecords(ofTypes: types)
+        let mine = records.filter { r in domains.contains { r.displayName == $0 || r.displayName.hasSuffix("." + $0) } }
+        if !mine.isEmpty { await store.removeData(ofTypes: types, for: mine) }
+    }
+
     func fetch() async throws -> Result {
         if loginOpen {
             // Kullanıcı giriş yaparken sayfayı değiştirme; sadece giriş bittiyse oku

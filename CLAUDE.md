@@ -152,10 +152,27 @@ kalıbı, her şeyi anlatan uzun cümleler YOK (kullanıcı "ai slop" buldu, iki
   her onAppear'da pencere alphaValue'yu 0->1 (0.18 sn) yapar. Her açılışta oynadığı log ile doğrulandı.
 
 ## Durum
-- YAYINDA: v0.3.15 (2026-10-18; İngilizce arayüz, İngilizce README + MIT lisansı; v0.3.1 ilk sabit sertifikalı sürüm). Yeni sürüm: Info.plist sürümünü artır, commit, `bash release.sh`.
+- YAYINDA: v0.3.16 (2026-10-27; 429 önleme, son verinin diskte tutulması, Çıkış Yap; v0.3.15 İngilizce arayüz + MIT; v0.3.1 ilk sabit sertifikalı sürüm). Yeni sürüm: Info.plist sürümünü artır, commit, `bash release.sh`.
   Kullanıcı işler bitince TOPLU sürüm istiyor. Token: Anahtar Zinciri "ailimit-github" (fine-grained, sadece
   ai_limit_tracker, Contents: Read and write + Metadata); kullanıcı terminale yapıştırarak kaydeder, sohbete değil.
 - Endpoint'ler dahili ve belgesiz; değişebilir.
+- Eski veri güncel görünmesin (arkadaşta %88 takılı kaldı: Claude usage 429 dönüyordu, uyarı yoktu, Yenile bekleme
+  süresinde istek atmıyordu, "Güncellendi" deneme saatiydi): Limit.percent sıfırlanma anı geçince 0 (halka altı "yenilendi"),
+  sıfırlanma geçince dakikalık yenileme; isStale = hata VEYA 10 dk'dır veri yok (planın yanında "· 40 dk önce");
+  "Güncellendi" = görünen verinin en eskisi (store.dataUpdated); Son iyi veri diskte (LastUsage, last-usage.json; token yok): yeniden açılışta kart boş kalmaz.
+  429 ÖNLEME (kullanıcı: "hata almamamız lazım"): Claude usage adresi 30–120 sn arayla sorulunca kalıcı 429'a düşüyor
+  (anthropics/claude-code #31021/#31637), 180 sn güvenli. UsageStore.load hesap başına aralık: Claude 180 sn, diğerleri 20 sn;
+  zamanlayıcı, popup açılışı VE Yenile bu aralığa uyar (Trigger .scheduled/.manual). Yalnızca giriş/izin/hesap ekleme/sağlayıcı
+  açma .immediate (yeni token ilk kez okunur). 429 sonrası bekleme 5 dk'dan başlar, ikiye katlanır (≤30 dk); beklemede Yenile
+  yalnızca son istekten 3 dk geçtiyse bir kez dener. Yerel Claude kendi token'ı 429 alırsa uygulamanın claude.ai çerez
+  oturumu denenir, YALNIZCA e-posta kendi token'ınkiyle aynıysa (kutuda başka hesap açık olabilir).
+  Claude Code User-Agent'ı taklit edilmez (sınırı gevşettiği söyleniyor; başka istemci gibi görünmek şartlara aykırı).
+  429'da veri yoksa satır "yükleniyor"da kalmaz (state .error, saat simgesi); geçici sorunda (action nil) düğme gösterilmez.
+- Çıkış Yap (yerel hesap): Ayarlar'da "Bağlı" yanında (tek hesap) ya da hesap menüsünde. Kendi token (OwnAuth) + uygulama
+  çerez kutusundaki site verisi silinir, bekleyen bildirimler iptal; UserDefaults "signedOut" işaretliyken Claude Code /
+  Codex CLI / Cursor oturumu OKUNMAZ (o kayıtlara dokunulmaz). İşaret yalnızca başarılı girişte kalkar (ToolLogin başarısı ya da
+  web penceresi kapanınca veri gelirse). Okuma sürerken çıkılırsa sonuç yazılmaz, yenilenen token tekrar silinir.
+  Ek hesapta çıkış = Hesabı Kaldır. Gerçek hesapla uçtan uca TEST EDİLMEDİ.
 - ChatGPT sohbet limiti için okunabilir kaynak yok, sadece Codex pencereleri ve plan adı gösteriliyor.
 - Açılışta başlatma: LoginItem.swift (SMAppService.mainApp). Sormadan kaydolmaz: kurulumun Genel adımı ilk
   görüldüğünde bir kez açılır ("loginItemOffered"), sonra kendiliğinden yeniden kaydolmaz (Sistem Ayarları kararı korunur).

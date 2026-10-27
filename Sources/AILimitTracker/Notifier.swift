@@ -81,6 +81,16 @@ final class Notifier: NSObject, ObservableObject, UNUserNotificationCenterDelega
     private let defaults = UserDefaults.standard
 
     /// Kurulumu bitmiş kullanıcıda izni burada ister; ilk açılışta izin kurulumun "Son ayarlar" adımında sorulur
+    /// Çıkışta: bu hesabın bekleyen "yenilendi" ve "açılınca haber ver" bildirimleri iptal edilir
+    func cancelAll(limitPrefix prefix: String) {
+        center.getPendingNotificationRequests { requests in
+            let ids = requests.map(\.identifier).filter { $0.hasPrefix("reset.\(prefix)") || $0.hasPrefix("remind.\(prefix)") }
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
+        }
+        reminders = reminders.filter { !$0.key.hasPrefix(prefix) }
+        UserDefaults.standard.set(reminders.mapValues { $0.timeIntervalSince1970 }, forKey: "reminders")
+    }
+
     func setup() {
         center.delegate = self
         if UserDefaults.standard.bool(forKey: Onboarding.doneKey) { requestPermission { _ in } }

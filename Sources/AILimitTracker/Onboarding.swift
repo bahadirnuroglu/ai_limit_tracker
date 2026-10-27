@@ -584,6 +584,7 @@ private struct ConnectRow: View {
     var toggle: Binding<Bool>? = nil
 
     @State private var busy = false
+    @State private var confirmSignOut = false
     @ObservedObject private var tool = ToolLogin.shared
 
     private var usage: ProviderUsage { store.local(id) }
@@ -606,6 +607,9 @@ private struct ConnectRow: View {
 
     private var detail: String {
         if !enabled { return L("Popup'ta gösterilmiyor", "Hidden from the popup") }
+        if store.signedOut.contains(id) && !tool.running.contains(id) {
+            return L("Çıkış yapıldı. Tekrar bağlanmak için giriş yap.", "Signed out. Sign in to connect again.")
+        }
         if wantsOneTimeLogin && !tool.running.contains(id) {
             return id == .claude
                 ? L("Bir kez giriş yap (Pro ya da Max hesabı); bağlantı hep açık kalır. Varsayılan tarayıcında açılır.",
@@ -644,6 +648,12 @@ private struct ConnectRow: View {
         if usage.isConnected && !wantsOneTimeLogin {
             Label(L("Bağlı", "Connected"), systemImage: "checkmark.circle.fill")
                 .labelStyle(.titleAndIcon).foregroundStyle(.green).font(.callout.weight(.medium))
+            // Birden çok hesapta çıkış her hesabın kendi menüsünde
+            if store.accounts(for: id).count == 1 {
+                Button(L("Çıkış Yap", "Sign Out")) { confirmSignOut = true }
+                    .buttonStyle(.borderless).controlSize(.small)
+                    .signOutDialog(isPresented: $confirmSignOut, account: .local(id), store: store)
+            }
         } else if tool.running.contains(id) {
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
@@ -676,6 +686,8 @@ private struct ConnectRow: View {
     }
 
     private var primaryAction: (String, () -> Void)? {
+        // Geçici sorun (sağlayıcı sınır koydu): kullanıcının yapacağı bir şey yok, düğme gösterme
+        if let issue = usage.issue, issue.action == nil { return nil }
         // Önce ipucunun kendi çözümü
         if let issue = usage.issue, let title = issue.actionTitle, let action = issue.action, action != .retry {
             return (title, { run { store.perform(action, account: .local(id)) } })
@@ -825,6 +837,7 @@ private struct AccountRow: View {
     @ObservedObject var store: UsageStore
     @State private var name = ""
     @State private var confirmRemove = false
+    @State private var confirmSignOut = false
     @FocusState private var editing: Bool
 
     private var usage: ProviderUsage { store.usage(of: account) }
@@ -844,13 +857,17 @@ private struct AccountRow: View {
                     .font(.system(size: 13, weight: .medium))
                     .focused($editing)
                     .onSubmit { store.rename(account, to: name) }
-                Text([account.email, account.sourceText].compactMap { $0 }.joined(separator: " · "))
+                Text([account.email, store.sourceText(account)].compactMap { $0 }.joined(separator: " · "))
                     .font(.callout).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
             }
             Spacer(minLength: 8)
             status
             Menu {
                 Button(L("Yeniden Adlandır", "Rename")) { editing = true }
+                if account.isLocal && !store.signedOut.contains(account.provider) {
+                    Divider()
+                    Button(L("Çıkış Yap…", "Sign Out…"), role: .destructive) { confirmSignOut = true }
+                }
                 if !account.isLocal {
                     Button(L("Yeniden Giriş Yap", "Sign In Again")) { store.login(account) }
                     Divider()
@@ -866,6 +883,7 @@ private struct AccountRow: View {
         .padding(.leading, 40)
         .onAppear { name = account.name ?? "" }
         .onChange(of: editing) { _, now in if !now { store.rename(account, to: name) } }
+        .signOutDialog(isPresented: $confirmSignOut, account: account, store: store)
         .confirmationDialog(L("\(store.longLabel(account)) kaldırılsın mı?", "Remove \(store.longLabel(account))?"), isPresented: $confirmRemove) {
             Button(L("Kaldır", "Remove"), role: .destructive) { store.remove(account) }
         } message: {
@@ -881,6 +899,8 @@ private struct AccountRow: View {
                 .help(L("En dolu limit: \(worst.label)", "Fullest limit: \(worst.label)"))
         } else if let issue = usage.issue, let title = issue.actionTitle, let action = issue.action {
             Button(title) { store.perform(action, account: account) }.controlSize(.small)
+        } else if let issue = usage.issue {
+            Image(systemName: "clock").foregroundStyle(.secondary).help(issue.text)
         } else if usage.state == .loading {
             ProgressView().controlSize(.small)
         }
@@ -888,6 +908,20 @@ private struct AccountRow: View {
 }
 
 // MARK: - Küçük parçalar
+
+private extension View {
+    /// Yerel hesaptan çıkış onayı. Aracın (Claude Code / Codex CLI / Cursor) kendi oturumu kapanmaz, yalnızca
+    /// uygulama onu yeniden giriş yapılana kadar okumaz; bunu açıkça söyleriz.
+    func signOutDialog(isPresented: Binding<Bool>, account: Account, store: UsageStore) -> some View {
+        confirmationDialog(L("\(account.provider.name) hesabından çıkılsın mı?", "Sign out of \(account.provider.name)?"),
+                           isPresented: isPresented) {
+            Button(L("Çıkış Yap", "Sign Out"), role: .destructive) { store.signOut(account) }
+        } message: {
+            Text(L("Uygulamadaki oturum ve çerezler bu Mac'ten silinir. \(ToolLogin.toolName(account.provider)) girişin açık kalır ama tekrar giriş yapana kadar okunmaz.",
+                   "The app's session and cookies are deleted from this Mac. Your \(ToolLogin.toolName(account.provider)) sign-in stays, but it won't be read until you sign in again."))
+        }
+    }
+}
 
 /// Logo + ad + açıklama (Form satırı)
 private struct ProviderLabel: View {

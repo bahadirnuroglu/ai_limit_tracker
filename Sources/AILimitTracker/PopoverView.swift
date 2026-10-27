@@ -136,7 +136,7 @@ struct PopoverView: View {
     /// Alt şerit: solda son güncelleme, sağda rozet tarzı küçük düğmeler
     private var footer: some View {
         HStack(spacing: 5) {
-            if let t = store.lastUpdated {
+            if let t = store.dataUpdated {
                 Text(L("Güncellendi", "Updated") + " " + t.formatted(date: .omitted, time: .shortened))
                     .font(.system(size: 11, weight: .regular))
                     .foregroundStyle(.secondary)
@@ -148,7 +148,9 @@ struct PopoverView: View {
                 Onboarding.show(store: store, loginItem: loginItem, settings: true)
             }
             .help(L("Sağlayıcılar, açılışta başlatma, tanılama", "Providers, launch at login, diagnostics"))
-            BadgeButton(title: L("Yenile", "Refresh"), icon: "arrow.clockwise", spinning: store.isRefreshing) { store.refresh() }
+            BadgeButton(title: L("Yenile", "Refresh"), icon: "arrow.clockwise", spinning: store.isRefreshing) { store.refresh(manual: true) }
+                .help(L("Limitleri şimdi oku. Claude, sınıra takılmamak için en fazla 3 dakikada bir okunur.",
+                        "Read limits now. Claude is read at most every 3 minutes to stay within its rate limit."))
             BadgeButton(title: L("Çık", "Quit"), icon: "power", spinning: false) { NSApp.terminate(nil) }
         }
         .padding(.horizontal, 6)
@@ -735,7 +737,7 @@ private struct RingGauge: View {
                 Text(limit.short ?? limit.label).font(.system(size: 10.5, weight: .medium)).lineLimit(1)
             }
             // İkinci satır her halkada dolu: yan yana halkalar aynı hizada kalsın
-            Text(limit.resetsAt.map { Countdown.text(to: $0) } ?? limit.caption ?? " ")
+            Text(limit.didReset ? L("yenilendi", "reset") : limit.resetsAt.map { Countdown.text(to: $0) } ?? limit.caption ?? " ")
                 .font(.system(size: 10, weight: .regular)).lineLimit(1)
         }
         .frame(width: 62)
@@ -784,7 +786,9 @@ private struct MiniLimitRow: View {
                 Text("\(Int(limit.percent.rounded()))%").font(.system(size: 12.5, weight: .semibold, design: .rounded)).monospacedDigit()
             }
             GaugeBar(value: min(max(limit.percent / 100, 0), 1), colors: limit.colors, sparkle: false, height: 7)
-            if let reset = limit.resetsAt {
+            if limit.didReset {
+                Text(L("Yenilendi, yeni veri bekleniyor", "Reset, waiting for new data")).font(.system(size: 11, weight: .regular))
+            } else if let reset = limit.resetsAt {
                 Text(L("\(Countdown.text(to: reset)) sonra sıfırlanır", "Resets in \(Countdown.text(to: reset))")).font(.system(size: 11, weight: .regular))
             }
         }

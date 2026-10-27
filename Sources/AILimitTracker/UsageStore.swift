@@ -5,12 +5,22 @@ import WebKit
 struct Limit: Identifiable {
     var id: String             // ek hesaplarda hesap id'siyle öneklenir (bildirim/geçmiş anahtarları ayrışsın)
     let label: String
-    let percent: Double        // 0–100
+    let used: Double           // okunan yüzde (0–100)
     let resetsAt: Date?
     let window: TimeInterval?  // pencere uzunluğu (sn); tempo çizgisi için
     var model: String? = nil   // modele özel limit (opus, sonnet, review); nil = genel
     var short: String? = nil   // halka altındaki kısa ad
     var caption: String? = nil // sıfırlanma zamanı yoksa halkanın ikinci satırı ("kullanım")
+
+    init(id: String, label: String, percent: Double, resetsAt: Date?, window: TimeInterval?,
+         model: String? = nil, short: String? = nil, caption: String? = nil) {
+        self.id = id; self.label = label; used = percent; self.resetsAt = resetsAt; self.window = window
+        self.model = model; self.short = short; self.caption = caption
+    }
+
+    /// Sıfırlanma anı geçtiyse pencere yenilenmiştir: yeni veri gelene kadar eski yüzde (ör. %88) gösterilmez
+    var didReset: Bool { resetsAt.map { $0 <= Date() } ?? false }
+    var percent: Double { didReset ? 0 : used }
 }
 
 extension Limit {
@@ -74,7 +84,10 @@ struct ProviderUsage {
     var note: String?          // ad altındaki ek bilgi (Cursor: "$15,60 / $20")
     var issue: Issue?          // veri alınamadıysa kartın altındaki ipucu (limitler eski haliyle kalır)
 
-    var isStale: Bool { issue != nil && !limits.isEmpty }
+    /// Eski veri: okuma hata verdi ya da 10 dakikadır yeni veri gelmedi (ör. sağlayıcı 429 ile sessizce sınırlıyor)
+    var isStale: Bool {
+        !limits.isEmpty && (issue != nil || (updatedAt.map { Date().timeIntervalSince($0) > 600 } ?? false))
+    }
 }
 
 @MainActor
@@ -93,6 +106,11 @@ final class UsageStore: ObservableObject {
         }
     }
     @Published var lastUpdated: Date?
+    /// Alt şeritteki "Güncellendi": son deneme değil, görünen verinin en eskisi (okuma sessizce başarısız olduysa eski saat kalır)
+    var dataUpdated: Date? {
+        let times = enabled.flatMap { accounts(for: $0) }.compactMap { usage(of: $0).updatedAt }
+        return times.min() ?? lastUpdated
+    }
     @Published private var pending = 0
     var isRefreshing: Bool { pending > 0 }
 
@@ -115,7 +133,7 @@ final class UsageStore: ObservableObject {
 
     /// Kurulum ekranı gibi yerlerden yerel hesabı hemen yeniden dene
     func reload(_ id: ProviderID, allowPrompt: Bool = false) {
-        Task { await load(.local(id), allowPrompt: allowPrompt); lastUpdated = Date() }
+        Task { await load(.local(id), allowPrompt: allowPrompt, trigger: allowPrompt ? .immediate : .manual); lastUpdated = Date() }
     }
 
     /// Tek seferlik giriş: aracın girişi varsayılan tarayıcıda (ToolLogin), token'lar uygulamanın kendi kaydına (OwnAuth);
@@ -125,7 +143,9 @@ final class UsageStore: ObservableObject {
     func toolLogin(_ account: Account) {
         Task {
             guard await ToolLogin.shared.start(account.provider, key: ownKey(account)) else { return }
-            await load(account, allowPrompt: false)
+            if account.isLocal { setSignedOut(account.provider, false) }
+            backoff[account.id] = nil
+            await load(account, allowPrompt: false, trigger: .immediate)
             lastUpdated = Date()
         }
     }
@@ -250,7 +270,7 @@ final class UsageStore: ObservableObject {
         added.email = email
         accounts.append(added)
         AccountList.save(accounts)
-        await load(added)
+        await load(added, trigger: .immediate)
         lastUpdated = Date()
     }
 
@@ -272,12 +292,55 @@ final class UsageStore: ObservableObject {
         alert.runModal()
     }
 
+    // MARK: Çıkış
+
+    /// Çıkış yapılan yerel hesaplar (kalıcı): kullanıcı yeniden giriş yapana kadar Claude Code / Codex CLI / Cursor
+    /// oturumu da OKUNMAZ (o kayıtlara dokunmayız; silemeyiz, yok sayarız).
+    @Published private(set) var signedOut: Set<ProviderID> =
+        Set((UserDefaults.standard.stringArray(forKey: "signedOut") ?? []).compactMap(ProviderID.init(rawValue:)))
+
+    private func setSignedOut(_ id: ProviderID, _ on: Bool) {
+        guard signedOut.contains(id) != on else { return }
+        if on { signedOut.insert(id) } else { signedOut.remove(id) }
+        UserDefaults.standard.set(signedOut.map(\.rawValue).sorted(), forKey: "signedOut")
+    }
+
+    /// Hesaptan çık: uygulamanın kendi token'ı ve çerezleri silinir, bekleyen bildirimleri iptal edilir.
+    /// Ek hesapta bu, hesabı kaldırmakla aynıdır.
+    func signOut(_ account: Account) {
+        guard account.isLocal else { remove(account); return }
+        let id = account.provider
+        ToolLogin.shared.cancel(id)
+        setSignedOut(id, true)
+        if id != .cursor { OwnAuth.remove(id.rawValue) }
+        backoff[account.id] = nil
+        source[id] = nil
+        usage[account.id] = ProviderUsage(state: .needsLogin, issue: signedOutIssue)
+        LastUsage.forget(account.id)
+        Notifier.shared.cancelAll(limitPrefix: id.rawValue + ".")
+        let web = session(for: account)
+        Task { await web.signOut() }
+    }
+
+    private var signedOutIssue: Issue { Issue(text: L("Çıkış yapıldı.", "Signed out."), action: .login) }
+
+    /// Web penceresinden giriş: pencere kapanınca veri geldiyse çıkış işareti kalkar
+    private func webLoginClosed(_ account: Account) {
+        guard account.isLocal, signedOut.contains(account.provider) else { reload(account); return }
+        let web = session(for: account)
+        Task {
+            if (try? await web.fetch()) != nil { setSignedOut(account.provider, false) }
+            reload(account)
+        }
+    }
+
     func remove(_ account: Account) {
         guard !account.isLocal else { return }
         OwnAuth.remove(account.id)
         accounts.removeAll { $0.id == account.id }
         AccountList.save(accounts)
         usage[account.id] = nil
+        LastUsage.forget(account.id)
         if selection[account.provider] == account.id { selection[account.provider] = nil }
         discard(account)
     }
@@ -292,7 +355,7 @@ final class UsageStore: ObservableObject {
     }
 
     func reload(_ account: Account) {
-        Task { await load(account); lastUpdated = Date() }
+        Task { await load(account, trigger: .immediate); lastUpdated = Date() }
     }
 
     /// Giriş her zaman varsayılan tarayıcıda (araç varsa); uygulama penceresi yalnızca araç yoksa (Cursor, araçsız Mac)
@@ -311,7 +374,7 @@ final class UsageStore: ObservableObject {
             session.onLoginWindowClosed = { [weak self] in self?.reload(account) }
         } else {
             session = WebSession(provider: account.provider)
-            session.onLoginWindowClosed = { [weak self] in self?.refresh() }
+            session.onLoginWindowClosed = { [weak self] in self?.webLoginClosed(account) }
         }
         sessions[account.id] = session
         return session
@@ -363,12 +426,16 @@ final class UsageStore: ObservableObject {
 
     init() {
         for id in ProviderID.allCases { _ = session(for: .local(id)) }
+        // Son bilinen değerler: ilk okuma 429 ya da ağ hatası alırsa kart boş kalmasın
+        for account in accounts where !(account.isLocal && signedOut.contains(account.provider)) {
+            if let last = LastUsage.load(account.id) { usage[account.id] = last }
+        }
         refresh()
         // Dakikada bir bakılır: normalde 5 dk'da, bir limit %75'i geçtiyse her dakika yenilenir
         timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 guard let self else { return }
-                let busy = self.usage.values.contains { $0.worst >= 75 }
+                let busy = self.usage.values.contains { $0.worst >= 75 || $0.limits.contains(where: \.didReset) }
                 if Date().timeIntervalSince(self.lastRefresh) >= (busy ? 55 : 295) { self.refresh() }
             }
         }
@@ -388,7 +455,7 @@ final class UsageStore: ObservableObject {
         switch action {
         case .login: login(account)
         case .allowKeychain:
-            Task { await load(account, allowPrompt: true); lastUpdated = Date() }
+            Task { await load(account, allowPrompt: true, trigger: .immediate); lastUpdated = Date() }
         case .openApp(let name):
             NSWorkspace.shared.openApplication(at: URL(fileURLWithPath: "/Applications/\(name).app"),
                                                configuration: NSWorkspace.OpenConfiguration())
@@ -398,7 +465,8 @@ final class UsageStore: ObservableObject {
         }
     }
 
-    func refresh() {
+    /// manual: Yenile düğmesi; 429 sonrası bekleme süresini bir kez atlar (en az 20 sn arayla)
+    func refresh(manual: Bool = false) {
         guard pending == 0 else { return }
         lastRefresh = Date()
         for id in enabled {
@@ -406,7 +474,7 @@ final class UsageStore: ObservableObject {
                 pending += 1
                 Task {
                     defer { pending -= 1 }
-                    await load(account)
+                    await load(account, trigger: manual ? .manual : .scheduled)
                     lastUpdated = Date()
                 }
             }
@@ -415,32 +483,57 @@ final class UsageStore: ObservableObject {
 
     private func loadAll(_ id: ProviderID) async {
         await withTaskGroup(of: Void.self) { group in
-            for account in accounts(for: id) { group.addTask { await self.load(account) } }
+            for account in accounts(for: id) { group.addTask { await self.load(account, trigger: .immediate) } }
         }
     }
 
-    /// HTTP 429 (çok fazla istek) sonrası hesap başına bekleme: 2 dk'dan başlar, her 429'da ikiye katlanır (en çok 30 dk)
+    /// HTTP 429 (çok fazla istek) sonrası hesap başına bekleme: 5 dk'dan başlar, her 429'da ikiye katlanır (en çok 30 dk).
+    /// Yenile düğmesi de bekler: bekleme sırasında sormak sınırı uzatır.
     private var backoff: [String: (until: Date, step: TimeInterval)] = [:]
 
-    private func load(_ account: Account, allowPrompt: Bool = false) async {
-        if let wait = backoff[account.id], wait.until > Date() { return }
+    /// Okumayı kim istedi: zamanlayıcı / popup açılışı, Yenile düğmesi, ya da giriş, izin, hesap ekleme gibi kullanıcının
+    /// beklediği tek seferlik okuma (aralık beklenmez; yeni token ilk kez okunur)
+    enum Trigger { case scheduled, manual, immediate }
+
+    /// Hesap başına son istek. Claude'un usage adresi 30–120 sn arayla sorulunca 429'a düşüp dakikalarca orada kalıyor
+    /// (anthropics/claude-code #31021, #31637); 180 sn güvenli bildiriliyor. Claude hiçbir yoldan 3 dk'dan sık sorulmaz,
+    /// Yenile dahil. Codex/Cursor için yalnızca art arda tıklamaya karşı kısa bir ara.
+    private var lastRequest: [String: Date] = [:]
+    static func minGap(_ provider: ProviderID) -> TimeInterval { provider == .claude ? 180 : 20 }
+
+    private func load(_ account: Account, allowPrompt: Bool = false, trigger: Trigger = .scheduled) async {
+        let sinceLast = lastRequest[account.id].map { Date().timeIntervalSince($0) } ?? .infinity
+        // 429 beklemesi: Yenile bir kez deneyebilir, ama güvenli aralık (Claude 3 dk) geçtiyse; daha sık sormak sınırı uzatır
+        if let wait = backoff[account.id], wait.until > Date(),
+           !(trigger == .manual && sinceLast >= Self.minGap(account.provider)) { return }
+        if trigger != .immediate, sinceLast < Self.minGap(account.provider) { return }
+        lastRequest[account.id] = Date()
         do {
-            apply(try await fetch(account, allowPrompt: allowPrompt), to: account)
+            let result = try await fetch(account, allowPrompt: allowPrompt)
+            // Okuma sürerken çıkış yapıldıysa sonucu yazma; bu arada yenilenen token da geri gelmesin
+            if account.isLocal && signedOut.contains(account.provider) {
+                if account.provider != .cursor { OwnAuth.remove(account.provider.rawValue) }
+                return
+            }
+            apply(result, to: account)
             backoff[account.id] = nil
         } catch SessionError.http(429) {
-            let step = min((backoff[account.id]?.step ?? 60) * 2, 1800)
+            let step = min((backoff[account.id]?.step ?? 150) * 2, 1800)
             backoff[account.id] = (Date().addingTimeInterval(step), step)
             // Eski veri kalır, uyarı çıkmaz; veri hiç yoksa kısa bir not
             var current = usage(of: account)
             if current.limits.isEmpty {
                 current.issue = Issue(text: L("\(account.provider.name) kısa süreliğine sınır koydu; birkaç dakika içinde tekrar denenecek.",
                                                  "\(account.provider.name) is limiting requests for now; trying again in a few minutes."), action: nil)
+                current.state = .error(current.issue?.text ?? "")   // "yükleniyor"da kalmasın
                 usage[account.id] = current
             }
         } catch {
             // Eski veri kalır; kartın altında sebep ve tek düzeltme görünür
             var current = usage(of: account)
-            if account.isLocal {
+            if account.isLocal && signedOut.contains(account.provider) {
+                current.issue = signedOutIssue
+            } else if account.isLocal {
                 current.issue = Issue.from(error, provider: account.provider)
             } else if case SessionError.needsLogin = error {
                 current.issue = Issue(text: L("\(longLabel(account)) oturumu kapanmış.", "\(longLabel(account)) was signed out."), action: .login)
@@ -464,6 +557,7 @@ final class UsageStore: ObservableObject {
         current.issue = nil
         current.updatedAt = Date()
         usage[account.id] = current
+        LastUsage.save(account.id, current)
         UsageHistory.record(limits)
         AccountActivity.record(account: account.id, limits: limits)
         Notifier.shared.process(provider: title(account), limits: limits)
@@ -500,6 +594,16 @@ final class UsageStore: ObservableObject {
     /// Yerel hesabın verisi en son nereden geldi: uygulamanın kendi oturumu (tek seferlik giriş, kalıcı), aracın
     /// oturumu (Claude Code / Codex CLI; eskiyebilir) ya da web penceresi girişi
     enum LocalSource { case own, tool, web }
+
+    /// Ayarlar'daki hesap satırı: veri gerçekte nereden geliyor (kendi girişi varken "Claude Code" yazmasın)
+    func sourceText(_ account: Account) -> String {
+        guard account.isLocal else { return account.sourceText }
+        switch source[account.provider] {
+        case .own: return L("tarayıcıda giriş", "browser sign-in")
+        case .web: return account.provider.webHost
+        case .tool, nil: return account.sourceText
+        }
+    }
     @Published private(set) var source: [ProviderID: LocalSource] = [:]
 
     private func fetch(_ account: Account, allowPrompt: Bool) async throws -> WebSession.Result {
@@ -510,6 +614,8 @@ final class UsageStore: ObservableObject {
             }
             return try await session(for: account).fetch()
         }
+        // Çıkış yapıldıysa hiçbir yerel kaynak okunmaz (araç oturumu açık olsa bile)
+        if signedOut.contains(account.provider) { throw SessionError.needsLogin }
         let email = AccountList.localEmail(account.provider)
         switch account.provider {
         case .claude:
@@ -520,6 +626,15 @@ final class UsageStore: ObservableObject {
                 // "giriş yap" dedirtmesin
                 do { let r = try await ownClaude("claude"); source[.claude] = .own; return r }
                 catch SessionError.needsLogin {}
+                catch SessionError.http(429) {
+                    // API sınır koydu: uygulamada claude.ai girişi de varsa oradan (ayrı adres, ayrı sınır); yoksa bekle
+                    // Yalnızca aynı hesapsa (çerez kutusunda başka bir claude.ai hesabı açık olabilir)
+                    let mine = OwnAuth.load("claude")?.email?.lowercased()
+                    if let mine, let r = try? await session(for: account).fetch(), r.email?.lowercased() == mine {
+                        source[.claude] = .web; return r
+                    }
+                    throw SessionError.http(429)
+                }
             }
             let web = session(for: account)
             if ClaudeCodeAuth.isAvailable {
