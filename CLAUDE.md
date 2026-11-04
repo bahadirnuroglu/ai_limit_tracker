@@ -57,7 +57,7 @@ kalıbı, her şeyi anlatan uzun cümleler YOK (kullanıcı "ai slop" buldu, iki
 - CodexProvider.swift: ~/.codex/auth.json token'ı ile GET chatgpt.com/backend-api/wham/usage
   (rate_limit.primary_window / secondary_window: used_percent, limit_window_seconds, reset_at)
 - PopoverView.swift: popup. Her sağlayıcı yatay halka satırı (ProviderCard): logo + ad + plan + etiket
-  (öncelik: Doldu > "Bu hızla 2 saatte dolar" > Cursor $ notu), sağda en fazla iki 270° halka (RingGauge).
+  (öncelik: Doldu > "Bu hızla 2 saatte dolacak" > Cursor $ notu; "dolar" para birimi gibi okunduğu için v0.3.18'de "dolacak" oldu), sağda en fazla iki 270° halka (RingGauge).
   Karta tıklayınca döner (y ekseni, 90°'de yüz değişir); kartlar BAĞIMSIZ döner (birden çoğu aynı anda).
   Arka yüz sekmeleri: Limitler (tüm kovalar, MiniLimitRow) / Etkinlik (13 haftalık ısı haritası; Claude turuncu,
   Codex mor). Kart alanı içerik boyunda ScrollView; tavan ekranın %80'i. WindowFader'ın NSView'u hitTest nil

@@ -52,7 +52,7 @@ Slogan, iki noktalı "işte şu:" açılışları, düzenli özellik listesi ve 
 
 **Film:** the popup opens with Claude, Codex and Cursor, then the ring climbs to 91% and the forecast drops to 22 minutes.
 **Alt:** The menu bar popup lists Claude, Codex and Cursor limits as rings; then a Claude card climbs to 91% and the forecast changes to "Full in 22 min at this pace".
-**Alt (TR):** Menü çubuğu popup'ı Claude, Codex ve Cursor limitlerini halkalarla gösteriyor; sonra Claude kartı %91'e çıkıyor, tahmin "Bu hızla 22 dakikada dolar" oluyor.
+**Alt (TR):** Menü çubuğu popup'ı Claude, Codex ve Cursor limitlerini halkalarla gösteriyor; sonra Claude kartı %91'e çıkıyor, tahmin "Bu hızla 22 dakikada dolacak" oluyor.
 
 ---
 
