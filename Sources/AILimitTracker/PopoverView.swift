@@ -135,7 +135,7 @@ struct PopoverView: View {
 
     /// Alt şerit: solda son güncelleme, sağda rozet tarzı küçük düğmeler
     private var footer: some View {
-        HStack(spacing: 5) {
+        HStack(spacing: 4) {
             if let t = store.dataUpdated {
                 Text(L("Güncellendi", "Updated") + " " + t.formatted(date: .omitted, time: .shortened))
                     .font(.system(size: 11, weight: .regular))
@@ -143,7 +143,7 @@ struct PopoverView: View {
                     .lineLimit(1)
                     .fixedSize()
             }
-            Spacer()
+            Spacer(minLength: 4)
             BadgeButton(title: L("Ayarlar", "Settings"), icon: "gearshape", spinning: false) {
                 Onboarding.show(store: store, loginItem: loginItem, settings: true)
             }
@@ -151,7 +151,7 @@ struct PopoverView: View {
             BadgeButton(title: L("Yenile", "Refresh"), icon: "arrow.clockwise", spinning: store.isRefreshing) { store.refresh(manual: true) }
                 .help(L("Limitleri şimdi oku. Claude, sınıra takılmamak için en fazla 3 dakikada bir okunur.",
                         "Read limits now. Claude is read at most every 3 minutes to stay within its rate limit."))
-            BadgeButton(title: L("Çık", "Quit"), icon: "power", spinning: false) { NSApp.terminate(nil) }
+            BadgeButton(title: L("Çıkış Yap", "Quit"), icon: "power", spinning: false) { NSApp.terminate(nil) }
         }
         .padding(.horizontal, 6)
         .padding(.top, 2)
@@ -221,7 +221,7 @@ private struct BadgeButton: View {
                 Text(title).font(.system(size: 11, weight: .medium)).lineLimit(1)
             }
             .foregroundStyle(palette.ink)
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 7)
             .padding(.vertical, 5)
             .fixedSize()
             .glassOrMetal(Capsule(), interactive: true)
