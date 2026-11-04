@@ -732,6 +732,12 @@ private struct MenuBarSettings: View {
                        "Previews are drawn with your current limits. Choose which providers to show in the Providers tab."))
                     .font(.callout).foregroundStyle(.secondary)
             }
+            Section {
+                Toggle(L("Yüzdeyi göster", "Show percentage"), isOn: $store.menuBarPercent)
+            } footer: {
+                Text(L("En son kullandığın hesabın 5 saatlik limiti.", "The 5-hour limit of the account you used last."))
+                    .font(.callout).foregroundStyle(.secondary)
+            }
         }
         .formStyle(.grouped)
     }

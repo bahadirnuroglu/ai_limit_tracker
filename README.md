@@ -22,6 +22,7 @@ macOS 14 or later, Apple silicon and Intel. English and Turkish.
 ## What's in it
 
 - 5-hour and weekly limits for each tool, and when you'll run out at your current pace
+- The 5-hour % of the account you used last right in the menu bar, like the battery percentage
 - Notifications at 75% and 90%, and when a limit resets
 - Right-click a card to get pinged when a full limit opens again
 - More than one account per tool, like work and personal

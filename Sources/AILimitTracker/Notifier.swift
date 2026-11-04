@@ -73,6 +73,7 @@ final class Notifier: NSObject, ObservableObject, UNUserNotificationCenterDelega
             content.sound = .default
             let trigger = UNTimeIntervalNotificationTrigger(timeInterval: reset.timeIntervalSinceNow + 30, repeats: false)
             center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+            center.removePendingNotificationRequests(withIdentifiers: ["reset.\(limit.id)"])  // aynı anda ikisi gelmesin
             reminders[limit.id] = reset
         }
         UserDefaults.standard.set(reminders.mapValues { $0.timeIntervalSince1970 }, forKey: "reminders")
@@ -104,27 +105,38 @@ final class Notifier: NSObject, ObservableObject, UNUserNotificationCenterDelega
         await center.notificationSettings().authorizationStatus == .authorized
     }
 
+    /// Yalnızca kartın ana limitleri (5 saatlik, haftalık, Codex pencereleri, Cursor aylık) bildirim atar. Modele özel
+    /// (Opus/Sonnet haftalık, Codex Review, Cursor Auto/API) ve kod adlı sayaçlar (Ek kota, Diğer limit) sessiz:
+    /// kullanıcı "çok gereksiz bildirim" dedi. İstenen limit için karta sağ tıklayıp hatırlatma kurulabilir.
     func process(provider: String, limits: [Limit]) {
         for limit in limits {
+            guard limit.model == nil else {
+                center.removePendingNotificationRequests(withIdentifiers: ["reset.\(limit.id)"])
+                continue
+            }
             checkThreshold(provider: provider, limit: limit)
             scheduleReset(provider: provider, limit: limit)
         }
     }
 
-    /// Aynı pencere içinde her eşik için tek bildirim. Pencere, sıfırlanma zamanıyla (10 dk'lık dilim) ayırt edilir.
+    /// Aynı pencere içinde her eşik için tek bildirim. Pencere sıfırlanma anıyla tanınır; kayıttaki an her okumada
+    /// güncellenir ve 1 saate kadar fark aynı pencere sayılır. (Eskiden 10 dk'lık dilimle ayırt ediliyordu: Codex her okumada
+    /// "şimdi + kalan" gönderip anı kaydırıyor, Claude tam saat sınırında ve iki kaynağı arasında saniyelerle oynuyor; dilim
+    /// değişince aynı %75 / %90 bildirimi yeniden gidiyordu.) Yeni pencerenin sıfırlanma anı en az pencere boyu (5 sa) ileride.
     private func checkThreshold(provider: String, limit: Limit) {
         let level = limit.percent >= 90 ? 90 : limit.percent >= 75 ? 75 : 0
-        let window = limit.resetsAt.map { Int($0.timeIntervalSince1970 / 600) } ?? 0
         let key = "notify.level.\(limit.id)"
-        let parts = (defaults.string(forKey: key) ?? "").split(separator: ":").compactMap { Int($0) }
-        let sameWindow = parts.count == 2 && parts[0] == window
-        let notified = sameWindow ? parts[1] : 0
-
-        guard level > notified else {
-            if !sameWindow { defaults.set("\(window):0", forKey: key) }
-            return
-        }
-        defaults.set("\(window):\(level)", forKey: key)
+        let saved = (defaults.string(forKey: key) ?? "").split(separator: ":").compactMap { Double($0) }
+        // Kayıt: "sıfırlanma (epoch sn; 0 = bilinmiyor):bildirilen seviye". Eski kayıt 10 dk'lık dilim tutuyordu (çevrilir).
+        let savedReset = saved.count == 2 ? (saved[0] < 100_000_000 ? saved[0] * 600 : saved[0]) : nil
+        let reset = limit.resetsAt?.timeIntervalSince1970
+        let sameWindow: Bool
+        if let reset, let savedReset, savedReset > 0 { sameWindow = abs(reset - savedReset) < 3600 }
+        else { sameWindow = savedReset != nil }   // anlardan biri bilinmiyorsa önceki kayıt geçerli
+        let notified = sameWindow ? Int(saved[1]) : 0
+        let stamp = reset ?? (sameWindow ? savedReset ?? 0 : 0)
+        defaults.set("\(Int(stamp)):\(max(level, notified))", forKey: key)
+        guard level > notified else { return }
         // Kapalı türün bildirimi gönderilmez; eşik yine kaydedilir ki açınca eskiler birden gelmesin
         guard NotificationPrefs.isOn(level == 90 ? .at90 : .at75) else { return }
 
@@ -137,9 +149,11 @@ final class Notifier: NSObject, ObservableObject, UNUserNotificationCenterDelega
         send(id: "level.\(limit.id)", title: "\(provider) · \(limit.label) " + L("%\(percent)", "\(percent)%"), body: body)
     }
 
+    /// "Yenilendi" bildirimi; o limite "açılınca haber ver" kuruluysa onun bildirimi yeter (ikisi aynı anda geliyordu)
     private func scheduleReset(provider: String, limit: Limit) {
         let id = "reset.\(limit.id)"
-        guard NotificationPrefs.isOn(.reset), limit.percent >= 75, let reset = limit.resetsAt, reset.timeIntervalSinceNow > 0 else {
+        guard NotificationPrefs.isOn(.reset), !hasReminder(limit), limit.percent >= 75,
+              let reset = limit.resetsAt, reset.timeIntervalSinceNow > 0 else {
             center.removePendingNotificationRequests(withIdentifiers: [id])
             return
         }

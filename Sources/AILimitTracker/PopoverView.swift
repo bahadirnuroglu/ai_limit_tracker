@@ -156,6 +156,7 @@ struct PopoverView: View {
         .padding(.horizontal, 6)
         .padding(.top, 2)
         .padding(.bottom, 4)
+        .environment(\.colorScheme, palette.scheme)   // cam düğmeler kartlarla aynı temada
         .opacity(shown ? 1 : 0)
         .animation(.easeOut(duration: 0.3).delay(0.25), value: shown)
     }
@@ -184,6 +185,10 @@ private struct WindowFader: NSViewRepresentable {
     }
 
     private func fade(_ window: NSWindow) {
+        // Pencere sistemin görünümünde: menü çubuğu duvar kâğıdına göre koyu çizilince popup penceresi onun koyu görünümünü
+        // alıyor, SwiftUI ise sistemin açık temasında kalıyordu (kartlar gümüş, alt şeritteki cam düğmeler koyu ve okunmaz)
+        let dark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
         window.alphaValue = 0
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.18

@@ -62,8 +62,12 @@ kalıbı, her şeyi anlatan uzun cümleler YOK (kullanıcı "ai slop" buldu, iki
   Arka yüz sekmeleri: Limitler (tüm kovalar, MiniLimitRow) / Etkinlik (13 haftalık ısı haritası; Claude turuncu,
   Codex mor). Kart alanı içerik boyunda ScrollView; tavan ekranın %80'i. WindowFader'ın NSView'u hitTest nil
   (yoksa büyüyen pencerede alttaki kartlara tıklama ulaşmıyordu).
-- Notifier.swift: %75/%90 eşik bildirimi (pencere başına bir kez, UserDefaults "notify.level.<id>"),
-  %75+ limit için sıfırlanma anına zamanlanmış "yenilendi" bildirimi
+- Notifier.swift: %75/%90 eşik bildirimi (pencere başına bir kez, UserDefaults "notify.level.<id>" = "sıfırlanma epoch:seviye"),
+  %75+ limit için sıfırlanma anına zamanlanmış "yenilendi" bildirimi. YALNIZCA genel limitler (model == nil) bildirim atar;
+  Opus/Sonnet, Codex Review, Cursor Auto/API, Ek kota/Diğer limit sessiz (kullanıcı "çok gereksiz bildirim" dedi, v0.3.17).
+  Pencere sıfırlanma anıyla tanınır, kayıttaki an her okumada güncellenir, 1 saate kadar fark aynı pencere (eskiden 10 dk'lık
+  dilim: Codex anı her okumada kaydırıyor, Claude saat sınırında oynuyordu, aynı eşik tekrar gidiyordu). "Açılınca haber ver"
+  kurulu limitte "yenilendi" gönderilmez (ikisi aynı anda geliyordu).
 - HotKey.swift: ⌃⌥L sistem kısayolu (Carbon); MenuBarExtra'yı status bar düğmesine performClick ile açar
 - UpdateChecker.swift: GitHub Releases latest (repo: bahadirnuroglu/ai_limit_tracker). Şeritte "Güncelle": dmg'yi
   uygulama indirir, hdiutil ile bağlar, .app'i aynı diskte hazırlayıp replaceItemAt ile değiştirir, dmg'yi çıkarır,
@@ -113,6 +117,10 @@ kalıbı, her şeyi anlatan uzun cümleler YOK (kullanıcı "ai slop" buldu, iki
   kullanılan iki sağlayıcı iç içe halka), mostFull (en dolu sağlayıcı halkası + logo, %90+ kırmızı + kalan süre),
   sideBySide (yan yana halka + logo), bars (alt alta ince barlar). Hepsi 22 pt (menü çubuğu azamisi).
   Renkler ProviderID.menuTint. Template DEĞİL.
+  Yüzde (v0.3.17, kullanıcı isteği): pil göstergesi gibi ikonun SOLUNDA "%42" / "42%" (menü çubuğu yazı tipi, labelColor),
+  her stilde. Kaynak store.recentShortLimit: EN SON KULLANILAN hesabın (UsageHistory.lastIncrease; seçili çipe değil) 5 saatlik
+  limiti; 5 saatlik penceresi olmayan Cursor yalnızca başka aday yoksa. Ayarlar → Menü Çubuğu → "Yüzdeyi göster"
+  (UserDefaults "menuBarPercent", varsayılan açık). MenuIcon.withPercent mevcut ikonu sarar.
   Ayarlar → Menü Çubuğu: 2×2 seçim kartı, her kartta gerçek veriyle çizilmiş ikon (store.menuIcon(style:)).
   Ayarlar son açılan sekmeyi hatırlar (@AppStorage "settingsTab").
 - BrandLogos.swift: Claude/OpenAI/Cursor logoları (Simple Icons SVG path'i + küçük SVG ayrıştırıcı)
@@ -130,7 +138,9 @@ kalıbı, her şeyi anlatan uzun cümleler YOK (kullanıcı "ai slop" buldu, iki
 
 ## Tasarım kararları
 - Popup: sağlayıcı kartları > (varsa) yeni sürüm şeridi > alt şerit (solda "Güncellendi HH:mm", sağda
-  Ayarlar/Yenile/Çık; Yenile ikonu store.isRefreshing iken döner). Sistem temasına uyar.
+  Ayarlar/Yenile/Çık; Yenile ikonu store.isRefreshing iken döner). Sistem temasına uyar: WindowFader her açılışta popup
+  penceresinin appearance'ını sistemin görünümüne sabitler (menü çubuğu duvar kâğıdına göre koyu çizilince pencere onun koyu
+  görünümünü alıyor, SwiftUI açıkta kalıyordu: kartlar gümüş, alt şerit cam düğmeleri koyu ve okunmaz; v0.3.17).
 - Kartlar 21st.dev award-badge (Product Hunt rozeti) BİREBİR stili: gümüş #ddd zemin, 4 pt içeride
   1 px #bbb çerçeve, gölge yok, tüm yazı + logo #666 SF Pro; kart adı bold, etiket/yüzde/düğme medium, geri kalan regular. Hologram yazıların ÜSTÜNDE overlay
   (yazıları da renklendirir, istenen "niş" görünüm): 10 papyon şekli rozet oranında (genişlik 260*ölçek, yükseklik max(54*ölçek, kart yüksekliği*0.57)
@@ -152,7 +162,7 @@ kalıbı, her şeyi anlatan uzun cümleler YOK (kullanıcı "ai slop" buldu, iki
   her onAppear'da pencere alphaValue'yu 0->1 (0.18 sn) yapar. Her açılışta oynadığı log ile doğrulandı.
 
 ## Durum
-- YAYINDA: v0.3.16 (2026-10-27; 429 önleme, son verinin diskte tutulması, Çıkış Yap; v0.3.15 İngilizce arayüz + MIT; v0.3.1 ilk sabit sertifikalı sürüm). Yeni sürüm: Info.plist sürümünü artır, commit, `bash release.sh`.
+- YAYINDA: v0.3.17 (2026-11-04; menü çubuğunda yüzde, gereksiz bildirimler kalktı, popup tema hatası; v0.3.16 429 önleme + Çıkış Yap; v0.3.15 İngilizce arayüz + MIT; v0.3.1 ilk sabit sertifikalı sürüm). Yeni sürüm: Info.plist sürümünü artır, commit, `bash release.sh`.
   Kullanıcı işler bitince TOPLU sürüm istiyor. Token: Anahtar Zinciri "ailimit-github" (fine-grained, sadece
   ai_limit_tracker, Contents: Read and write + Metadata); kullanıcı terminale yapıştırarak kaydeder, sohbete değil.
 - Endpoint'ler dahili ve belgesiz; değişebilir.

@@ -393,9 +393,32 @@ final class UsageStore: ObservableObject {
 
     var menuIcon: NSImage { menuIcon(style: menuBarStyle) }
 
+    /// İkonun solunda pil göstergesi gibi yüzde (Ayarlar → Menü Çubuğu → Yüzdeyi göster; varsayılan açık)
+    @Published var menuBarPercent: Bool = UserDefaults.standard.object(forKey: "menuBarPercent") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(menuBarPercent, forKey: "menuBarPercent") }
+    }
+
+    /// Menü çubuğundaki yüzdenin limiti: en son kullanılan hesabın 5 saatlik limiti. Seçili çipe değil gerçek kullanıma
+    /// bakar (o an hangi hesapla çalışılıyorsa). 5 saatlik penceresi olmayan Cursor yalnızca başka aday yoksa
+    /// (en kısa penceresiyle) gösterilir; hiç kullanım kaydı yoksa sağlayıcı sırasındaki ilk hesap.
+    var recentShortLimit: Limit? {
+        let candidates = enabled.flatMap { visibleAccounts($0) }.compactMap { account -> (limit: Limit, used: TimeInterval)? in
+            let u = usage(of: account)
+            let action = u.issue?.action
+            guard action != .login, action != .allowKeychain, let short = u.frontLimits.first else { return nil }
+            return (short, u.limits.map { UsageHistory.lastIncrease($0.id) }.max() ?? 0)
+        }
+        let fiveHour = candidates.filter { ($0.limit.window ?? .infinity) <= 6 * 3600 }
+        return (fiveHour.isEmpty ? candidates : fiveHour).max { $0.used < $1.used }?.limit
+    }
+
     /// Ayarlar'daki önizlemeler de bunu kullanır: halkalarda kısa pencere, "En dolu"da en dolu limit.
     /// Birden çok hesapta popup'ta seçili hesap gösterilir.
     func menuIcon(style: MenuBarStyle) -> NSImage {
+        MenuIcon.withPercent(baseIcon(style: style), menuBarPercent ? recentShortLimit?.percent : nil)
+    }
+
+    private func baseIcon(style: MenuBarStyle) -> NSImage {
         // Verisi olmayan ya da girişi düşmüş sağlayıcı (eski verisi kartta da gösterilmiyor) ikonda yer almaz;
         // hiçbiri yoksa boş halkalar
         let withData = enabled.filter { id in

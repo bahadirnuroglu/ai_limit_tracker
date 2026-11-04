@@ -104,6 +104,26 @@ enum MenuIcon {
         return image
     }
 
+    /// Pil göstergesindeki gibi solda yüzde ("%42" / "42%"), menü çubuğu yazı tipi ve renginde; nil ise ikon olduğu gibi
+    static func withPercent(_ icon: NSImage, _ percent: Double?) -> NSImage {
+        guard let percent else { return icon }
+        let value = Int(min(max(percent, 0), 100).rounded())
+        let text = L("%\(value)", "\(value)%") as NSString
+        let font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.menuBarFont(ofSize: 0).pointSize, weight: .regular)
+        let textSize = text.size(withAttributes: [.font: font])
+        let gap: CGFloat = 4
+        let size = NSSize(width: ceil(textSize.width) + gap + icon.size.width, height: max(22, icon.size.height))
+        let image = NSImage(size: size, flipped: false) { rect in
+            text.draw(at: NSPoint(x: 0, y: ((rect.height - textSize.height) / 2).rounded()),
+                      withAttributes: [.font: font, .foregroundColor: NSColor.labelColor])
+            icon.draw(in: NSRect(x: rect.width - icon.size.width, y: (rect.height - icon.size.height) / 2,
+                                 width: icon.size.width, height: icon.size.height))
+            return true
+        }
+        image.isTemplate = false
+        return image
+    }
+
     static let claudeOrange = NSColor(red: 0.93, green: 0.52, blue: 0.36, alpha: 1)
     static let critical = NSColor(red: 0.94, green: 0.33, blue: 0.29, alpha: 1)
 
