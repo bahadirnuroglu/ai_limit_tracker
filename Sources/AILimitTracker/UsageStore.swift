@@ -65,7 +65,7 @@ enum Countdown {
         return L("\(max(total / 60, 1)) dk", "\(max(total / 60, 1)) min")
     }
 
-    /// "2 saatte", "40 dakikada", "3 günde" / "in 2 hours", "in 40 min" (kart etiketi: "Bu hızla 2 saatte dolacak")
+    /// "2 saatte", "40 dakikada", "3 günde" / "in 2 hours", "in 40 min" (kart etiketi: "Bu hızla 2 saatte tükenir")
     static func within(seconds: TimeInterval) -> String {
         let total = max(Int(seconds), 0)
         if total >= 86_400 { let n = total / 86_400; return L("\(n) günde", n == 1 ? "in 1 day" : "in \(n) days") }

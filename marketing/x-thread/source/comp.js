@@ -23,7 +23,7 @@ function card(c) {
 }
 const H5 = T('5 hours', '5 saat'), WK = T('Weekly', 'Haftalık');
 const tm = (h, m) => T(`${h} h ${m} m`, `${h} sa ${m} dk`), td = (d, h) => T(`${d} d ${h} h`, `${d} g ${h} sa`);
-const pace = s => T(`Full in ${s} at this pace`, `Bu hızla ${s} dolacak`);
+const pace = s => T(`Full in ${s} at this pace`, `Bu hızla ${s} tükenir`);
 const foot = `<div class="foot"><span class="sp">${T('Updated 17:12', 'Güncellendi 17:12')}</span>
   <span class="gb"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>${T('Settings', 'Ayarlar')}</span>
   <span class="gb"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg>${T('Refresh', 'Yenile')}</span>

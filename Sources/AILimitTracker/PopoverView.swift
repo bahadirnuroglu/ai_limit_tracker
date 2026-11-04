@@ -510,7 +510,7 @@ private struct ProviderCard: View {
 
     private struct Chip { let text: String; let color: Color }
 
-    /// Ad altındaki etiket: doldu / bu tempoyla ne zaman dolacak ("dolar" para birimi gibi okunuyordu)
+    /// Ad altındaki etiket: doldu / bu tempoyla ne zaman tükenir ("dolar" para birimi gibi okunuyordu)
     private var chip: Chip? {
         if let full = usage.limits.filter({ $0.percent >= 100 }).min(by: { ($0.resetsAt ?? .distantFuture) < ($1.resetsAt ?? .distantFuture) }) {
             let reset = full.resetsAt.map { " · \(Countdown.opens(at: $0))" } ?? ""
@@ -521,7 +521,7 @@ private struct ProviderCard: View {
             return usage.note.map { Chip(text: $0, color: palette.ink) }
         }
         let color = limit.percent >= 90 ? palette.alert : palette.notice
-        return Chip(text: L("Bu hızla \(Countdown.within(seconds: eta)) dolacak", "Full \(Countdown.within(seconds: eta)) at this pace"), color: color)
+        return Chip(text: L("Bu hızla \(Countdown.within(seconds: eta)) tükenir", "Full \(Countdown.within(seconds: eta)) at this pace"), color: color)
     }
 
     private func chipView(_ chip: Chip) -> some View {
@@ -1086,7 +1086,7 @@ struct CardPalette {
     let hintText: Color
     let hologramBlend: BlendMode
     let hologramStrength: Double
-    let notice: Color         // "Bu hızla 2 saatte dolacak"
+    let notice: Color         // "Bu hızla 2 saatte tükenir"
     let alert: Color          // %90+ ve "Doldu"
 
     static let silver = CardPalette(
