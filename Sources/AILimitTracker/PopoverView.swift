@@ -13,6 +13,7 @@ struct PopoverView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var palette: CardPalette { systemScheme == .dark ? .graphite : .silver }
     @State private var cardsHeight: CGFloat = 0
+    @State private var news: [String] = WhatsNew.pending   // güncellemeden sonra "Yeni" şeridi
     /// Kart alanının tavanı: ekranın %80'i, alt şerit ve kenar payı hariç
     private var maxCardsHeight: CGFloat { (NSScreen.main?.visibleFrame.height ?? 800) * 0.8 - 60 }
 
@@ -51,6 +52,7 @@ struct PopoverView: View {
             .scrollIndicators(cardsHeight > maxCardsHeight ? .automatic : .never)
             .frame(height: min(cardsHeight, maxCardsHeight))
             if let release = updater.available { updateBanner(release) }
+            if !news.isEmpty { newsBanner }
             footer
         }
         .padding(6)
@@ -127,6 +129,35 @@ struct PopoverView: View {
         .foregroundStyle(palette.ink)
         .padding(.leading, 12).padding(.trailing, 6).padding(.vertical, 6)
         .frame(minHeight: 34)
+        .glassOrMetal(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .environment(\.colorScheme, palette.scheme)
+        .opacity(shown ? 1 : 0)
+        .animation(.easeOut(duration: 0.3).delay(0.2), value: shown)
+    }
+
+    /// Güncellemeyle gelen yenilikler (WhatsNew); kapatılınca bir daha çıkmaz
+    private var newsBanner: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "sparkles").font(.system(size: 11, weight: .medium)).padding(.top, 1)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(L("Yeni", "New")).font(.system(size: 12, weight: .semibold))
+                ForEach(news, id: \.self) { line in
+                    Text(line).font(.system(size: 11.5)).fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Spacer(minLength: 4)
+            Button {
+                WhatsNew.dismiss()
+                withAnimation(.easeOut(duration: 0.2)) { news = [] }
+            } label: {
+                Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)).frame(width: 18, height: 18)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(L("Kapat", "Dismiss"))
+        }
+        .foregroundStyle(palette.ink)
+        .padding(.leading, 12).padding(.trailing, 8).padding(.vertical, 8)
         .glassOrMetal(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .environment(\.colorScheme, palette.scheme)
         .opacity(shown ? 1 : 0)

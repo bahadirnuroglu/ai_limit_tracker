@@ -68,7 +68,12 @@ kalıbı, her şeyi anlatan uzun cümleler YOK (kullanıcı "ai slop" buldu, iki
   Pencere sıfırlanma anıyla tanınır, kayıttaki an her okumada güncellenir, 1 saate kadar fark aynı pencere (eskiden 10 dk'lık
   dilim: Codex anı her okumada kaydırıyor, Claude saat sınırında oynuyordu, aynı eşik tekrar gidiyordu). "Açılınca haber ver"
   kurulu limitte "yenilendi" gönderilmez (ikisi aynı anda geliyordu).
-- HotKey.swift: ⌃⌥L sistem kısayolu (Carbon); MenuBarExtra'yı status bar düğmesine performClick ile açar
+- HotKey.swift: sistem kısayolu (Carbon; varsayılan ⌃⌥L), HotKey.shared; MenuBarExtra'yı status bar düğmesine performClick ile açar.
+  Kullanıcı değiştirebilir (v0.3.19): Ayarlar → Genel → Kısayol ve kurulumun Genel adımı ShortcutRecorder (tıkla, bas; Esc vazgeçer,
+  ⌫ kapatır; en az bir ⌘⌃⌥ şart; başka uygulamanınkiyse eskisi kalır). UserDefaults "hotKey" = [tuş kodu, Carbon değiştirici, etiket];
+  boş dizi = kapalı.
+- WhatsNew.swift: güncellemeden sonraki ilk açılışta popup'ta "Yeni" şeridi (son görülen sürümden sonraki satırlar, en fazla iki,
+  X ile kapanır, UserDefaults "whatsNewSeen"; sıfırdan kurulumda gösterilmez). Kullanıcıya anlatılacak özellik gelince başa satır ekle.
 - UpdateChecker.swift: GitHub Releases latest (repo: bahadirnuroglu/ai_limit_tracker). Şeritte "Güncelle": dmg'yi
   uygulama indirir, hdiutil ile bağlar, .app'i aynı diskte hazırlayıp replaceItemAt ile değiştirir, dmg'yi çıkarır,
   sh -c 'sleep 1; open' ile yeniden açar. Karantina yok → Gatekeeper sormaz. Hata → sürüm sayfası.

@@ -6,13 +6,11 @@ struct AILimitTrackerApp: App {
     @StateObject private var loginItem = LoginItem()  // açılışta başlatma, kurulumun Genel adımında açılır
     @StateObject private var updater = UpdateChecker.shared
 
-    private static let hotKey = HotKey { HotKey.toggleMenuBarWindow() }
-
     init() {
         // Dock ikonu yok, sadece menü çubuğu
         NSApplication.shared.setActivationPolicy(.accessory)
         Notifier.shared.setup()
-        _ = Self.hotKey
+        HotKey.shared.start { HotKey.toggleMenuBarWindow() }
     }
 
     var body: some Scene {

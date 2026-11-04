@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import SwiftUI
 
 /// İlk kurulum asistanı ve Ayarlar penceresi. Menü çubuğu popup'ı odak kaybedince kapandığı için
@@ -386,7 +387,7 @@ private struct GeneralPage: View {
                             }
                         } icon: { Image(systemName: "command") }
                         Spacer()
-                        KeyCaps(keys: ["⌃", "⌥", "L"])
+                        ShortcutRecorder()
                     }
                 }
             }
@@ -427,11 +428,13 @@ private struct DonePage: View {
             .background(.bar, in: RoundedRectangle(cornerRadius: 8))
             .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
             .frame(maxWidth: 360)
-            HStack(spacing: 6) {
-                Text(L("Ya da her yerden", "Or from anywhere")).foregroundStyle(.secondary)
-                KeyCaps(keys: ["⌃", "⌥", "L"])
+            if let shortcut = HotKey.shared.shortcut {
+                HStack(spacing: 6) {
+                    Text(L("Ya da her yerden", "Or from anywhere")).foregroundStyle(.secondary)
+                    KeyCaps(keys: shortcut.keys)
+                }
+                .font(.callout)
             }
-            .font(.callout)
             Spacer()
         }
         .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { bounce += 1 } }
@@ -502,7 +505,7 @@ private struct SettingsView: View {
             Section {
                 Toggle(L("Mac açılınca başlat", "Launch at login"), isOn: Binding(get: { loginItem.enabled },
                                                            set: { if $0 != loginItem.enabled { loginItem.toggle() } }))
-                LabeledContent(L("Kısayol", "Shortcut")) { KeyCaps(keys: ["⌃", "⌥", "L"]) }
+                LabeledContent(L("Kısayol", "Shortcut")) { ShortcutRecorder() }
             }
             Section {
                 UpdateRow(updater: .shared)
@@ -950,6 +953,68 @@ private struct ProviderLabel: View {
 }
 
 /// ⌃ ⌥ L tuş kapakları
+/// Kısayol kaydedici: tıkla, yeni tuşlara bas. Esc vazgeçer, ⌫ kısayolu kapatır. En az bir ⌘ ⌃ ⌥ gerekir;
+/// başka uygulamanın kısayoluysa eskisi kalır ve uyarı çıkar.
+private struct ShortcutRecorder: View {
+    @ObservedObject private var hotKey = HotKey.shared
+    @State private var recording = false
+    @State private var monitor: Any?
+    @State private var message: String?
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 3) {
+            Button { recording ? stop() : start() } label: {
+                if recording {
+                    Text(L("Kısayola bas…", "Press a shortcut…")).foregroundStyle(.secondary)
+                        .frame(minWidth: 96, minHeight: 22)
+                } else if let shortcut = hotKey.shortcut {
+                    KeyCaps(keys: shortcut.keys)
+                } else {
+                    Text(L("Yok", "None")).foregroundStyle(.secondary).frame(minWidth: 40, minHeight: 22)
+                }
+            }
+            .buttonStyle(.plain)
+            .padding(3)
+            .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(recording ? Color.accentColor : .clear, lineWidth: 2))
+            .help(L("Değiştirmek için tıkla", "Click to change"))
+            if let note = recording ? L("Esc vazgeçer, ⌫ kapatır", "Esc cancels, ⌫ turns it off") : message {
+                Text(note).font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .onDisappear { if recording { stop() } }
+    }
+
+    private func start() {
+        message = nil
+        recording = true
+        hotKey.pause()
+        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            switch Int(event.keyCode) {
+            case kVK_Escape: stop()
+            case kVK_Delete, kVK_ForwardDelete:
+                hotKey.set(nil); stop()
+            default:
+                guard let new = HotKey.shortcut(from: event) else {
+                    message = L("⌘, ⌃ ya da ⌥ ile birlikte bas", "Use it with ⌘, ⌃ or ⌥")
+                    return nil
+                }
+                if !hotKey.set(new) {
+                    message = L("\(new.display) başka bir uygulamada kullanılıyor", "\(new.display) is used by another app")
+                }
+                stop(resume: false)
+            }
+            return nil
+        }
+    }
+
+    private func stop(resume: Bool = true) {
+        if let monitor { NSEvent.removeMonitor(monitor) }
+        monitor = nil
+        recording = false
+        if resume { hotKey.resume() }
+    }
+}
+
 private struct KeyCaps: View {
     let keys: [String]
     var body: some View {
