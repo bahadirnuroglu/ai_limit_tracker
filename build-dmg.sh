@@ -64,4 +64,15 @@ rm -f "$RW"
 
 # .dmg dosyasının kendi ikonu (Finder'da görünür; bazı mesajlaşma uygulamaları bunu siler, disk ikonu kalır)
 osascript -l JavaScript -e "ObjC.import('AppKit'); \$.NSWorkspace.sharedWorkspace.setIconForFileOptions(\$.NSImage.alloc.initWithContentsOfFile('$PWD/AppIcon.icns'), '$PWD/$OUT', 0)" >/dev/null
+
+# Developer ID ile imzalandıysa: disk de imzalanır, Apple'a noter onayına gönderilir, onay diske işlenir
+# (tarayıcıdan indirilen dmg Gatekeeper uyarısı vermez). Giriş bilgisi: xcrun notarytool store-credentials ailimit-notary
+SIGNER=$(codesign -dv --verbose=2 "build/$NAME.app" 2>&1 | sed -n 's/^Authority=\(Developer ID Application:.*\)/\1/p' | head -1)
+if [ -n "$SIGNER" ]; then
+    codesign --force --timestamp --sign "$SIGNER" "$OUT"
+    echo "Noter onayı bekleniyor (birkaç dakika)…"
+    xcrun notarytool submit "$OUT" --keychain-profile ailimit-notary --wait
+    xcrun stapler staple "$OUT"
+    spctl -a -t open --context context:primary-signature -vv "$OUT"
+fi
 echo "Disk hazır: $OUT"

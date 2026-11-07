@@ -9,6 +9,8 @@ import Security
 final class UpdateChecker: ObservableObject {
     /// "kullanıcı/depo" — boşsa kontrol yapılmaz
     static let repo = "bahadirnuroglu/ai_limit_tracker"
+    /// Apple Developer ID takımı (yayın imzası; v0.4.0'dan beri)
+    static let teamID = "9MPXYG6RK3"
     /// Popup ve Ayarlar → Genel ("Güncellemeleri Denetle") aynı örneği kullanır
     static let shared = UpdateChecker()
 
@@ -159,7 +161,13 @@ final class UpdateChecker: ObservableObject {
             if SecCodeCopyDesignatedRequirement(selfStatic, [], &req) == errSecSuccess { requirement = req }
         }
         let flags = SecCSFlags(rawValue: kSecCSCheckAllArchitectures | kSecCSStrictValidate | kSecCSCheckNestedCode)
-        guard SecStaticCodeCheckValidity(code, flags, requirement) == errSecSuccess else { throw untrusted }
+        if SecStaticCodeCheckValidity(code, flags, requirement) == errSecSuccess { return }
+        // Geçiş: eski (kendinden imzalı) sertifikayla çalışan sürüm, Apple Developer ID'li yeni sürümü de kabul eder;
+        // yalnızca bizim takımın (9MPXYG6RK3) Apple onaylı sertifikası tutar
+        var devID: SecRequirement?
+        let team = "identifier \"\(Bundle.main.bundleIdentifier ?? "")\" and anchor apple generic and certificate leaf[subject.OU] = \"\(teamID)\""
+        guard requirement != nil, SecRequirementCreateWithString(team as CFString, [], &devID) == errSecSuccess,
+              SecStaticCodeCheckValidity(code, flags, devID) == errSecSuccess else { throw untrusted }
     }
 
     nonisolated private static func run(_ path: String, _ args: [String]) -> Int32 {

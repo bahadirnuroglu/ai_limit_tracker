@@ -18,9 +18,17 @@ if [ "$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOKEN"
     echo "GitHub token geçersiz ya da süresi dolmuş."; echo "$SAVE_HINT"; exit 1
 fi
 
-# Yayın sabit kimlikle imzalanmalı: uygulama içi güncelleme sonraki sürümlerde aynı sertifikayı doğrular
-security find-identity -p codesigning 2>/dev/null | grep -q "AI Limit Tracker Code Signing" \
-    || { echo "İmza kimliği yok. Bir kez çalıştır: bash tools/make-signing-cert.sh"; exit 1; }
+# Yayın Apple Developer ID ile imzalanıp noter onayı alır (build-dmg.sh). Köprü/eski yol: SIGN_ID="AI Limit Tracker Code Signing"
+if [ -z "${SIGN_ID:-}" ] || [[ "$SIGN_ID" == "Developer ID"* ]]; then
+    security find-identity -v -p codesigning 2>/dev/null | grep -q "Developer ID Application:" \
+        || { echo "Developer ID imza kimliği yok (Anahtar Zinciri)."; exit 1; }
+    xcrun notarytool history --keychain-profile ailimit-notary >/dev/null 2>&1 \
+        || { echo "Noter onayı giriş bilgisi yok. Bir kez çalıştır:"
+             echo "  xcrun notarytool store-credentials ailimit-notary --apple-id <Apple ID> --team-id 9MPXYG6RK3"; exit 1; }
+else
+    security find-identity -p codesigning 2>/dev/null | grep -q "$SIGN_ID" || { echo "İmza kimliği yok: $SIGN_ID"; exit 1; }
+fi
+export SIGN_ID
 
 VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Info.plist)
 DMG="dist/AI-Limit-Tracker-$VERSION.dmg"

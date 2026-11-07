@@ -22,6 +22,14 @@ kalıbı, her şeyi anlatan uzun cümleler YOK (kullanıcı "ai slop" buldu, iki
   AppleScript ile (uygulama 170,205 · Applications 470,205; ikisi arka plandaki okla eşleşmeli).
   Disk ikonu .VolumeIcon.icns + SetFile -a C; .dmg dosyasına da ikon verilir.
 - Yayın: `bash release.sh` (main push + GitHub Release + dmg eki; token Anahtar Zinciri "ailimit-github").
+  APPLE DEVELOPER ID (2026-11-07): "Developer ID Application: Ahmet Bahadir Nuroglu (9MPXYG6RK3)" Anahtar Zinciri'nde
+  (anahtar + G2 ara sertifika kurulu). build-app.sh varsayılan olarak onunla, --options runtime --timestamp imzalar;
+  build-dmg.sh dmg'yi imzalar, `notarytool submit --keychain-profile ailimit-notary --wait` + stapler. release.sh Developer ID
+  ve "ailimit-notary" profili yoksa durur (profil: kullanıcı `xcrun notarytool store-credentials ailimit-notary --apple-id …
+  --team-id 9MPXYG6RK3` çalıştırır, uygulamaya özel parolayla). GEÇİŞ: 0.3.20 köprü sürüm eski kendinden imzalı sertifikayla
+  (SIGN_ID="AI Limit Tracker Code Signing" bash release.sh); UpdateChecker.verify çalışanın DR'ı tutmazsa takım kuralını
+  (anchor apple generic + leaf OU 9MPXYG6RK3) kabul eder. install.sh ikisini de kabul eder. ≤0.3.19'daki kullanıcı doğrudan
+  Developer ID'li sürüme güncelleyemez (sürüm sayfasına düşer): köprü birkaç gün "latest" kalsın, sonra 0.4.0.
   İmza: tools/make-signing-cert.sh ile "AI Limit Tracker Code Signing" kimliği (kullanıcı bir kez çalıştırır); build-app.sh
   varsa onunla, yoksa ad-hoc imzalar; release.sh kimlik yoksa durur.
   Önce Info.plist sürümünü artır ve commit et. UpdateChecker.repo depoyu belirler.

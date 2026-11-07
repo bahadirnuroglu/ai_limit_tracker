@@ -32,15 +32,22 @@ lipo -create "$OBJ/$EXE-arm64" "$OBJ/$EXE-x86_64" -output "$APP/Contents/MacOS/$
 cp Info.plist "$APP/Contents/Info.plist"
 [ -f AppIcon.icns ] && cp AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
-# İmza: tools/make-signing-cert.sh ile üretilen sabit kimlik varsa o (Anahtar Zinciri izni güncellemelerde kalır,
-# uygulama içi güncelleme aynı sertifikayı doğrular); yoksa ad-hoc. Developer ID yok: Gatekeeper uyarısı her ikisinde de çıkar.
-SIGN_ID="AI Limit Tracker Code Signing"
-xattr -cr "$APP"
-if security find-identity -p codesigning 2>/dev/null | grep -q "$SIGN_ID"; then
-    codesign --force --sign "$SIGN_ID" "$APP"
-else
-    codesign --force --sign - "$APP"
+# İmza: Apple Developer ID varsa o (sertleştirilmiş çalışma ortamı + zaman damgası, noter onayı için şart); yoksa
+# tools/make-signing-cert.sh'nin eski kendinden imzalı kimliği; o da yoksa ad-hoc. SIGN_ID ortam değişkeniyle seçilebilir
+# (köprü sürüm eski kimlikle: SIGN_ID="AI Limit Tracker Code Signing").
+DEVID="Developer ID Application: Ahmet Bahadir Nuroglu (9MPXYG6RK3)"
+LEGACY="AI Limit Tracker Code Signing"
+if [ -z "${SIGN_ID:-}" ]; then
+    if security find-identity -v -p codesigning 2>/dev/null | grep -q "$DEVID"; then SIGN_ID="$DEVID"
+    elif security find-identity -p codesigning 2>/dev/null | grep -q "$LEGACY"; then SIGN_ID="$LEGACY"
+    else SIGN_ID="-"; fi
 fi
+xattr -cr "$APP"
+case "$SIGN_ID" in
+    "Developer ID"*) codesign --force --options runtime --timestamp --sign "$SIGN_ID" "$APP" ;;
+    *) codesign --force --sign "$SIGN_ID" "$APP" ;;
+esac
+echo "İmza: $SIGN_ID"
 
 if [ "${1:-}" = "--install" ]; then
     # Eski adlarla çalışan kopyaları da kapat (AILimit / ClaudeLimit dönemi)

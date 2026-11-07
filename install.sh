@@ -8,7 +8,9 @@ set -euo pipefail
 REPO="bahadirnuroglu/ai_limit_tracker"
 APP="AI Limit Tracker.app"
 BUNDLE_ID="com.bahadir.ailimit"
-CERT='certificate leaf = H"473065406b181a09b429af45f206147ab9d126fe"'   # tools/make-signing-cert.sh
+# Yayın imzası: Apple Developer ID (takım 9MPXYG6RK3) ya da eski sürümlerin kendinden imzalı sertifikası
+TEAM="9MPXYG6RK3"
+CERT="(anchor apple generic and certificate leaf[subject.OU] = \"$TEAM\") or certificate leaf = H\"473065406b181a09b429af45f206147ab9d126fe\""
 
 fail() { echo "Kurulum durdu: $1" >&2; exit 1; }
 
@@ -34,7 +36,7 @@ SRC="$TMP/mnt/$APP"
 [ -d "$SRC" ] || fail "diskte uygulama yok."
 [ "$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$SRC/Contents/Info.plist")" = "$BUNDLE_ID" ] \
     || fail "beklenmeyen uygulama."
-codesign --verify --deep --strict -R="identifier \"$BUNDLE_ID\" and $CERT" "$SRC" 2>/dev/null \
+codesign --verify --deep --strict -R="identifier \"$BUNDLE_ID\" and ($CERT)" "$SRC" 2>/dev/null \
     || fail "imza doğrulanamadı (yayın sertifikası tutmuyor)."
 
 # Yönetici değilse kullanıcının kendi Uygulamalar klasörüne
