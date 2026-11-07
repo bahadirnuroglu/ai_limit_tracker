@@ -10,7 +10,7 @@ final class UpdateChecker: ObservableObject {
     /// "kullanıcı/depo" — boşsa kontrol yapılmaz
     static let repo = "bahadirnuroglu/ai_limit_tracker"
     /// Apple Developer ID takımı (yayın imzası; v0.4.0'dan beri)
-    static let teamID = "9MPXYG6RK3"
+    nonisolated static let teamID = "9MPXYG6RK3"
     /// Popup ve Ayarlar → Genel ("Güncellemeleri Denetle") aynı örneği kullanır
     static let shared = UpdateChecker()
 
