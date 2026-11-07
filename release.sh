@@ -24,7 +24,8 @@ if [ -z "${SIGN_ID:-}" ] || [[ "$SIGN_ID" == "Developer ID"* ]]; then
         || { echo "Developer ID imza kimliği yok (Anahtar Zinciri)."; exit 1; }
     xcrun notarytool history --keychain-profile ailimit-notary >/dev/null 2>&1 \
         || { echo "Noter onayı giriş bilgisi yok. Bir kez çalıştır:"
-             echo "  xcrun notarytool store-credentials ailimit-notary --apple-id <Apple ID> --team-id 9MPXYG6RK3"; exit 1; }
+             echo "  bash tools/notary-setup.sh"; exit 1; }
+    NOTARIZED=1
 else
     security find-identity -p codesigning 2>/dev/null | grep -q "$SIGN_ID" || { echo "İmza kimliği yok: $SIGN_ID"; exit 1; }
 fi
@@ -47,13 +48,17 @@ if curl -fsS "${AUTH[@]}" "$API/releases/tags/v$VERSION" >/dev/null 2>&1; then
 fi
 
 # Sürüm notu İngilizce + Türkçe; isteğe bağlı "yenilikler" satırı: NOTES="..." bash release.sh
-BODY=$(VERSION="$VERSION" REPO="$REPO" NOTES="${NOTES:-}" python3 -c '
+BODY=$(VERSION="$VERSION" REPO="$REPO" NOTES="${NOTES:-}" NOTARIZED="${NOTARIZED:-}" python3 -c '
 import json, os
 v, repo, notes = os.environ["VERSION"], os.environ["REPO"], os.environ["NOTES"].strip()
+if os.environ["NOTARIZED"]:
+    how = ("Or open the dmg and drag the app to Applications.\n\n"
+           "Kurulum yukarıdaki tek satır ya da dmg (uygulamayı Applications\x27a sürükle).")
+else:
+    how = ("Or open the dmg and drag the app to Applications. First launch: System Settings → Privacy & Security → Open Anyway.\n\n"
+           "Kurulum yukarıdaki tek satır ya da dmg. dmg ile ilk açılışta Sistem Ayarları → Gizlilik ve Güvenlik → Yine de Aç.")
 body = (notes + "\n\n" if notes else "") + (
-    "```bash\ncurl -fsSL https://raw.githubusercontent.com/" + repo + "/main/install.sh | bash\n```\n\n"
-    "Or open the dmg and drag the app to Applications. First launch: System Settings → Privacy & Security → Open Anyway.\n\n"
-    "Kurulum yukarıdaki tek satır ya da dmg. dmg ile ilk açılışta Sistem Ayarları → Gizlilik ve Güvenlik → Yine de Aç.")
+    "```bash\ncurl -fsSL https://raw.githubusercontent.com/" + repo + "/main/install.sh | bash\n```\n\n" + how)
 print(json.dumps({"tag_name": "v" + v, "target_commitish": "main", "name": "AI Limit Tracker " + v, "body": body}))
 ')
 UPLOAD=$(curl -fsS "${AUTH[@]}" -X POST "$API/releases" -d "$BODY" \
