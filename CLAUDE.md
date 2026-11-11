@@ -36,7 +36,7 @@ kalıbı, her şeyi anlatan uzun cümleler YOK (kullanıcı "ai slop" buldu, iki
 - Tek satır kurulum: install.sh (repo kökü, main'den raw ile çalışır): latest dmg'yi curl ile indirir (karantina yok →
   Gatekeeper uyarısı yok), kimlik + sertifika (certificate leaf H"4730…") doğrular, /Applications (yazılamazsa
   ~/Applications) içine ditto, açar (-600'e karşı tekrar dener). Sertifika değişirse install.sh'taki hash güncellenmeli.
-  Gatekeeper'ı tarayıcı indirmesinde tamamen kaldırmak için Apple Developer ID + notarization gerekir (kullanıcı şimdilik istemedi).
+  v0.4.0'dan beri sürümler Developer ID + noter onaylı: tarayıcıdan indirilen dmg de uyarısız açılır (README'de "Open Anyway" yok).
 - Dağıtım paketi: `bash build-pkg.sh` -> dist/AI-Limit-Tracker-<sürüm>.pkg (sürüm Info.plist'ten).
   Developer ID yok: ad-hoc imzalı, imzasız pkg. Evrensel ikili (arm64+x86_64).
   BundleIsRelocatable=false; pre/postinstall pkg/scripts içinde (eskiyi kapatır, yeniyi açar).
@@ -175,7 +175,7 @@ kalıbı, her şeyi anlatan uzun cümleler YOK (kullanıcı "ai slop" buldu, iki
   her onAppear'da pencere alphaValue'yu 0->1 (0.18 sn) yapar. Her açılışta oynadığı log ile doğrulandı.
 
 ## Durum
-- YAYINDA: v0.3.20 (2026-11-07; Developer ID köprüsü, eski sertifikayla) · v0.3.19 (2026-11-04; özel kısayol, "Yeni" şeridi; v0.3.18 "Bu hızla … tükenir", alt şeritte Çıkış Yap; v0.3.17 menü çubuğunda yüzde, gereksiz bildirimler kalktı, popup tema hatası; v0.3.16 429 önleme + Çıkış Yap; v0.3.15 İngilizce arayüz + MIT; v0.3.1 ilk sabit sertifikalı sürüm). Yeni sürüm: Info.plist sürümünü artır, commit, `bash release.sh`.
+- YAYINDA: v0.4.0 (2026-11-11; ilk Developer ID + noter onaylı sürüm) · v0.3.20 (2026-11-07; Developer ID köprüsü, eski sertifikayla) · v0.3.19 (2026-11-04; özel kısayol, "Yeni" şeridi; v0.3.18 "Bu hızla … tükenir", alt şeritte Çıkış Yap; v0.3.17 menü çubuğunda yüzde, gereksiz bildirimler kalktı, popup tema hatası; v0.3.16 429 önleme + Çıkış Yap; v0.3.15 İngilizce arayüz + MIT; v0.3.1 ilk sabit sertifikalı sürüm). Yeni sürüm: Info.plist sürümünü artır, commit, `bash release.sh`.
   Kullanıcı işler bitince TOPLU sürüm istiyor. Token: Anahtar Zinciri "ailimit-github" (fine-grained, sadece
   ai_limit_tracker, Contents: Read and write + Metadata); kullanıcı terminale yapıştırarak kaydeder, sohbete değil.
 - Endpoint'ler dahili ve belgesiz; değişebilir.

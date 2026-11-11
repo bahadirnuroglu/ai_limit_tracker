@@ -13,9 +13,8 @@ There are similar apps, this is my take on it.
 curl -fsSL https://raw.githubusercontent.com/bahadirnuroglu/ai_limit_tracker/main/install.sh | bash
 ```
 
-Or get the dmg from [Releases](https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest). The app isn't notarized,
-so macOS blocks it the first time. Allow it in System Settings → Privacy & Security → Open Anyway.
-The Terminal line skips that step.
+Or get the dmg from [Releases](https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest) and drag the app to
+Applications. It's signed and notarized by Apple, so it opens without a warning.
 
 macOS 14 or later, Apple silicon and Intel. English and Turkish.
 
@@ -55,7 +54,7 @@ Claude, Codex ve Cursor limitleri Mac'in menü çubuğunda. Üçünü aynı anda
 duruyordum, hafta sonu kendime yaptım.
 
 Kurulum için yukarıdaki tek satır ya da [Releases](https://github.com/bahadirnuroglu/ai_limit_tracker/releases/latest)
-sayfasındaki dmg. dmg ile kurarsan ilk açılışta Sistem Ayarları → Gizlilik ve Güvenlik → Yine de Aç.
+sayfasındaki dmg. Apple imzalı ve onaylı, uyarısız açılır.
 macOS 14 ve üstü, Türkçe ve İngilizce.
 
 </details>
